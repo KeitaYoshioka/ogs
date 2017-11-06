@@ -71,6 +71,7 @@ void PhaseFieldStaggeredProcess::assembleWithJacobianConcreteProcess(
       dx_dx, M, K, b, Jac, _coupling_term);
 }
 
+
 void PhaseFieldStaggeredProcess::computeSecondaryVariableConcrete(
     const double t, GlobalVector const &x) {
   DBUG("Compute damage gradient for PhaseFieldStaggeredProcess.");
