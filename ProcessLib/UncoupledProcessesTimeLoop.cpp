@@ -994,6 +994,11 @@ bool UncoupledProcessesTimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
         auto& pcs = spd->process;
         auto& x = *_process_solutions[pcs_idx];
         pcs.postTimestep(x);
+        StaggeredCouplingTerm coupling_term(
+            spd->coupled_processes,
+            _solutions_of_coupled_processes[pcs_idx], 0.0);
+        spd->process.setStaggeredCouplingTerm(&coupling_term);
+
         pcs.computeSecondaryVariable(t, x);
 
         ++pcs_idx;
