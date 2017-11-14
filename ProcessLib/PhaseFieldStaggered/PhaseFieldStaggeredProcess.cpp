@@ -74,14 +74,14 @@ void PhaseFieldStaggeredProcess::assembleWithJacobianConcreteProcess(
 
 void PhaseFieldStaggeredProcess::computeSecondaryVariableConcrete(
     const double t, GlobalVector const &x) {
-  DBUG("Compute damage gradient for PhaseFieldStaggeredProcess.");
+//  DBUG("Compute damage gradient.");
   GlobalExecutor::executeMemberOnDereferenced(
       &PhaseFieldStaggeredLocalAssemblerInterface::computeSecondaryVariable,
       _local_assemblers, *_local_to_global_index_map, t, x, _coupling_term);
 }
 
 void PhaseFieldStaggeredProcess::setStaggeredCouplingTermToLocalAssemblers() {
-  DBUG("Compute the gradient of damage for small deformation");
+
   GlobalExecutor::executeMemberOnDereferenced(
       &PhaseFieldStaggeredLocalAssemblerInterface::setStaggeredCouplingTerm,
       _local_assemblers, _coupling_term);

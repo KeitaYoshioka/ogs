@@ -954,19 +954,21 @@ bool UncoupledProcessesTimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
             // Check the convergence of the coupling iteration
             auto& x_old = *_solutions_of_last_cpl_iteration[pcs_idx];
             MathLib::LinAlg::axpy(x_old, -1.0, x);
-            _global_coupling_conv_crit->checkResidual(x_old);
+            _global_coupling_conv_crit->checkDeltaX(x_old,x);//checkResidual(x_old);
             coupling_iteration_converged =
                 coupling_iteration_converged &&
                 _global_coupling_conv_crit->isSatisfied();
 
-            if (coupling_iteration_converged)
-                break;
             MathLib::LinAlg::copy(x, x_old);
+
+           /* if (pcs_idx ==0 coupling_iteration_converged )
+                break;
+            */
 
             ++pcs_idx;
         }  // end of for (auto& spd : _per_process_data)
 
-        if (coupling_iteration_converged)
+        if (coupling_iteration_converged )
             break;
 
         if (!nonlinear_solver_succeeded)

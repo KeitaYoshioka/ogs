@@ -126,17 +126,18 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
 
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
+        double const strain_energy_tensile = strain_energy_tensile_ips[ip];
 
         // phasefield equation.
         local_Jac.noalias() +=
             (gc * (0.5 * N.transpose() * N / ls +
                    2 * dNdx.transpose() * dNdx * ls) +
-             N.transpose() * N * strain_energy_tensile_ips[ip]) *
+             N.transpose() * N * strain_energy_tensile) *
             w;
 
         local_rhs.noalias() -=
-            (2 * dNdx.transpose() * dNdx * ls * d +
-             N.transpose() * d_ip * 2 * strain_energy_tensile_ips[ip] -
+            (2 * dNdx.transpose() * dNdx * ls * gc * d +
+             N.transpose() * d_ip * 2 * strain_energy_tensile -
              N.transpose() * 0.5 * gc / ls * (1 - d_ip)) *
             w;
     }

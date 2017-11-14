@@ -211,6 +211,19 @@ public:
     }
   }
 
+  void assembleWithJacobian(
+      double const t, std::vector<double> const& local_x,
+      std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
+      const double /*dx_dx*/, std::vector<double>& /*local_M_data*/,
+      std::vector<double>& /*local_K_data*/, std::vector<double>& local_b_data,
+      std::vector<double>& local_Jac_data) override
+  {
+      std::vector<double> local_dummy_d;
+      local_dummy_d.resize(local_b_data.size());
+      assembleWithCoupledPhaseFieldJacobian(t, local_x, local_Jac_data,
+                                            local_b_data, local_dummy_d);
+  }
+
   void assembleWithCoupledPhaseFieldJacobian(
       double const t, std::vector<double> const &local_u,
       std::vector<double> &local_Jac_data, std::vector<double> &local_b_data,
@@ -253,14 +266,6 @@ public:
                                         typename BMatricesType::BMatrixType>(
               dNdx, N, x_coord, _is_axially_symmetric);
 
-      // How to access to the material properties?
-      double const k =1.e-8; //_process_data.residual_stiffness(t, x_position)[0];
-      double d_ip = 0.;
-      NumLib::shapeFunctionInterpolate(local_d, N, d_ip);
-      double const degradation = d_ip * d_ip * (1 - k) + k;
-      _ip_data[ip].updateConstitutiveRelation(t, x_position, /*local_u,*/
-                                              degradation);
-
       auto const &eps_prev = _ip_data[ip].eps_prev;
       auto const &sigma_real_prev = _ip_data[ip].sigma_real_prev;
 
@@ -271,13 +276,23 @@ public:
       eps.noalias() =
           B * Eigen::Map<typename BMatricesType::NodalForceVectorType const>(
                   local_u.data(), ShapeFunction::NPOINTS * DisplacementDim);
+      // How to access to the material properties?
+      double const k =1.e-8; //_process_data.residual_stiffness(t, x_position)[0];
+      double d_ip = 0.;
+      NumLib::shapeFunctionInterpolate(local_d, N, d_ip);
+      double const degradation = d_ip * d_ip * (1 - k) + k;
+      _ip_data[ip].updateConstitutiveRelation(t, x_position, /*local_u,*/
+                                              degradation);
 
-      auto &&solution = _ip_data[ip].solid_material.integrateStress(
+
+
+
+/*      auto &&solution = _ip_data[ip].solid_material.integrateStress(
           t, x_position, _process_data.dt, eps_prev, eps, sigma_real_prev,
           *state);
 
       if (!solution)
-        OGS_FATAL("Computation of local constitutive relation failed.");
+        OGS_FATAL("Computation of local constitutive relation failed.");*/
 
       auto const &C_tensile = _ip_data[ip].C_tensile;
       auto const &C_compressive = _ip_data[ip].C_compressive;
