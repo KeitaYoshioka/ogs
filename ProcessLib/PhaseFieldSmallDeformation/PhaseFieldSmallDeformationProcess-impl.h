@@ -12,8 +12,8 @@
 #include <cassert>
 
 #include "BaseLib/Functional.h"
-#include "ProcessLib/SmallDeformation/CreateLocalAssemblers.h"
 #include "ProcessLib/Process.h"
+#include "ProcessLib/SmallDeformation/CreateLocalAssemblers.h"
 
 #include "PhaseFieldSmallDeformationFEM.h"
 

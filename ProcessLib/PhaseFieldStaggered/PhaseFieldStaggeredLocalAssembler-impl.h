@@ -128,18 +128,39 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
         double const strain_energy_tensile = strain_energy_tensile_ips[ip];
 
+        int const atnum = 2;
+
         // phasefield equation.
-        local_Jac.noalias() +=
+   /*     local_Jac.noalias() +=
             (gc * (0.5 * N.transpose() * N / ls +
                    2 * dNdx.transpose() * dNdx * ls) +
-             N.transpose() * N * strain_energy_tensile) *
+             2* N.transpose() * N * strain_energy_tensile) *
             w;
 
         local_rhs.noalias() -=
             (2 * dNdx.transpose() * dNdx * ls * gc * d +
              N.transpose() * d_ip * 2 * strain_energy_tensile -
              N.transpose() * 0.5 * gc / ls * (1 - d_ip)) *
-            w;
+            w;*/
+
+        if (atnum == 2)
+        {
+            local_Jac.noalias() += (2 * N.transpose() * N * strain_energy_tensile
+                                    + gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) * w;
+
+            local_rhs.noalias() -=
+                (N.transpose() * d_ip * 2 * strain_energy_tensile +
+                 gc *( (d_ip - 1) * N.transpose() / ls + dNdx.transpose() * dNdx * ls * d )) * w;
+        }
+        else if(atnum == 1)
+        {
+            local_Jac.noalias() += (2 * N.transpose() * N * strain_energy_tensile
+                                    + gc * (0.75 * dNdx.transpose() * dNdx * ls)) * w;
+
+            local_rhs.noalias() -=
+                (N.transpose() * d_ip * 2 * strain_energy_tensile +
+                 gc *( 0.375 * N.transpose() / ls + dNdx.transpose() * dNdx * ls * d)) * w;
+        }
     }
 }
 

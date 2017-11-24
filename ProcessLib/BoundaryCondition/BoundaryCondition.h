@@ -62,6 +62,16 @@ public:
         // Therefore there is nothing to do here.
     }
 
+    virtual void preTimestep(const double /*t*/, GlobalVector const& /*x*/,
+                             const NumLib::LocalToGlobalIndexMap& /* dof_table*/)
+    {
+        // By default it is assumed that the BC is not an essential BC.
+        // Therefore there is nothing to do here.
+    }
+
+    //    virtual void postTimestep(const double t, GlobalVector const& x, const
+    //    NumLib::LocalToGlobalIndexMap& dof_table);
+
     virtual ~BoundaryCondition() = default;
 };
 
@@ -73,9 +83,8 @@ public:
     virtual std::unique_ptr<BoundaryCondition> createBoundaryCondition(
         const BoundaryConditionConfig& config,
         const NumLib::LocalToGlobalIndexMap& dof_table,
-        const MeshLib::Mesh& mesh,
-        const int variable_id, const unsigned integration_order,
-        const unsigned shapefunction_order,
+        const MeshLib::Mesh& mesh, const int variable_id,
+        const unsigned integration_order, const unsigned shapefunction_order,
         const std::vector<std::unique_ptr<ProcessLib::ParameterBase>>&
             parameters);
 
@@ -84,8 +93,7 @@ protected:
         const BoundaryConditionConfig& config,
         const NumLib::LocalToGlobalIndexMap& dof_table,
         const MeshLib::Mesh& mesh, const int variable_id,
-        const unsigned integration_order,
-        const unsigned shapefunction_order,
+        const unsigned integration_order, const unsigned shapefunction_order,
         const std::vector<std::unique_ptr<ProcessLib::ParameterBase>>&
             parameters);
 
@@ -126,6 +134,16 @@ protected:
         const unsigned integration_order, const unsigned shapefunction_order,
         const std::vector<std::unique_ptr<ProcessLib::ParameterBase>>&
             parameters);
+
+    virtual std::unique_ptr<BoundaryCondition>
+    createSolutionDependentDirichletBoundaryCondition(
+        const BoundaryConditionConfig& config,
+        const NumLib::LocalToGlobalIndexMap& dof_table,
+        const MeshLib::Mesh& mesh, const int variable_id,
+        const unsigned /*integration_order*/,
+        const unsigned /*shapefunction_order*/,
+        const std::vector<
+            std::unique_ptr<ProcessLib::ParameterBase>>& /*parameters*/);
 
     static std::vector<MeshLib::Element*> getClonedElements(
         MeshGeoToolsLib::BoundaryElementsSearcher& boundary_element_searcher,

@@ -30,7 +30,8 @@ public:
     getKnownSolutions(double const t) const
     {
         auto const n_bcs = _boundary_conditions.size();
-        for (std::size_t i=0; i<n_bcs; ++i) {
+        for (std::size_t i = 0; i < n_bcs; ++i)
+        {
             auto const& bc = *_boundary_conditions[i];
             auto& dirichlet_storage = _dirichlet_bcs[i];
             bc.getEssentialBCValues(t, dirichlet_storage);
@@ -44,11 +45,32 @@ public:
         NumLib::LocalToGlobalIndexMap const& dof_table,
         unsigned const integration_order);
 
+    void preTimestep(const double t, GlobalVector const& x,
+                     NumLib::LocalToGlobalIndexMap const& dof_table)
+    {
+        auto const n_bcs = _boundary_conditions.size();
+        for (std::size_t i = 0; i < n_bcs; ++i)
+        {
+            auto& bc = *_boundary_conditions[i];
+            bc.preTimestep(t, x, dof_table);
+        }
+    }
+    /*
+    void postTimestep(const double t, GlobalVector const& x,
+    NumLib::LocalToGlobalIndexMap const& dof_table)
+    {
+        auto const n_bcs = _boundary_conditions.size();
+        for (std::size_t i=0; i<n_bcs; ++i) {
+            auto const& bc = *_boundary_conditions[i];
+            bc.postTimestep(t, x, dof_table);
+        }
+    }
+*/
 private:
-    mutable std::vector<NumLib::IndexValueVector<GlobalIndexType>> _dirichlet_bcs;
+    mutable std::vector<NumLib::IndexValueVector<GlobalIndexType>>
+        _dirichlet_bcs;
     std::vector<std::unique_ptr<BoundaryCondition>> _boundary_conditions;
     std::vector<std::unique_ptr<ParameterBase>> const& _parameters;
 };
-
 
 }  // ProcessLib

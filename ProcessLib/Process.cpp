@@ -245,6 +245,8 @@ void Process::preTimestep(GlobalVector const& x, const double t,
 
     MathLib::LinAlg::setLocalAccessibleVector(x);
     preTimestepConcreteProcess(x, t, delta_t);
+
+    _boundary_conditions.preTimestep(t, x, *_local_to_global_index_map);
 }
 
 void Process::postTimestep(GlobalVector const& x)

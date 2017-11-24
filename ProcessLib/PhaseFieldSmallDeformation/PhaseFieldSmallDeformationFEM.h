@@ -266,12 +266,9 @@ public:
                                         typename BMatricesType::BMatrixType>(
               dNdx, N, x_coord, _is_axially_symmetric);
 
-      auto const &eps_prev = _ip_data[ip].eps_prev;
-      auto const &sigma_real_prev = _ip_data[ip].sigma_real_prev;
-
       auto &eps = _ip_data[ip].eps;
       auto &sigma_real = _ip_data[ip].sigma_real;
-      auto &state = _ip_data[ip].material_state_variables;
+//      auto &sigma_tensile = _ip_data[ip].sigma_tensile;
 
       eps.noalias() =
           B * Eigen::Map<typename BMatricesType::NodalForceVectorType const>(
@@ -284,15 +281,6 @@ public:
       _ip_data[ip].updateConstitutiveRelation(t, x_position, /*local_u,*/
                                               degradation);
 
-
-
-
-/*      auto &&solution = _ip_data[ip].solid_material.integrateStress(
-          t, x_position, _process_data.dt, eps_prev, eps, sigma_real_prev,
-          *state);
-
-      if (!solution)
-        OGS_FATAL("Computation of local constitutive relation failed.");*/
 
       auto const &C_tensile = _ip_data[ip].C_tensile;
       auto const &C_compressive = _ip_data[ip].C_compressive;

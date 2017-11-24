@@ -211,6 +211,7 @@ protected:
     /// implemented in MathLib::GaussLegendre.
     unsigned const _integration_order;
 
+
 private:
     GlobalSparsityPattern _sparsity_pattern;
 

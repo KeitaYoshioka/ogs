@@ -325,6 +325,7 @@ public:
                 history_variable = history_variable_prev;
             }
 
+            history_variable = strain_energy_tensile;
             //
             // phasefield equation, phasefield part.
             //
