@@ -105,7 +105,6 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
     auto local_rhs = MathLib::createZeroedVector<RhsVector>(local_rhs_data,
                                                             local_matrix_size);
 
-    // Not sure about getting d
     auto d = MathLib::toVector<NodalVectorType>(local_x, local_matrix_size);
 
     unsigned const n_integration_points =
@@ -125,16 +124,32 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
 
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
-        double const strain_energy_tensile = strain_energy_tensile_ips[ip];
+        double strain_energy_tensile = strain_energy_tensile_ips[ip];
 
         auto& ip_data = _ip_data[ip];
         ip_data.strain_energy_tensile = strain_energy_tensile;
-        double const delta_strain_energy_tensile =
-            ip_data.delta_strain_energy_tensile;
 
+        // TODO: following 3 variables should be set from input file
+        bool use_history_variable = false;
         int coupling_level = 1;
+        int const atnum = 2; //atnum = 1 will require Variational-Inequality (VI) non-linear solver e.g.
 
-        int const atnum = 2;
+        if (use_history_variable)
+        {
+            double history_variable = _ip_data[ip].history_variable;
+            double history_variable_prev = _ip_data[ip].history_variable_prev;
+
+            if(history_variable < strain_energy_tensile)
+            {
+                history_variable = strain_energy_tensile;
+            }
+            else{
+                history_variable = history_variable_prev;
+            }
+
+            strain_energy_tensile = history_variable;
+        }
+
 
 
         if (atnum == 2)
@@ -154,9 +169,12 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
             }
             else if (coupling_level == 2)
             {
+                double const delta_strain_energy_tensile =
+                    ip_data.delta_strain_energy_tensile;
+
                 local_rhs.noalias() -=
                     (N.transpose() * d_ip * 2 *
-                         (strain_energy_tensile - delta_strain_energy_tensile) +
+                         (strain_energy_tensile + delta_strain_energy_tensile) +
                      gc * ((d_ip - 1) * N.transpose() / ls +
                            dNdx.transpose() * dNdx * ls * d)) *
                     w;

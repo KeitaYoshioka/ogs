@@ -315,16 +315,11 @@ public:
                 1.e-8;  //_process_data.residual_stiffness(t, x_position)[0];
             double d_ip = 0.;
             NumLib::shapeFunctionInterpolate(local_d, N, d_ip);
-            _ip_data[ip].d_ip = d_ip;
-            double d_ip_prev = _ip_data[ip].d_ip_prev;
-            double delta_d_ip = d_ip - d_ip_prev;
             double const degradation = d_ip * d_ip * (1 - k) + k;
 
             _ip_data[ip].updateConstitutiveRelation(t, x_position, /*local_u,*/
                                                     degradation);
-
             auto& sigma_real = _ip_data[ip].sigma_real;
-            auto& sigma_tensile = _ip_data[ip].sigma_tensile;
 
             auto const& C_tensile = _ip_data[ip].C_tensile;
             auto const& C_compressive = _ip_data[ip].C_compressive;
@@ -342,9 +337,13 @@ public:
             }
             else if (coupling_level == 2)
             {
+                auto& sigma_tensile = _ip_data[ip].sigma_tensile;
+                _ip_data[ip].d_ip = d_ip;
+                double d_ip_prev = _ip_data[ip].d_ip_prev;
+                double delta_d_ip = d_ip - d_ip_prev;
                 local_b.noalias() -=
                     (B.transpose() *
-                         (sigma_real + 2*d_ip*delta_d_ip*sigma_tensile) -
+                         (sigma_real + 2 * d_ip * delta_d_ip * sigma_tensile) -
                      N_u_op.transpose() * rho * b) *
                     w;
             }

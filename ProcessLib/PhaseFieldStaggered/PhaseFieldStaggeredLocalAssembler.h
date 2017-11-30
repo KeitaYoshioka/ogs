@@ -39,12 +39,20 @@ const unsigned NUM_NODAL_DOF = 1;
 
 struct IntegrationPointData final
 {
-    double strain_energy_tensile=0;
-    double strain_energy_tensile_prev=0;
-    double delta_strain_energy_tensile=0;
+    double strain_energy_tensile = 0;
+    double strain_energy_tensile_prev = 0;
+    double delta_strain_energy_tensile = 0;
+    double history_variable = 0;
+    double history_variable_prev = 0;
 
-    void pushBackState() {
-        delta_strain_energy_tensile = strain_energy_tensile - strain_energy_tensile_prev;
+    void pushBackState()
+    {
+        if (history_variable_prev < history_variable)
+        {
+            history_variable_prev = history_variable;
+        }
+        delta_strain_energy_tensile =
+            strain_energy_tensile - strain_energy_tensile_prev;
         strain_energy_tensile_prev = strain_energy_tensile;
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
