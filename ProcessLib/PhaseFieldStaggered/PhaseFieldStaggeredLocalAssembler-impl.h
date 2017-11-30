@@ -26,14 +26,14 @@ namespace PhaseFieldStaggered
 {
 template <typename ShapeFunction, typename IntegrationMethod,
           unsigned GlobalDim>
-void PhaseFieldStaggeredLocalAssembler<
-    ShapeFunction, IntegrationMethod,
-    GlobalDim>::assembleWithCoupledTerm(double const /*t*/,
-                                        std::vector<double> const& /*local_x*/,
-                                        std::vector<double>& /*local_M_data*/,
-                                        std::vector<double>& /*local_K_data*/,
-                                        std::vector<double>& /*local_b_data*/,
-                                        LocalCouplingTerm const& /*coupled_term*/)
+void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
+                                       GlobalDim>::
+    assembleWithCoupledTerm(double const /*t*/,
+                            std::vector<double> const& /*local_x*/,
+                            std::vector<double>& /*local_M_data*/,
+                            std::vector<double>& /*local_K_data*/,
+                            std::vector<double>& /*local_b_data*/,
+                            LocalCouplingTerm const& /*coupled_term*/)
 {
     OGS_FATAL("assembleWithCoupledTerm in PFStaggered is not implemented");
 }
@@ -42,15 +42,13 @@ template <typename ShapeFunction, typename IntegrationMethod,
           unsigned GlobalDim>
 void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
                                        GlobalDim>::
-    assembleWithJacobianAndCoupling(double const t,
-                                    std::vector<double> const& local_x,
-                                    std::vector<double> const& /*local_xdot*/,
-                                    const double /*dxdot_dx*/, const double /*dx_dx*/,
-                                    std::vector<double>& /*local_M_data*/,
-                                    std::vector<double>& /*local_K_data*/,
-                                    std::vector<double>& local_b_data,
-                                    std::vector<double>& local_Jac_data,
-                                    LocalCouplingTerm const& coupled_term)
+    assembleWithJacobianAndCoupling(
+        double const t, std::vector<double> const& local_x,
+        std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
+        const double /*dx_dx*/, std::vector<double>& /*local_M_data*/,
+        std::vector<double>& /*local_K_data*/,
+        std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
+        LocalCouplingTerm const& coupled_term)
 {
     SpatialPosition pos;
     pos.setElementID(_element.getID());
@@ -74,8 +72,8 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
             pos.setElementID(_element.getID());
 
             assembleWithCoupledPhaseFieldStaggered(
-                t, local_x, strain_energy_tensile_ips,
-                local_Jac_data, local_b_data);
+                t, local_x, strain_energy_tensile_ips, local_Jac_data,
+                local_b_data);
         }
         else
         {
@@ -93,7 +91,8 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
     assembleWithCoupledPhaseFieldStaggered(
         double const t, std::vector<double> const& local_x,
         std::vector<double> const& strain_energy_tensile_ips,
-        std::vector<double>& local_Jac_data, std::vector<double>& local_rhs_data)
+        std::vector<double>& local_Jac_data,
+        std::vector<double>& local_rhs_data)
 {
     auto const local_matrix_size = local_x.size();
     // This assertion is valid only if all nodal d.o.f. use the same shape
@@ -128,38 +127,53 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
         double const strain_energy_tensile = strain_energy_tensile_ips[ip];
 
+        auto& ip_data = _ip_data[ip];
+        ip_data.strain_energy_tensile = strain_energy_tensile;
+        double const delta_strain_energy_tensile =
+            ip_data.delta_strain_energy_tensile;
+
+        int coupling_level = 1;
+
         int const atnum = 2;
 
-        // phasefield equation.
-   /*     local_Jac.noalias() +=
-            (gc * (0.5 * N.transpose() * N / ls +
-                   2 * dNdx.transpose() * dNdx * ls) +
-             2* N.transpose() * N * strain_energy_tensile) *
-            w;
-
-        local_rhs.noalias() -=
-            (2 * dNdx.transpose() * dNdx * ls * gc * d +
-             N.transpose() * d_ip * 2 * strain_energy_tensile -
-             N.transpose() * 0.5 * gc / ls * (1 - d_ip)) *
-            w;*/
 
         if (atnum == 2)
         {
-            local_Jac.noalias() += (2 * N.transpose() * N * strain_energy_tensile
-                                    + gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) * w;
+            local_Jac.noalias() +=
+                (2 * N.transpose() * N * strain_energy_tensile +
+                 gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) *
+                w;
 
-            local_rhs.noalias() -=
-                (N.transpose() * d_ip * 2 * strain_energy_tensile +
-                 gc *( (d_ip - 1) * N.transpose() / ls + dNdx.transpose() * dNdx * ls * d )) * w;
+            if (coupling_level == 1)
+            {
+                local_rhs.noalias() -=
+                    (N.transpose() * d_ip * 2 * strain_energy_tensile +
+                     gc * ((d_ip - 1) * N.transpose() / ls +
+                           dNdx.transpose() * dNdx * ls * d)) *
+                    w;
+            }
+            else if (coupling_level == 2)
+            {
+                local_rhs.noalias() -=
+                    (N.transpose() * d_ip * 2 *
+                         (strain_energy_tensile - delta_strain_energy_tensile) +
+                     gc * ((d_ip - 1) * N.transpose() / ls +
+                           dNdx.transpose() * dNdx * ls * d)) *
+                    w;
+            }
         }
-        else if(atnum == 1)
+        else if (atnum == 1)
         {
-            local_Jac.noalias() += (2 * N.transpose() * N * strain_energy_tensile
-                                    + gc * (0.75 * dNdx.transpose() * dNdx * ls)) * w;
+            local_Jac.noalias() +=
+                (2 * N.transpose() * N * strain_energy_tensile +
+                 gc * (0.75 * dNdx.transpose() * dNdx * ls)) *
+                w;
 
             local_rhs.noalias() -=
                 (N.transpose() * d_ip * 2 * strain_energy_tensile +
-                 gc *( 0.375 * N.transpose() / ls + dNdx.transpose() * dNdx * ls * d)) * w;
+                 gc * (0.375 * N.transpose() / ls +
+                       dNdx.transpose() * dNdx * ls * d)) *
+                w;
         }
     }
 }

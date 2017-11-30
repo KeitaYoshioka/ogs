@@ -30,7 +30,9 @@ struct PhaseFieldStaggeredProcessData
     PhaseFieldStaggeredProcessData(PhaseFieldStaggeredProcessData&& other)
         : residual_stiffness(other.residual_stiffness),
           crack_resistance(other.crack_resistance),
-          crack_length_scale(other.crack_length_scale)
+          crack_length_scale(other.crack_length_scale),
+          dt{other.dt},
+          t{other.t}
     {
     }
 
@@ -47,6 +49,8 @@ struct PhaseFieldStaggeredProcessData
     Parameter<double> const& residual_stiffness;
     Parameter<double> const& crack_resistance;
     Parameter<double> const& crack_length_scale;
+    double dt = 0;
+    double t =0;
 };
 
 }  // namespace PhaseFieldStaggered

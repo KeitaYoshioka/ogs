@@ -52,6 +52,9 @@ private:
       const double dxdot_dx, const double dx_dx, GlobalMatrix& M,
       GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac) override;
 
+  void preTimestepConcreteProcess(GlobalVector const& x, double const t,
+                                  double const dt) override;
+
   PhaseFieldStaggeredProcessData _process_data;
 //  const std::unique_ptr<PhaseFieldStaggeredProcessData> _process_data;
   std::vector<std::unique_ptr<PhaseFieldStaggeredLocalAssemblerInterface>>
