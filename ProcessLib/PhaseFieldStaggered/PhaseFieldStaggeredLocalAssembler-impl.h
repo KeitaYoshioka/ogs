@@ -65,6 +65,8 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
                     PhaseFieldSmallDeformationProcess<GlobalDim> const&>(
                 coupled_process_pair.second);
 
+            const auto local_u = coupled_term.local_coupled_xs.at(
+                    coupled_process_pair.first);
             auto const strain_energy_tensile_ips =
                 pcs.getIntStrainEnergyTensile(_element.getID());
 
@@ -72,7 +74,7 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
             pos.setElementID(_element.getID());
 
             assembleWithCoupledPhaseFieldStaggered(
-                t, local_x, strain_energy_tensile_ips, local_Jac_data,
+                t, local_x, strain_energy_tensile_ips, local_u, local_Jac_data,
                 local_b_data);
         }
         else
@@ -91,6 +93,7 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
     assembleWithCoupledPhaseFieldStaggered(
         double const t, std::vector<double> const& local_x,
         std::vector<double> const& strain_energy_tensile_ips,
+        std::vector<double> const& local_u,
         std::vector<double>& local_Jac_data,
         std::vector<double>& local_rhs_data)
 {
@@ -106,6 +109,8 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
                                                             local_matrix_size);
 
     auto d = MathLib::toVector<NodalVectorType>(local_x, local_matrix_size);
+    //Multiply local_matrix_size with displacement dim
+    auto u = MathLib::toVector<NodalVectorType>(local_u, local_matrix_size*GlobalDim);
 
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
@@ -133,6 +138,8 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
         bool use_history_variable = false;
         int coupling_level = 1;
         int const atnum = 2; //atnum = 1 will require Variational-Inequality (VI) non-linear solver e.g.
+        bool const has_CrackPres = false;
+        double const pres = 1.0;
 
         if (use_history_variable)
         {
@@ -151,7 +158,6 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
         }
 
 
-
         if (atnum == 2)
         {
             local_Jac.noalias() +=
@@ -161,11 +167,23 @@ void PhaseFieldStaggeredLocalAssembler<ShapeFunction, IntegrationMethod,
 
             if (coupling_level == 1)
             {
-                local_rhs.noalias() -=
+                if(has_CrackPres)
+                {
+                    local_rhs.noalias() -=
+                    (N.transpose() * d_ip * 2 * strain_energy_tensile +
+                     gc * ((d_ip - 1) * N.transpose() / ls +
+                           dNdx.transpose() * dNdx * ls * d)
+                     + pres * u.transpose() * dNdx) *
+                    w;
+                }
+                else{
+                    local_rhs.noalias() -=
                     (N.transpose() * d_ip * 2 * strain_energy_tensile +
                      gc * ((d_ip - 1) * N.transpose() / ls +
                            dNdx.transpose() * dNdx * ls * d)) *
                     w;
+                }
+
             }
             else if (coupling_level == 2)
             {

@@ -311,8 +311,7 @@ public:
                 Eigen::Map<typename BMatricesType::NodalForceVectorType const>(
                     local_u.data(), ShapeFunction::NPOINTS * DisplacementDim);
             // How to access to the material properties?
-            double const k =
-                1.e-8;  //_process_data.residual_stiffness(t, x_position)[0];
+            double const k = 1.e-8;  //_process_data.residual_stiffness(t, x_position)[0];
             double d_ip = 0.;
             NumLib::shapeFunctionInterpolate(local_d, N, d_ip);
             double const degradation = d_ip * d_ip * (1 - k) + k;
@@ -327,13 +326,27 @@ public:
             auto const rho = _process_data.solid_density(t, x_position)[0];
             auto const& b = _process_data.specific_body_force;
 
+            // TODO set these two in input file
             int const coupling_level = 1;
+            bool const has_CrackPres = false;
+            // TODO pressure is passed from outside of the process
+            double const pres = 1.0;
 
             if (coupling_level == 1)
             {
+                if(has_CrackPres)
+                {
+                    auto const& grad_d = dNdx * d_ip;
                 local_b.noalias() -= (B.transpose() * sigma_real -
-                                      N_u_op.transpose() * rho * b) *
+                                      N_u_op.transpose() * rho * b + N_u_op.transpose() * grad_d * pres) *
                                      w;
+                }
+                else{
+                 local_b.noalias() -= (B.transpose() * sigma_real -
+                                      N_u_op.transpose() * rho * b) *
+                                     w;                   
+                }
+
             }
             else if (coupling_level == 2)
             {
@@ -347,6 +360,7 @@ public:
                      N_u_op.transpose() * rho * b) *
                     w;
             }
+
             local_Jac.noalias() += B.transpose() *
                                    (degradation * C_tensile + C_compressive) *
                                    B * w;
