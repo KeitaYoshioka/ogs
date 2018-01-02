@@ -105,6 +105,7 @@ public:
     using NodalMatrixType = typename ShapeMatricesType::NodalMatrixType;
     using NodalVectorType = typename ShapeMatricesType::NodalVectorType;
     using ShapeMatrices = typename ShapeMatricesType::ShapeMatrices;
+    using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
     using BMatricesType = BMatrixPolicyType<ShapeFunction, DisplacementDim>;
 
     using BMatrixType = typename BMatricesType::BMatrixType;
@@ -202,10 +203,17 @@ public:
                 std::type_index(typeid(ProcessLib::PhaseFieldStaggered::
                                            PhaseFieldStaggeredProcess)))
             {
+                auto const& pcs = static_cast<
+                    ProcessLib::PhaseFieldStaggered::
+                        PhaseFieldStaggeredProcess const&>(
+                    coupled_process_pair.second);
+
                 const auto local_d = coupled_term.local_coupled_xs.at(
                     coupled_process_pair.first);
+                auto const grad_damage_ips = pcs.getIntGradDamage(_element.getID());
+
                 assembleWithCoupledPhaseFieldJacobian(
-                    t, local_x, local_Jac_data, local_b_data, local_d);
+                    t, local_x, local_Jac_data, local_b_data, local_d, grad_damage_ips);
             }
             else
             {
@@ -229,10 +237,17 @@ public:
                 std::type_index(typeid(ProcessLib::PhaseFieldStaggered::
                                            PhaseFieldStaggeredProcess)))
             {
+                auto const& pcs = static_cast<
+                    ProcessLib::PhaseFieldStaggered::
+                        PhaseFieldStaggeredProcess const&>(
+                    coupled_process_pair.second);
+
                 const auto local_d = coupled_term.local_coupled_xs.at(
                     coupled_process_pair.first);
+                auto const grad_damage_ips = pcs.getIntGradDamage(_element.getID());
+
                 assembleWithCoupledPhaseFieldJacobian(t, local_x, local_K_data,
-                                                      local_b_data, local_d);
+                                                      local_b_data, local_d, grad_damage_ips);
             }
             else
             {
@@ -254,14 +269,17 @@ public:
     {
         std::vector<double> local_dummy_d;
         local_dummy_d.resize(local_b_data.size());
+        std::vector<double> dummy_grad_d;
+        dummy_grad_d.resize(local_b_data.size());
+
         assembleWithCoupledPhaseFieldJacobian(t, local_x, local_Jac_data,
-                                              local_b_data, local_dummy_d);
+                                              local_b_data, local_dummy_d, dummy_grad_d);
     }
 
     void assembleWithCoupledPhaseFieldJacobian(
         double const t, std::vector<double> const& local_u,
         std::vector<double>& local_Jac_data, std::vector<double>& local_b_data,
-        std::vector<double> const& local_d)
+        std::vector<double> const& local_d, std::vector<double> const& grad_damage_data)
     {
         auto const local_matrix_size = local_u.size();
 
@@ -271,11 +289,16 @@ public:
         auto local_b = MathLib::createZeroedVector<NodalDisplacementVectorType>(
             local_b_data, local_matrix_size);
 
+        auto local_grad_damage = Eigen::Matrix<double,ShapeFunction::NPOINTS, DisplacementDim>(
+            grad_damage_data.data());
+
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
 
         SpatialPosition x_position;
         x_position.setElementID(_element.getID());
+        assert(grad_damage_data.size() == n_integration_points*DisplacementDim);
+
 
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
@@ -283,6 +306,8 @@ public:
             auto const& w = _ip_data[ip].integration_weight;
             auto const& N = _ip_data[ip].N;
             auto const& dNdx = _ip_data[ip].dNdx;
+
+  //          GlobalDimVectorType const grad_damage = local_grad_damage.row(ip);
 
             typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                             displacement_size>
@@ -330,15 +355,17 @@ public:
             int const coupling_level = 1;
             bool const has_CrackPres = false;
             // TODO pressure is passed from outside of the process
-            double const pres = 1.0;
+            double const pres = 0.0;
 
             if (coupling_level == 1)
             {
                 if(has_CrackPres)
                 {
-                    auto const& grad_d = dNdx * d_ip;
-                local_b.noalias() -= (B.transpose() * sigma_real -
-                                      N_u_op.transpose() * rho * b + N_u_op.transpose() * grad_d * pres) *
+                    //int aa = N_u_op.transpose() * rho * b;
+                    //int bb = N_u_op.transpose() * grad_damage;
+
+                    local_b.noalias() -= (B.transpose() * sigma_real -
+                                      N_u_op.transpose() * rho * b /*+ N_u_op.transpose() * grad_damage * pres*/) *
                                      w;
                 }
                 else{

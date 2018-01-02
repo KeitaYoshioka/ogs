@@ -14,7 +14,7 @@
 
 #include "NumLib/DOF/LocalToGlobalIndexMap.h"
 
-#include "ProcessLib/Utils/LocalDataInitializer.h"
+#include "LocalDataInitializer.h"
 
 
 namespace ProcessLib

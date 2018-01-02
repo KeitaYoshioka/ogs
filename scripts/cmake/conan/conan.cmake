@@ -229,6 +229,8 @@ function(conan_cmake_install)
     endif()
     set(conan_args install ${CONANFILE} ${settings} ${CONAN_BUILD_POLICY} ${CONAN_INSTALL_UPDATE})
 
+    set(conan_command "/usr/local/bin/conan")
+
     string (REPLACE ";" " " _conan_args "${conan_args}")
     message(STATUS "Conan executing: ${conan_command} ${_conan_args}")
 

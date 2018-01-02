@@ -38,6 +38,9 @@ public:
                                         GlobalVector const& x) override;
   void setStaggeredCouplingTermToLocalAssemblers() override;
 
+  std::vector<double> getIntGradDamage(std::size_t const element_id) const;
+
+
 private:
   void initializeConcreteProcess(NumLib::LocalToGlobalIndexMap const& dof_table,
                                  MeshLib::Mesh const& mesh,
@@ -54,6 +57,8 @@ private:
 
   void preTimestepConcreteProcess(GlobalVector const& x, double const t,
                                   double const dt) override;
+
+  void postTimestepConcreteProcess(GlobalVector const& x) override;
 
   PhaseFieldStaggeredProcessData _process_data;
 //  const std::unique_ptr<PhaseFieldStaggeredProcessData> _process_data;

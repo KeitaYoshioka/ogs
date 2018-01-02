@@ -38,6 +38,8 @@ PhaseFieldStaggeredProcess::PhaseFieldStaggeredProcess(
     DBUG("Creat Phase field staggered process.")
 }
 
+
+
 void PhaseFieldStaggeredProcess::initializeConcreteProcess(
     NumLib::LocalToGlobalIndexMap const& dof_table, MeshLib::Mesh const& mesh,
     unsigned const integration_order)
@@ -91,6 +93,17 @@ void PhaseFieldStaggeredProcess::preTimestepConcreteProcess(
         *_local_to_global_index_map, x, t, dt);
 }
 
+void PhaseFieldStaggeredProcess::postTimestepConcreteProcess(
+    GlobalVector const& x)
+{
+    DBUG("PostTimestep PhaseFieldSmallDeformationProcess.");
+
+
+    GlobalExecutor::executeMemberOnDereferenced(
+        &LocalAssemblerInterface::postTimestep, _local_assemblers,
+        *_local_to_global_index_map, x);
+}
+
 void PhaseFieldStaggeredProcess::computeSecondaryVariableConcrete(
     const double t, GlobalVector const& x)
 {
@@ -105,6 +118,11 @@ void PhaseFieldStaggeredProcess::setStaggeredCouplingTermToLocalAssemblers()
     GlobalExecutor::executeMemberOnDereferenced(
         &PhaseFieldStaggeredLocalAssemblerInterface::setStaggeredCouplingTerm,
         _local_assemblers, _coupling_term);
+}
+
+std::vector<double> PhaseFieldStaggeredProcess::getIntGradDamage(const std::size_t element_id) const
+{
+    return _local_assemblers[element_id]->getIntPtGradDamage();
 }
 
 }  // namespace PhaseFieldStaggered
