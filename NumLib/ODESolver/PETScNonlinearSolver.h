@@ -55,6 +55,7 @@ public:
         : _linear_solver(linear_solver)
     {
         SNESCreate(PETSC_COMM_WORLD, &_snes_solver);
+        // SNESSetType(_snes_solver, "vi");
         SNESSetFromOptions(_snes_solver);
     }
 
@@ -77,11 +78,14 @@ public:
                std::function<void(unsigned, GlobalVector const&)> const&
                /*postIterationCallback*/) override
     {
+        DBUG("PETScNonlinearSolver: solve()");
         using TimeDiscretizedSystem = TimeDiscretizedODESystem<
             ODESystemTag::FirstOrderImplicitQuasilinear,
             NonlinearSolverTag::Newton>;
 
         auto* system = static_cast<TimeDiscretizedSystem*>(_equation_system);
+
+        DBUG("PETScNonlinearSolver: create vectors");
         // r and J on which the ogs assembly operates.
         auto& r = NumLib::GlobalVectorProvider::provider.getVector(
             system->getMatrixSpecifications(1), _residual_id);
@@ -100,7 +104,7 @@ public:
 
         ::detail::PetscContext petsc_context{_equation_system, &x, &r, &J};
 
-        auto residual = [](SNES /*snes*/, Vec petsc_x, Vec petsc_r,
+        auto residual = [](SNES /*snes*/, Vec /*petsc_x*/, Vec petsc_r,
                            void* petsc_context) -> PetscErrorCode {
             auto context = static_cast<::detail::PetscContext*>(petsc_context);
 
@@ -144,7 +148,7 @@ public:
         };
 
         auto jacobian = [](SNES /*snes*/,
-                           Vec petsc_x,
+                           Vec /*petsc_x*/,
                            Mat petsc_J,
                            Mat /*petsc_B* Same as petsc_J*/,
                            void* petsc_context) {
@@ -167,13 +171,27 @@ public:
             return 0;
         };
 
+        DBUG("PETScNonlinearSolver: set function");
         SNESSetFunction(_snes_solver, petsc_r.getRawVector(), residual,
                         &petsc_context);
+
+        DBUG("PETScNonlinearSolver: set jacobian");
         // The jacobian and the preconditioner matrices point to the same
         // location.
         SNESSetJacobian(_snes_solver, petsc_J.getRawMatrix(),
                         petsc_J.getRawMatrix(), jacobian, &petsc_context);
 
+        DBUG("PETScNonlinearSolver: set constraints");
+        // Constraints
+        Vec xl, xu;
+        VecDuplicate(x.getRawVector(), &xl);
+        VecDuplicate(x.getRawVector(), &xu);
+        VecSet(xl, 0.0);
+        VecSet(xu, 1.0);
+
+        SNESVISetVariableBounds(_snes_solver, xl, xu);
+
+        DBUG("PETScNonlinearSolver: call SNESSolve");
         SNESConvergedReason reason = SNES_CONVERGED_ITERATING;
         PetscInt iterations;
 
@@ -192,6 +210,9 @@ public:
         NumLib::GlobalMatrixProvider::provider.releaseMatrix(petsc_J);
         NumLib::GlobalVectorProvider::provider.releaseVector(petsc_r);
         NumLib::GlobalVectorProvider::provider.releaseVector(petsc_x);
+
+        VecDestroy(&xl);
+        VecDestroy(&xu);
 
         return reason == 0;
     }
