@@ -351,9 +351,23 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 {
     DBUG("PostTimestep PhaseFieldProcess %d.", process_id);
 
+    double t = _process_data.t;
+
+    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+        dof_tables;
+
+    dof_tables.emplace_back(*_local_to_global_index_map);
+    dof_tables.emplace_back(*_local_to_global_index_map_single_component);
+
     GlobalExecutor::executeMemberOnDereferenced(
-        &LocalAssemblerInterface::postTimestep, _local_assemblers,
-        getDOFTable(process_id), x);
+        &LocalAssemblerInterface::computeEnergy, _local_assemblers, dof_tables,
+        x, t, _process_data.elastic_energy, _process_data.surface_energy,
+        _process_data.pressure_work, _use_monolithic_scheme,
+        _coupled_solutions);
+
+    INFO("Elastic energy: %g, Surface energy: %g, Pressure work: %g ",
+         _process_data.elastic_energy, _process_data.surface_energy,
+         _process_data.pressure_work);
 }
 
 template <int DisplacementDim>
