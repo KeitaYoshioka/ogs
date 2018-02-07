@@ -127,6 +127,9 @@ public:
             INFO("[time] Assembly took %g s.", time_assembly.elapsed());
             context->system->getResidual(*context->x, *context->r);
 
+            context->system->getJacobian(*context->J);
+            context->system->applyKnownSolutionsNewton(*context->J, *context->r,
+                                                       *context->x);
             /*
             DBUG("AFTER ASSEMBLY");
             DBUG("The ogs-x vector.")
@@ -214,7 +217,7 @@ public:
         VecDestroy(&xl);
         VecDestroy(&xu);
 
-        return reason == 0;
+        return reason >= 0;
     }
 
 private:
