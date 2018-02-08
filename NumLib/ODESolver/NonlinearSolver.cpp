@@ -10,6 +10,7 @@
 
 #include "NonlinearSolver.h"
 
+#include <boost/algorithm/string.hpp>
 #include <logog/include/logog.hpp>
 
 #include "BaseLib/ConfigTree.h"
@@ -17,7 +18,9 @@
 #include "BaseLib/RunTime.h"
 #include "MathLib/LinAlg/LinAlg.h"
 #include "NumLib/DOF/GlobalMatrixProviders.h"
+
 #include "ConvergenceCriterion.h"
+#include "PETScNonlinearSolver.h"
 
 namespace NumLib
 {
@@ -372,6 +375,16 @@ createNonlinearSolver(GlobalLinearSolver& linear_solver,
             std::make_unique<ConcreteNLS>(linear_solver, max_iter, damping),
             tag);
     }
-    OGS_FATAL("Unsupported nonlinear solver type");
+#ifdef USE_PETSC
+    if (boost::iequals(type, "PETScSNES"))
+    {
+        auto const tag = NonlinearSolverTag::Newton;
+        using ConcreteNLS = PETScNonlinearSolver;
+        return std::make_pair(std::make_unique<ConcreteNLS>(linear_solver),
+                              tag);
+    }
+
+#endif
+    OGS_FATAL("Unsupported nonlinear solver type \"%s\".", type.c_str());
 }
 }  // namespace NumLib

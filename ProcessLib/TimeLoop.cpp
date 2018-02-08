@@ -15,6 +15,7 @@
 #include "ChemistryLib/ChemicalSolverInterface.h"
 #include "MathLib/LinAlg/LinAlg.h"
 #include "NumLib/ODESolver/ConvergenceCriterionPerComponent.h"
+#include "NumLib/ODESolver/PETScNonlinearSolver.h"
 #include "NumLib/ODESolver/TimeDiscretizedODESystem.h"
 #include "ProcessLib/CreateProcessData.h"
 #include "ProcessLib/Output/CreateOutput.h"
@@ -53,6 +54,14 @@ void setEquationSystem(NumLib::NonlinearSolverBase& nonlinear_solver,
             {
                 nl_solver->setEquationSystem(eq_sys_, conv_crit);
             }
+#ifdef USE_PETSC
+            else if (auto* nl_solver =
+                         dynamic_cast<NumLib::PETScNonlinearSolver*>(
+                             &nonlinear_solver))
+            {
+                nl_solver->setEquationSystem(eq_sys_, conv_crit);
+            }
+#endif  // USE_PETSC
             else
             {
                 OGS_FATAL("aOEUAOEU");
@@ -91,8 +100,16 @@ void setTimeDiscretizedODESystem(
             NumLib::TimeDiscretizedODESystem<ODETag, Tag::Picard>>(
             process_data.process_id, ode_sys, *process_data.time_disc);
     }
-    else if (dynamic_cast<NonlinearSolverNewton*>(
-                 &process_data.nonlinear_solver))
+    // TODO (naumov) Provide a function to nonlinear_solver to distinguish the
+    // types. Could be handy, because a nonlinear solver could handle both types
+    // like PETScSNES.
+    else if ((dynamic_cast<NonlinearSolverNewton*>(
+                  &process_data.nonlinear_solver) != nullptr)
+#ifdef USE_PETSC
+             || (dynamic_cast<NumLib::PETScNonlinearSolver*>(
+                     &process_data.nonlinear_solver) != nullptr)
+#endif  // USE_PETSC
+    )
     {
         // The Newton-Raphson method needs a Newton-ready ODE.
 
