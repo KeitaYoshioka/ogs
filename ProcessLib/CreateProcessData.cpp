@@ -30,7 +30,7 @@ static std::unique_ptr<ProcessData> makeProcessData(
                 &nonlinear_solver))
     {
         return std::make_unique<ProcessData>(
-            std::move(timestepper), *nonlinear_solver_picard,
+            std::move(timestepper), Tag::Picard, *nonlinear_solver_picard,
             std::move(conv_crit), std::move(time_disc), process);
     }
     if (auto* nonlinear_solver_newton =
@@ -38,7 +38,7 @@ static std::unique_ptr<ProcessData> makeProcessData(
                 &nonlinear_solver))
     {
         return std::make_unique<ProcessData>(
-            std::move(timestepper), *nonlinear_solver_newton,
+            std::move(timestepper), Tag::Newton, *nonlinear_solver_newton,
             std::move(conv_crit), std::move(time_disc), process);
     }
 
