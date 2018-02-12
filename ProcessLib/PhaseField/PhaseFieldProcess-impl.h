@@ -383,7 +383,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 {
     if (_use_monolithic_scheme)
         return;
-    
+
     _process_data.crack_volume = 0.0;
 
     if (!isPhaseFieldProcess(process_id))
