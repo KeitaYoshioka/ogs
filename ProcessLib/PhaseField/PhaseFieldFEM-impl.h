@@ -510,7 +510,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                   std::vector<std::reference_wrapper<
                       NumLib::LocalToGlobalIndexMap>> const& dof_tables,
                   GlobalVector const& x, double const t, double& elastic_energy,
-                  double& surface_energy, double pressure_work,
+                  double& surface_energy, double& pressure_work,
                   bool const use_monolithic_scheme,
                   CoupledSolutionsForStaggeredScheme const* const cpl_xs)
 {
@@ -552,6 +552,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
         auto pressure_ip = _process_data.pressure;
+        auto u_corrected = pressure_ip * u;
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
@@ -570,10 +571,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         surface_energy +=
             0.5 * gc *
-            ((1 - d_ip) * (1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
+            ((1 - d_ip) * (1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) *
+            w;
 
         if (_process_data.crack_pressure)
-            pressure_work += pressure_ip * (N_u * u).dot(dNdx * d) * w;
+            pressure_work +=
+                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
     }
 }
 }  // namespace PhaseField

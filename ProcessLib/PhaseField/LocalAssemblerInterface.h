@@ -109,7 +109,7 @@ struct PhaseFieldLocalAssemblerInterface
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double pressure_work,
+        double& surface_energy, double& pressure_work,
         bool const use_monolithic_scheme,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
 };
