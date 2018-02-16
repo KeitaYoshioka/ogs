@@ -82,7 +82,7 @@ bool PETScNonlinearSolver::solve(
 
     ::detail::PetscContext petsc_context{_equation_system, &x, &r, &J};
 
-    auto residual = [](SNES /*snes*/, Vec /*petsc_x*/, Vec petsc_r,
+    auto residual = [](SNES /*snes*/, Vec petsc_x, Vec petsc_r,
                        void* petsc_context) -> PetscErrorCode {
         auto context = static_cast<::detail::PetscContext*>(petsc_context);
 
@@ -96,6 +96,7 @@ bool PETScNonlinearSolver::solve(
         DBUG("The petsc-x vector.")
         VecView(petsc_x, PETSC_VIEWER_STDOUT_WORLD);
         */
+        VecCopy(petsc_x, context->x->getRawVector());
 
         // Assemble in ogs context.
         BaseLib::RunTime time_assembly;
@@ -136,7 +137,7 @@ bool PETScNonlinearSolver::solve(
         DBUG("PETScNonlinearSolver: jacobian callback called.")
         // Assume the system is already assembled.
         auto context = static_cast<::detail::PetscContext*>(petsc_context);
-        context->system->getJacobian(*context->J);
+        // context->system->getJacobian(*context->J);
 
         /*
         DBUG("The ogs-J matrix.")
