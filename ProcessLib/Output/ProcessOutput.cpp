@@ -237,7 +237,7 @@ void processOutputData(
         }
     }
 
-    addIntegrationPointWriter(mesh, integration_point_writer);
+    (void)mesh;
 }
 
 void makeOutput(std::string const& file_name, MeshLib::Mesh const& mesh,
