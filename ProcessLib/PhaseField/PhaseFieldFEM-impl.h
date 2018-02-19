@@ -425,7 +425,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
 
         // For AT2
-        if (_process_data.AT_param == 2)
+        if (_process_data.at_param == 2)
         {
             local_Jac.noalias() +=
                 (2 * N.transpose() * N * strain_energy_tensile +
@@ -592,7 +592,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         elastic_energy += _ip_data[ip].elastic_energy * w;
 
         // For AT2
-        if (_process_data.AT_param == 2)
+        if (_process_data.at_param == 2)
         {
             surface_energy += 0.5 * gc *
                               ((1 - d_ip) * (1 - d_ip) / ls +

@@ -45,7 +45,7 @@ struct PhaseFieldProcessData
         Parameter<double> const& solid_density_,
         Parameter<double>& history_field_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        bool const propagating_crack_,
+        bool const propagating_crack_, bool const crack_pressure_, int const at_param_)
         bool const crack_pressure_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
@@ -57,7 +57,8 @@ struct PhaseFieldProcessData
           history_field(history_field_),
           specific_body_force(specific_body_force_),
           propagating_crack(propagating_crack_),
-          crack_pressure(crack_pressure_)
+          crack_pressure(crack_pressure_),
+          at_param(at_param_)
     {
     }
 
@@ -97,7 +98,7 @@ struct PhaseFieldProcessData
     double pressure_work = 0.0;
     bool propagating_crack = false;
     bool crack_pressure = false;
-    int AT_param = 2;
+    int at_param = 2;
 };
 
 }  // namespace PhaseField
