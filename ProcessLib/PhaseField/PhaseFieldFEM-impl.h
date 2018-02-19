@@ -450,8 +450,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             local_rhs.noalias() -=
                 (N.transpose() * N * d * 2 * strain_energy_tensile +
-                 gc * (0.375 * N.transpose() / ls +
-                       dNdx.transpose() * dNdx * ls * d) -
+                 gc * (-0.375 * N.transpose() / ls +
+                       0.75 * dNdx.transpose() * dNdx * ls * d) -
                  local_pressure * dNdx.transpose() * N_u * u) *
                 w;
         }
