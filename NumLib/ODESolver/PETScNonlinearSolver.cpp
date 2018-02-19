@@ -162,7 +162,7 @@ bool PETScNonlinearSolver::solve(
     SNESSetJacobian(_snes_solver, petsc_J.getRawMatrix(),
                     petsc_J.getRawMatrix(), jacobian, &petsc_context);
 
-    /*
+
     DBUG("PETScNonlinearSolver: set constraints");
     // Constraints
     Vec xl, xu;
@@ -172,7 +172,7 @@ bool PETScNonlinearSolver::solve(
     VecSet(xu, 1.0);
 
     SNESVISetVariableBounds(_snes_solver, xl, xu);
-    */
+
 
     DBUG("PETScNonlinearSolver: call SNESSolve");
     SNESConvergedReason reason = SNES_CONVERGED_ITERATING;
@@ -194,10 +194,10 @@ bool PETScNonlinearSolver::solve(
     NumLib::GlobalVectorProvider::provider.releaseVector(petsc_r);
     NumLib::GlobalVectorProvider::provider.releaseVector(petsc_x);
 
-    /*
+
     VecDestroy(&xl);
     VecDestroy(&xu);
-    */
+
 
     return reason >= 0;
 }
