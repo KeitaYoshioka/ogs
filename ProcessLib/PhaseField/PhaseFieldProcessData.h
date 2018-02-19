@@ -57,7 +57,7 @@ struct PhaseFieldProcessData
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
-    int AT_param = 2;
+    int at_param = 2;
 };
 
 }  // namespace PhaseField

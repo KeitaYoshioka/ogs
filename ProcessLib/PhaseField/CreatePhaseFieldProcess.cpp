@@ -189,13 +189,24 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         (crack_scheme &&
          ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
 
+    auto at_num =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__at_num}
+        config.getConfigParameterOptional<int>("at_num");
+
+    int at_param;
+    if(at_num && (*at_num == 1))
+        at_param = 1;
+    else
+        at_param = 2;
+
+
     PhaseFieldProcessData<DisplacementDim> process_data{
         materialIDs(mesh),   std::move(solid_constitutive_relations),
         residual_stiffness,  crack_resistance,
         crack_length_scale,  kinetic_coefficient,
         solid_density,       history_field,
         specific_body_force, propagating_crack,
-        crack_pressure};
+        crack_pressure, at_param};
 
     SecondaryVariableCollection secondary_variables;
 
