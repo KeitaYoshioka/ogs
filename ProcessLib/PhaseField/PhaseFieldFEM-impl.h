@@ -424,17 +424,37 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                    i, i * displacement_size / DisplacementDim)
                 .noalias() = N;
 
-        local_Jac.noalias() +=
-            (2 * N.transpose() * N * strain_energy_tensile +
-             gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) *
-            w;
+        // For AT2
+        if (_process_data.AT_param == 2)
+        {
+            local_Jac.noalias() +=
+                (2 * N.transpose() * N * strain_energy_tensile +
+                 gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) *
+                w;
 
-        local_rhs.noalias() -=
-            (N.transpose() * N * d * 2 * strain_energy_tensile +
-             gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) * d -
-                   N.transpose() / ls) -
-             local_pressure * dNdx.transpose() * N_u * u) *
-            w;
+            local_rhs.noalias() -=
+                (N.transpose() * N * d * 2 * strain_energy_tensile +
+                 gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
+                           d -
+                       N.transpose() / ls) -
+                 local_pressure * dNdx.transpose() * N_u * u) *
+                w;
+        }
+        // For AT1
+        else
+        {
+            local_Jac.noalias() +=
+                (2 * N.transpose() * N * strain_energy_tensile +
+                 gc * (0.75 * dNdx.transpose() * dNdx * ls)) *
+                w;
+
+            local_rhs.noalias() -=
+                (N.transpose() * N * d * 2 * strain_energy_tensile +
+                 gc * (0.375 * N.transpose() / ls +
+                       dNdx.transpose() * dNdx * ls * d) -
+                 local_pressure * dNdx.transpose() * N_u * u) *
+                w;
+        }
     }
 }
 
@@ -571,15 +591,26 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         elastic_energy += _ip_data[ip].elastic_energy * w;
 
-        surface_energy +=
-            0.5 * gc *
-            ((1 - d_ip) * (1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) *
-            w;
+        // For AT2
+        if (_process_data.AT_param == 2)
+        {
+            surface_energy += 0.5 * gc *
+                              ((1 - d_ip) * (1 - d_ip) / ls +
+                               (dNdx * d).dot((dNdx * d)) * ls) *
+                              w;
+        }
+        // For AT1
+        else
+        {
+            surface_energy +=
+                0.375 * gc *
+                ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
+        }
 
         if (_process_data.crack_pressure)
             pressure_work +=
                 pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
+        }
     }
-}
 }  // namespace PhaseField
-}  // namespace ProcessLib
+}  // namespace PhaseField

@@ -97,6 +97,7 @@ struct PhaseFieldProcessData
     double pressure_work = 0.0;
     bool propagating_crack = false;
     bool crack_pressure = false;
+    int AT_param = 2;
 };
 
 }  // namespace PhaseField
