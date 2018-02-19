@@ -12,7 +12,6 @@
 #include "MeshLib/IO/VtkIO/VtuInterface.h"
 #include "NumLib/DOF/LocalToGlobalIndexMap.h"
 
-#ifndef USE_PETSC  // Not used in PETSc case
 static void addSecondaryVariableNodes(
     double const t,
     GlobalVector const& x,
@@ -50,6 +49,7 @@ static void addSecondaryVariableNodes(
     }
 
     // Copy result
+    nodal_values.setLocalAccessibleVector();
     for (GlobalIndexType i = 0; i < nodal_values.size(); ++i)
     {
         assert(!std::isnan(nodal_values[i]));
@@ -103,7 +103,6 @@ static void addSecondaryVariableResiduals(
         residuals_mesh[i] = residuals[i];
     }
 }
-#endif  // USE_PETSC
 
 namespace ProcessLib
 {
@@ -124,6 +123,7 @@ void processOutputData(
     // TODO It is also possible directly to copy the data for single process
     // variable to a mesh property. It needs a vector of global indices and
     // some PETSc magic to do so.
+    x.setLocalAccessibleVector();
     std::vector<double> x_copy(x.getLocalSize() + x.getGhostSize());
 #else
     std::vector<double> x_copy(x.size());
@@ -193,8 +193,6 @@ void processOutputData(
         }
     }
 
-#ifndef USE_PETSC
-
     // Secondary variables output
     for (auto const& external_variable_name : output_variables)
     {
@@ -215,11 +213,6 @@ void processOutputData(
                 external_variable_name, mesh);
         }
     }
-#else
-    (void)mesh;
-    (void)secondary_variables;
-    (void)t;
-#endif  // USE_PETSC
 }
 
 void makeOutput(std::string const& file_name, MeshLib::Mesh& mesh,
