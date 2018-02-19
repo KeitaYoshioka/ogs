@@ -608,7 +608,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         if (_process_data.crack_pressure)
             pressure_work +=
                 pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
-        }
     }
+}
 }  // namespace PhaseField
-}  // namespace PhaseField
+}  // namespace ProcessLib
