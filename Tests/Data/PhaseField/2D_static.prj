@@ -26,6 +26,10 @@
                 <phasefield>phasefield</phasefield>
                 <displacement>displacement</displacement>
             </process_variables>
+            <secondary_variables>
+                <secondary_variable type="static" internal_name="sigma" output_name="sigma"/>
+                <secondary_variable type="static" internal_name="epsilon" output_name="epsilon"/>
+            </secondary_variables>
             <specific_body_force>0 0 </specific_body_force>
         </process>
     </processes>
@@ -112,6 +116,8 @@
             <variables>
                 <variable>displacement</variable>
                 <variable>phasefield</variable>
+                <variable>sigma</variable>
+                <variable>epsilon</variable>
             </variables>
         </output>
     </time_loop>
