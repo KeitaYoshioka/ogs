@@ -482,6 +482,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
+    assert(local_coupled_xs.size() == 2);
 
     auto const& local_u = local_coupled_xs[0];
     auto const& local_d = local_coupled_xs[1];
@@ -546,6 +547,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
+    assert(local_coupled_xs.size() == 2);
 
     auto const& local_u = local_coupled_xs[0];
     auto const& local_d = local_coupled_xs[1];
