@@ -474,11 +474,11 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     std::vector<std::vector<GlobalIndexType>> indices_of_processes;
     indices_of_processes.reserve(dof_tables.size());
-    for (std::size_t i = 0; i < dof_tables.size(); i++)
-    {
-        indices_of_processes.emplace_back(
-            NumLib::getIndices(mesh_item_id, dof_tables[i].get()));
-    }
+    std::transform(dof_tables.begin(), dof_tables.end(),
+                   std::back_inserter(indices_of_processes),
+                   [&](NumLib::LocalToGlobalIndexMap const& dof_table) {
+                       return NumLib::getIndices(mesh_item_id, dof_table);
+                   });
 
     auto local_coupled_xs =
         getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
@@ -539,11 +539,11 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     std::vector<std::vector<GlobalIndexType>> indices_of_processes;
     indices_of_processes.reserve(dof_tables.size());
-    for (std::size_t i = 0; i < dof_tables.size(); i++)
-    {
-        indices_of_processes.emplace_back(
-            NumLib::getIndices(mesh_item_id, dof_tables[i].get()));
-    }
+    std::transform(dof_tables.begin(), dof_tables.end(),
+                   std::back_inserter(indices_of_processes),
+                   [&](NumLib::LocalToGlobalIndexMap const& dof_table) {
+                       return NumLib::getIndices(mesh_item_id, dof_table);
+                   });
 
     auto local_coupled_xs =
         getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
