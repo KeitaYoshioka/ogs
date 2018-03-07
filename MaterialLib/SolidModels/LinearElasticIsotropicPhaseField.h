@@ -58,6 +58,7 @@ calculateDegradedStress(
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
 
+    /*
     if (eps_curr_trace >= 0)
     {
         double const strain_energy_tensile =
@@ -86,6 +87,19 @@ calculateDegradedStress(
         mu * epsd_curr.transpose() * epsd_curr;
     KelvinVector const sigma_real =
         degradation * sigma_tensile + sigma_compressive;
+        */
+
+
+        strain_energy_tensile = K / 2 * eps_curr_trace * eps_curr_trace +
+                                mu * epsd_curr.transpose() * epsd_curr;
+        sigma_tensile.noalias() =
+            K * eps_curr_trace * Invariants::identity2 + 2 * mu * epsd_curr;
+        sigma_compressive.noalias() = KelvinVector::Zero();
+        C_tensile.template topLeftCorner<3, 3>().setConstant(K);
+        C_tensile.noalias() += 2 * mu * P_dev * KelvinMatrix::Identity();
+        sigma_real.noalias() = degradation * sigma_tensile + sigma_compressive;
+        elastic_energy = degradation * strain_energy_tensile;
+
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);
 }
