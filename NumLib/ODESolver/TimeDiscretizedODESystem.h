@@ -96,6 +96,11 @@ public:
     void applyKnownSolutionsNewton(GlobalMatrix& Jac, GlobalVector& res,
                                    GlobalVector& minus_delta_x) const override;
 
+    void updateConstraints(GlobalVector& lower, GlobalVector& upper) override
+    {
+        _ode.updateConstraints(lower, upper);
+    }
+
     bool isLinear() const override
     {
         return _time_disc.isLinearTimeDisc() || _ode.isLinear();

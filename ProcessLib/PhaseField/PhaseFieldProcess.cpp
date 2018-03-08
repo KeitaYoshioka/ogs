@@ -306,6 +306,8 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
     _process_data.dt = dt;
     _process_data.t = t;
     _process_data.injected_volume = _process_data.t;
+    _x_previous_timestep =
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
 
     ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
 
@@ -405,14 +407,20 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 }
 
 template <int DisplacementDim>
+void PhaseFieldProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
+                                                           GlobalVector& upper)
+{
+    lower.setZero();
+    MathLib::LinAlg::copy(*_x_previous_timestep, upper);
+}
+
+
+template <int DisplacementDim>
 bool PhaseFieldProcess<DisplacementDim>::isPhaseFieldProcess(
     int const process_id) const
 {
     return !_use_monolithic_scheme && process_id == 1;
 }
-
-template class PhaseFieldProcess<2>;
-template class PhaseFieldProcess<3>;
 
 }  // namespace PhaseField
 }  // namespace ProcessLib
