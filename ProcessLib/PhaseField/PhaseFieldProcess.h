@@ -110,6 +110,8 @@ private:
                                             const double t, double const dt,
                                             int const process_id) override;
 
+    void updateConstraints(GlobalVector& lower, GlobalVector& upper) override;
+
 private:
     PhaseFieldProcessData<DisplacementDim> _process_data;
 
@@ -123,6 +125,9 @@ private:
     /// Sparsity pattern for the phase field equation, and it is initialized
     ///  only if the staggered scheme is used.
     GlobalSparsityPattern _sparsity_pattern_with_single_component;
+
+    /// Previous time step solution used for the constraints.
+    std::unique_ptr<GlobalVector> _x_previous_timestep;
 
     /// Check whether the process represented by \c process_id is/has
     /// mechanical process. In the present implementation, the mechanical
