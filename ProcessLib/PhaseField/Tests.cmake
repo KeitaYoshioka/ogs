@@ -48,8 +48,8 @@ AddTest(
     TESTER vtkdiff
     REQUIREMENTS NOT (OGS_USE_LIS OR OGS_USE_MPI)
     DIFF_DATA
-    square_line_h_400_pcs_0_ts_400000_t_400.000000.vtu square_line_h_400_pcs_0_ts_400000_t_400.000000.vtu displacement displacement 1e-16 0
-    square_line_h_400_pcs_0_ts_400000_t_400.000000.vtu square_line_h_400_pcs_0_ts_400000_t_400.000000.vtu phasefield phasefield 1e-16 0
+    expected_square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu displacement displacement 1e-16 0
+    expected_square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu phasefield phasefield 1e-16 0
    )
 
 AddTest(
@@ -61,6 +61,6 @@ AddTest(
     TESTER vtkdiff
     REQUIREMENTS NOT (OGS_USE_LIS OR OGS_USE_MPI)
     DIFF_DATA
-    square_shear_h_400_pcs_0_ts_30000_t_300.000000.vtu square_shear_h_400_pcs_0_ts_30000_t_300.000000.vtu displacement displacement 1e-16 0
-    square_shear_h_400_pcs_0_ts_30000_t_300.000000.vtu square_shear_h_400_pcs_0_ts_30000_t_300.000000.vtu phasefield phasefield 1e-16 0
+    expected_square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu displacement displacement 1e-16 0
+    expected_square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu phasefield phasefield 1e-16 0
    )

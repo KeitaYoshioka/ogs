@@ -61,14 +61,9 @@
             <prefix>square_shear_h_400</prefix>
             <timesteps>
                 <pair>
-                    <repeat>200</repeat>
-                    <each_steps>200</each_steps>
+                    <repeat>1</repeat>
+                    <each_steps>10000</each_steps>
                 </pair>
-                <pair>
-                    <repeat>80</repeat>
-                    <each_steps>1000</each_steps>
-                </pair>
-                <!--<pair><repeat>50</repeat><each_steps>100</each_steps></pair>-->
             </timesteps>
             <variables>
                 <variable>displacement</variable>
