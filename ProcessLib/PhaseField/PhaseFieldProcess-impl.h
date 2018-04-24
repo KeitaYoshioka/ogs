@@ -40,8 +40,12 @@ PhaseFieldProcess<DisplacementDim>::PhaseFieldProcess(
               use_monolithic_scheme),
       _process_data(std::move(process_data))
 {
-    _nodal_forces = MeshLib::getOrCreateMeshProperty<double>(
-        mesh, "NodalForces", MeshLib::MeshItemType::Node, DisplacementDim);
+    // Disable nodal forces for monolithic scheme.
+    if (!_use_monolithic_scheme)
+    {
+        _nodal_forces = MeshLib::getOrCreateMeshProperty<double>(
+            mesh, "NodalForces", MeshLib::MeshItemType::Node, DisplacementDim);
+    }
 }
 
 template <int DisplacementDim>
@@ -160,73 +164,42 @@ void PhaseFieldProcess<DisplacementDim>::initializeConcreteProcess(
         mesh.getElements(), dof_table, _local_assemblers,
         mesh.isAxiallySymmetric(), integration_order, _process_data);
 
-    _nodal_forces->resize(DisplacementDim * mesh.getNumberOfNodes());
+    all_mesh_subsets_single_component.emplace_back(
+    Base::_secondary_variables.addSecondaryVariable(
+        "sigma",
+        makeExtrapolator(MathLib::KelvinVector::KelvinVectorType<
+                             DisplacementDim>::RowsAtCompileTime,
+                         getExtrapolator(), _local_assemblers,
+                         &LocalAssemblerInterface::getIntPtSigma));
 
     Base::_secondary_variables.addSecondaryVariable(
-        "sigma_xx",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtSigmaXX));
+        "epsilon",
+        makeExtrapolator(MathLib::KelvinVector::KelvinVectorType<
+                             DisplacementDim>::RowsAtCompileTime,
+                         getExtrapolator(), _local_assemblers,
+                         &LocalAssemblerInterface::getIntPtEpsilon));
+}
 
-    Base::_secondary_variables.addSecondaryVariable(
-        "sigma_yy",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtSigmaYY));
-
-    Base::_secondary_variables.addSecondaryVariable(
-        "sigma_zz",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtSigmaZZ));
-
-    Base::_secondary_variables.addSecondaryVariable(
-        "sigma_xy",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtSigmaXY));
-
-    if (DisplacementDim == 3)
+template <int DisplacementDim>
+void PhaseFieldProcess<DisplacementDim>::initializeBoundaryConditions()
+{
+    if (_use_monolithic_scheme)
     {
-        Base::_secondary_variables.addSecondaryVariable(
-            "sigma_xz",
-            makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                             &LocalAssemblerInterface::getIntPtSigmaXZ));
-
-        Base::_secondary_variables.addSecondaryVariable(
-            "sigma_yz",
-            makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                             &LocalAssemblerInterface::getIntPtSigmaYZ));
+        const int process_id_of_phasefieldmechanics = 0;
+        initializeProcessBoundaryConditionsAndSourceTerms(
+            *_local_to_global_index_map, process_id_of_phasefieldmechanics);
+        return;
     }
 
-    Base::_secondary_variables.addSecondaryVariable(
-        "epsilon_xx",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtEpsilonXX));
-
-    Base::_secondary_variables.addSecondaryVariable(
-        "epsilon_yy",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtEpsilonYY));
-
-    Base::_secondary_variables.addSecondaryVariable(
-        "epsilon_zz",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtEpsilonZZ));
-
-    Base::_secondary_variables.addSecondaryVariable(
-        "epsilon_xy",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                         &LocalAssemblerInterface::getIntPtEpsilonXY));
-
-    if (DisplacementDim == 3)
-    {
-        Base::_secondary_variables.addSecondaryVariable(
-            "epsilon_yz",
-            makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                             &LocalAssemblerInterface::getIntPtEpsilonYZ));
-
-        Base::_secondary_variables.addSecondaryVariable(
-            "epsilon_xz",
-            makeExtrapolator(1, getExtrapolator(), _local_assemblers,
-                             &LocalAssemblerInterface::getIntPtEpsilonXZ));
-    }
+    // Staggered scheme:
+    // for the equations of deformation.
+    const int mechanical_process_id = 0;
+    initializeProcessBoundaryConditionsAndSourceTerms(
+        *_local_to_global_index_map, mechanical_process_id);
+    // for the phase field
+    const int phasefield_process_id = 1;
+    initializeProcessBoundaryConditionsAndSourceTerms(
+        *_local_to_global_index_map_single_component, phasefield_process_id);
 }
 
 template <int DisplacementDim>
@@ -332,7 +305,6 @@ void PhaseFieldProcess<DisplacementDim>::assembleWithJacobianConcreteProcess(
         _local_assemblers, dof_tables, t, x, xdot, dxdot_dx, dx_dx, M, K, b,
         Jac, _coupled_solutions);
 
-    if (_use_monolithic_scheme || (_coupled_solutions->process_id == 0))
     {
         b.copyValues(*_nodal_forces);
         std::transform(_nodal_forces->begin(), _nodal_forces->end(),
@@ -350,6 +322,8 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
     _process_data.dt = dt;
     _process_data.t = t;
     _process_data.injected_volume = _process_data.t;
+    _x_previous_timestep =
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
 
     GlobalExecutor::executeMemberOnDereferenced(
         &LocalAssemblerInterface::preTimestep, _local_assemblers,
@@ -377,7 +351,7 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 
         GlobalExecutor::executeMemberOnDereferenced(
             &LocalAssemblerInterface::computeEnergy, _local_assemblers,
-            dof_tables, x, t, _process_data.elastic_energy,
+            dof_tables, x, _process_data.t, _process_data.elastic_energy,
             _process_data.surface_energy, _process_data.pressure_work,
             _use_monolithic_scheme, _coupled_solutions);
 
@@ -437,6 +411,14 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
                                    1 / _process_data.pressure);
         }
     }
+}
+
+template <int DisplacementDim>
+void PhaseFieldProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
+                                                           GlobalVector& upper)
+{
+    lower.setZero();
+    MathLib::LinAlg::copy(*_x_previous_timestep, upper);
 }
 }  // namespace PhaseField
 }  // namespace ProcessLib

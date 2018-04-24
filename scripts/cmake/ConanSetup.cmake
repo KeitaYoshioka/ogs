@@ -40,6 +40,10 @@ if(OGS_USE_PETSC)
     set(CONAN_REQUIRES ${CONAN_REQUIRES} petsc/3.8.3@bilke/testing)
 endif()
 
+if(OGS_USE_LIS)
+    set(CONAN_REQUIRES ${CONAN_REQUIRES} lis/1.7.9@bilke/stable)
+endif()
+
 if(OGS_BUILD_GUI)
     set(CONAN_REQUIRES ${CONAN_REQUIRES}
         Shapelib/1.3.0@bilke/stable
@@ -111,7 +115,7 @@ file(TIMESTAMP ${PROJECT_BINARY_DIR}/conan_install_timestamp.txt file_timestamp 
 string(TIMESTAMP timestamp "%Y.%m.%d")
 
 # Run conan install update only once a day
-if("${file_timestamp}" VERSION_LESS ${timestamp})
+if("${file_timestamp}" VERSION_LESS ${timestamp} OR IS_CI)
     file(WRITE ${PROJECT_BINARY_DIR}/conan_install_timestamp.txt "${timestamp}\n")
     set(CONAN_UPDATE UPDATE)
 else()

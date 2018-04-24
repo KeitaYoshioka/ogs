@@ -13,7 +13,7 @@ pipeline {
       agent any
       steps {
         sh "git config core.whitespace -blank-at-eof"
-        sh "git diff --check `git merge-base origin/master HEAD` HEAD"
+        sh "git diff --check `git merge-base origin/master HEAD` HEAD -- . ':!*.md' ':!*.pandoc'"
       }
     }
     stage('Build') {
@@ -29,18 +29,12 @@ pipeline {
               additionalBuildArgs '--pull'
             }
           }
-          environment {
-            CONTENTFUL_ACCESS_TOKEN = credentials('CONTENTFUL_ACCESS_TOKEN')
-            CONTENTFUL_OGS_SPACE_ID = credentials('CONTENTFUL_OGS_SPACE_ID')
-          }
           steps {
             script {
               // Install web dependencies
               sh("""
                 cd web
                 yarn --ignore-engines --non-interactive
-                node node_modules/node-sass/scripts/install.js
-                npm rebuild node-sass
                 sudo -H pip install -r requirements.txt
                 """.stripIndent())
 
@@ -58,7 +52,6 @@ pipeline {
               build { }
               build { target="tests" }
               build { target="ctest" }
-              build { target="web" }
               build { target="doc" }
               configure {
                 cmakeOptions =
@@ -81,16 +74,12 @@ pipeline {
                 dir('build') { deleteDir() }
             }
             success {
-              dir('web/public') { stash(name: 'web') }
               dir('build/docs') { stash(name: 'doxygen') }
               dir('scripts/jenkins') { stash(name: 'known_hosts', includes: 'known_hosts') }
               script {
                 publishHTML(target: [allowMissing: false, alwaysLinkToLastBuild: true,
                   keepAll: true, reportDir: 'build/docs', reportFiles: 'index.html',
                   reportName: 'Doxygen'])
-                publishHTML(target: [allowMissing: false, alwaysLinkToLastBuild: true,
-                  keepAll: true, reportDir: 'web/public', reportFiles: 'index.html',
-                  reportName: 'Web'])
                 step([$class: 'WarningsPublisher', canResolveRelativePaths: false,
                   messagesPattern: """
                     .*DOT_GRAPH_MAX_NODES.
@@ -295,6 +284,49 @@ pipeline {
             }
           }
         }
+        // **************************** Web ************************************
+        stage('Web') {
+          agent {
+            dockerfile {
+              filename 'Dockerfile.gcc.full'
+              dir 'scripts/docker'
+              label 'docker'
+              additionalBuildArgs '--pull'
+            }
+          }
+          environment {
+            CONTENTFUL_ACCESS_TOKEN = credentials('CONTENTFUL_ACCESS_TOKEN')
+            CONTENTFUL_OGS_SPACE_ID = credentials('CONTENTFUL_OGS_SPACE_ID')
+            ALGOLIA_WRITE_KEY = credentials('ALGOLIA_WRITE_KEY')
+          }
+          steps {
+            dir ('web') {
+              sh "yarn --ignore-engines --ignore-optional --non-interactive"
+              sh "sudo -H pip install -r requirements.txt"
+              sh "(cd import && python import.py)"
+              sh "pandoc-citeproc --bib2json ../Documentation/bibliography.bib > data/bibliography.json"
+              sh "node_modules/.bin/webpack -p"
+              script {
+                if (env.JOB_NAME == 'ufz/ogs/master') {
+                  sh "hugo --baseURL https://benchmarks.opengeosys.org"
+                } else {
+                  sh ("hugo --baseURL " + env.JOB_URL + "Web/")
+                  sh ("node_modules/.bin/hugo-algolia --toml -s")
+                }
+              }
+            }
+          }
+          post {
+            success {
+              dir('web/public') { stash(name: 'web') }
+              script {
+                publishHTML(target: [allowMissing: false, alwaysLinkToLastBuild: true,
+                  keepAll: true, reportDir: 'web/public', reportFiles: 'index.html',
+                  reportName: 'Web'])
+              }
+            }
+          }
+        }
       } // end parallel
     } // end stage Build
     // *************************** Log Parser **********************************
@@ -316,11 +348,11 @@ pipeline {
     stage('Master') {
       when { environment name: 'JOB_NAME', value: 'ufz/ogs/master' }
       parallel {
-        // ************************ Check-Header *******************************
-        stage('Check-Header') {
+        // ************************* Analyzers *********************************
+        stage('Analyzers') {
           agent {
             dockerfile {
-              filename 'Dockerfile.gcc.minimal'
+              filename 'Dockerfile.clang.full'
               dir 'scripts/docker'
               label 'docker'
               args '-v ccache:/home/jenkins/cache/ccache -v conan-cache:/home/jenkins/cache/conan'
@@ -334,11 +366,16 @@ pipeline {
                 configure {
                   cmakeOptions =
                     '-DOGS_USE_CONAN=ON ' +
-                    '-DOGS_CONAN_BUILD=never '
-                  config = 'Debug'
+                    '-DOGS_CONAN_BUILD=never ' +
+                    '"-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=include-what-you-use;-Xiwyu;--mapping_file=../scripts/jenkins/iwyu-mappings.imp" ' +
+                    '-DCMAKE_LINK_WHAT_YOU_USE=ON ' +
+                    '"-DCMAKE_CXX_CPPCHECK=cppcheck;--std=c++11;--language=c++;--suppress=syntaxError;--suppress=preprocessorErrorDirective:*/ThirdParty/*;--suppress=preprocessorErrorDirective:*conan*/package/*" ' +
+                    '-DCMAKE_CXX_CLANG_TIDY=clang-tidy-3.9 '
+                  config = 'Release'
                 }
               }
               build { target = 'check-header' }
+              build { }
             }
           }
           post { always { dir('build') { deleteDir() } } }

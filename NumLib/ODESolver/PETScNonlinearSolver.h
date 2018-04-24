@@ -60,6 +60,9 @@ private:
     std::size_t _petsc_residual_id = 0u;
     std::size_t _petsc_x_id = 0u;
     std::size_t _petsc_jacobian_id = 0u;
+
+    std::size_t _petsc_xl_id = 0u;
+    std::size_t _petsc_xu_id = 0u;
 };
 
 //! @}

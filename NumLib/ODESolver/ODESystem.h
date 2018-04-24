@@ -62,6 +62,9 @@ public:
         (void)t;
         return nullptr;  // by default there are no known solutions
     }
+
+    virtual void updateConstraints(GlobalVector& /*lower*/,
+                                   GlobalVector& /*upper*/){};
 };
 
 /*! Interface for a first-order implicit quasi-linear ODE.

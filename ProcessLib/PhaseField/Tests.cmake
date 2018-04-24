@@ -33,6 +33,33 @@ AddTest(
     TESTER vtkdiff
     REQUIREMENTS NOT (OGS_USE_LIS OR OGS_USE_MPI)
     DIFF_DATA
-    expected_beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu displacement displacement 1e-15 1e-15
-    expected_beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu phasefield phasefield 1e-15 1e-15
+    expected_beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu displacement displacement 1e-5 0
+    expected_beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu beam3_stag1pcsAT2_pcs_1_ts_10_t_1.000000.vtu phasefield phasefield 1e-6 0
+   )
+
+
+AddTest(
+    NAME LARGE_PhaseField_Staggered_square_line
+    PATH PhaseField
+    EXECUTABLE ogs
+    EXECUTABLE_ARGS square_line_h_400.prj
+    WRAPPER time
+    TESTER vtkdiff
+    REQUIREMENTS NOT (OGS_USE_LIS OR OGS_USE_MPI)
+    DIFF_DATA
+    expected_square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu displacement displacement 1e-16 0
+    expected_square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu square_line_h_400_pcs_0_ts_10000_t_1.000000.vtu phasefield phasefield 1e-16 0
+   )
+
+AddTest(
+    NAME LARGE_PhaseField_Staggered_square_shear
+    PATH PhaseField
+    EXECUTABLE ogs
+    EXECUTABLE_ARGS square_shear_h_400.prj
+    WRAPPER time
+    TESTER vtkdiff
+    REQUIREMENTS NOT (OGS_USE_LIS OR OGS_USE_MPI)
+    DIFF_DATA
+    expected_square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu displacement displacement 1e-16 0
+    expected_square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu square_shear_h_400_pcs_0_ts_10000_t_1.000000.vtu phasefield phasefield 1e-16 0
    )

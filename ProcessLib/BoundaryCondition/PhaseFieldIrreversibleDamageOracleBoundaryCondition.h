@@ -25,9 +25,7 @@ public:
         NumLib::LocalToGlobalIndexMap const& dof_table,
         MeshLib::Mesh const& mesh, int const variable_id,
         int const component_id)
-        :
-
-          _dof_table(dof_table),
+        : _dof_table(dof_table),
           _mesh(mesh),
           _variable_id(variable_id),
           _component_id(component_id)

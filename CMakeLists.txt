@@ -38,7 +38,10 @@ set(OGS_CPU_ARCHITECTURE "native" CACHE STRING "Processor architecture, \
 option(OGS_ENABLE_AVX2 "Enable the use of AVX2 instructions" OFF)
 option(OGS_BUILD_TESTS "Should the test executables be built?" ON)
 option(OGS_USE_PCH "Should pre-compiled headers be used?" ON)
-option(OGS_USE_CONAN "Should Conan package manager be used?" ON)
+if(DEFINED CMAKE_CXX_CLANG_TIDY)
+    set(OGS_USE_PCH OFF CACHE INTERNAL "")
+endif()
+option(OGS_USE_CONAN "Should Conan package manager be used?" OFF)
 set(OGS_CONAN_BUILD "missing" CACHE STRING "Possible values: all, missing, \
     never or list of libs to build" )
 if(OGS_USE_PETSC)
@@ -262,7 +265,8 @@ include_directories( SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty )
 include_directories( SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/gtest/include )
 include_directories( SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/autocheck/include )
 include_directories( SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/tclap/include )
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/vtkGUISupportQt)
+include_directories( SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/vtkGUISupportQt)
+include_directories( SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/json/include )
 
 include(scripts/cmake/CheckHeaderCompilation.cmake)
 

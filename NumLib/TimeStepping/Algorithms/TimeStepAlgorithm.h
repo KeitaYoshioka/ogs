@@ -14,6 +14,7 @@
 #include <cmath>
 #include <vector>
 
+#include "BaseLib/Error.h"
 #include "NumLib/TimeStepping/TimeStep.h"
 
 namespace NumLib
@@ -31,12 +32,35 @@ public:
     }
 
     TimeStepAlgorithm(const double t0, const double t_end, const double dt)
-        : _t_initial(t0),
-          _t_end(t_end),
-          _ts_prev(t0),
-          _ts_current(t0),
-          _dt_vector(static_cast<std::size_t>(std::ceil((t_end - t0) / dt)), dt)
+        : _t_initial(t0), _t_end(t_end), _ts_prev(t0), _ts_current(t0)
     {
+        auto const new_size =
+            static_cast<std::size_t>(std::ceil((t_end - t0) / dt));
+        try
+        {
+            _dt_vector = std::vector<double>(new_size, dt);
+        }
+        catch (std::length_error const& e)
+        {
+            OGS_FATAL(
+                "Resize of the time steps vector failed for the requested new "
+                "size %u. Probably there is not enough memory (%g GiB "
+                "requested).\n"
+                "Thrown exception: %s",
+                new_size, new_size * sizeof(double) / 1024. / 1024. / 1024.,
+                e.what());
+        }
+        catch (std::bad_alloc const& e)
+        {
+            OGS_FATAL(
+                "Allocation of the time steps vector failed for the requested "
+                "size %u. Probably there is not enough memory (%d GiB "
+                "requested).\n"
+                "Thrown exception: %s",
+                new_size,
+                new_size * sizeof(double) / 1024. / 1024. / 1024.,
+                e.what());
+        }
     }
 
     TimeStepAlgorithm(const double t0, const double t_end,
@@ -85,6 +109,19 @@ public:
     /// Get a flag to indicate whether this algorithm needs to compute
     /// solution error. The default return value is false.
     virtual bool isSolutionErrorComputationNeeded() { return false; }
+
+    /**
+     * Add specified times to the existing vector of the specified times.
+     * If there are specified times, they will be used as constraints in the
+     * computing of time step size such that the time step can exactly reach at
+     * the specified times. The function is mainly used to accept the specified
+     * times from the configuration of output.
+     */
+    virtual void addFixedOutputTimes(
+        std::vector<double> const& /*fixed_output_times*/)
+    {
+    }
+
 protected:
     /// initial time
     const double _t_initial;

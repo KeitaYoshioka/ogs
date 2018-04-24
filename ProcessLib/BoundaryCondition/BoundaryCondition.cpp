@@ -63,19 +63,18 @@ BoundaryConditionBuilder::createBoundaryCondition(
             config, dof_table, mesh, variable_id, integration_order,
             shapefunction_order);
     }
-
-    if (type == "PhaseFieldIrreversibleDamageOracleBoundaryCondition")
-    {
-        return createPhaseFieldIrreversibleDamageOracleBoundaryCondition(
-            config, dof_table, mesh, variable_id, integration_order,
-            shapefunction_order, parameters);
-    }
     //
     // Special boundary conditions
     //
     if (type == "NormalTraction")
     {
         return createNormalTractionBoundaryCondition(
+            config, dof_table, mesh, variable_id, integration_order,
+            shapefunction_order, parameters);
+    }
+    if (type == "PhaseFieldIrreversibleDamageOracleBoundaryCondition")
+    {
+        return createPhaseFieldIrreversibleDamageOracleBoundaryCondition(
             config, dof_table, mesh, variable_id, integration_order,
             shapefunction_order, parameters);
     }

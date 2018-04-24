@@ -162,18 +162,22 @@ bool PETScNonlinearSolver::solve(
     SNESSetJacobian(_snes_solver, petsc_J.getRawMatrix(),
                     petsc_J.getRawMatrix(), jacobian, &petsc_context);
 
-
-    DBUG("PETScNonlinearSolver: set constraints");
     // Constraints
-    Vec xl, xu;
-    VecDuplicate(x.getRawVector(), &xl);
-    VecDuplicate(x.getRawVector(), &xu);
-    VecSet(xl, 0.0);
-    VecSet(xu, 1.0);
+    DBUG("PETScNonlinearSolver: set constraints");
+    auto& xl = NumLib::GlobalVectorProvider::provider.getVector(
+        system->getMatrixSpecifications(1), _petsc_xl_id);
+    auto& xu = NumLib::GlobalVectorProvider::provider.getVector(
+        system->getMatrixSpecifications(1), _petsc_xu_id);
+    VecSet(xl.getRawVector(), 0.0);
+    VecSet(xu.getRawVector(), 1.0);
 
-    SNESVISetVariableBounds(_snes_solver, xl, xu);
+    system->updateConstraints(xl, xu);
+    MathLib::finalizeVectorAssembly(xl);
+    MathLib::finalizeVectorAssembly(xu);
 
+    SNESVISetVariableBounds(_snes_solver, xl.getRawVector(), xu.getRawVector());
 
+    // Solve
     DBUG("PETScNonlinearSolver: call SNESSolve");
     SNESConvergedReason reason = SNES_CONVERGED_ITERATING;
     PetscInt iterations;
@@ -194,10 +198,8 @@ bool PETScNonlinearSolver::solve(
     NumLib::GlobalVectorProvider::provider.releaseVector(petsc_r);
     NumLib::GlobalVectorProvider::provider.releaseVector(petsc_x);
 
-
-    VecDestroy(&xl);
-    VecDestroy(&xu);
-
+    NumLib::GlobalVectorProvider::provider.releaseVector(xl);
+    NumLib::GlobalVectorProvider::provider.releaseVector(xu);
 
     return reason >= 0;
 }

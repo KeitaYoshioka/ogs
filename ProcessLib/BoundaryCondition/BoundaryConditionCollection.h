@@ -46,11 +46,9 @@ public:
 
     void preTimestep(const double t, GlobalVector const& x)
     {
-        auto const n_bcs = _boundary_conditions.size();
-        for (std::size_t i = 0; i < n_bcs; ++i)
+        for (auto const& bc_ptr : _boundary_conditions)
         {
-            auto& bc = *_boundary_conditions[i];
-            bc.preTimestep(t, x);
+            bc_ptr->preTimestep(t, x);
         }
     }
 
