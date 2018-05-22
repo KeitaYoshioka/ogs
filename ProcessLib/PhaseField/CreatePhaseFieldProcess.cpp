@@ -189,6 +189,16 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         (crack_scheme &&
          ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
 
+    auto pf_irrv_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
+        config.getConfigParameterOptional<double>("pf_irrv");
+
+    double pf_irrv;
+    if(pf_irrv_read)
+        pf_irrv = *pf_irrv_read;
+    else
+        pf_irrv = 0.05;
+
     auto at_num =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__at_num}
         config.getConfigParameterOptional<int>("at_num");
@@ -206,7 +216,7 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         crack_length_scale,  kinetic_coefficient,
         solid_density,       history_field,
         specific_body_force, propagating_crack,
-        crack_pressure, at_param};
+        crack_pressure, pf_irrv, at_param};
 
     SecondaryVariableCollection secondary_variables;
 
