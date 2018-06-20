@@ -9,7 +9,6 @@
  */
 
 #include "PhaseFieldProcess.h"
-
 #include <cassert>
 
 #include "NumLib/DOF/ComputeSparsityPattern.h"
