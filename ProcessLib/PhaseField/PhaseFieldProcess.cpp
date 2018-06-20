@@ -10,10 +10,6 @@
  */
 
 #include "PhaseFieldProcess.h"
-<<<<<<< HEAD
-
-=======
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
 #include <cassert>
 
 #include "NumLib/DOF/ComputeSparsityPattern.h"
@@ -99,22 +95,13 @@ void PhaseFieldProcess<DisplacementDim>::constructDofTable()
 {
     // Create single component dof in every of the mesh's nodes.
     _mesh_subset_all_nodes =
-<<<<<<< HEAD
         std::make_unique<MeshLib::MeshSubset>(_mesh, _mesh.getNodes());
 
     // TODO move the two data members somewhere else.
     // for extrapolation of secondary variables of stress or strain
     std::vector<MeshLib::MeshSubset> all_mesh_subsets_single_component{
         *_mesh_subset_all_nodes};
-=======
-        std::make_unique<MeshLib::MeshSubset>(_mesh, &_mesh.getNodes());
-
-    // TODO move the two data members somewhere else.
-    // for extrapolation of secondary variables of stress or strain
-    std::vector<MeshLib::MeshSubsets> all_mesh_subsets_single_component;
-    all_mesh_subsets_single_component.emplace_back(
-        _mesh_subset_all_nodes.get());
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
+        std::make_unique<MeshLib::MeshSubset>(_mesh, _mesh.getNodes());
     _local_to_global_index_map_single_component =
         std::make_unique<NumLib::LocalToGlobalIndexMap>(
             std::move(all_mesh_subsets_single_component),
@@ -126,22 +113,12 @@ void PhaseFieldProcess<DisplacementDim>::constructDofTable()
     if (_use_monolithic_scheme)
     {
         const int process_id = 0;  // Only one process in the monolithic scheme.
-<<<<<<< HEAD
         std::vector<MeshLib::MeshSubset> all_mesh_subsets;
-=======
-        std::vector<MeshLib::MeshSubsets> all_mesh_subsets;
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
         std::generate_n(
             std::back_inserter(all_mesh_subsets),
             getProcessVariables(process_id)[1].get().getNumberOfComponents() +
                 1,
-<<<<<<< HEAD
             [&]() { return *_mesh_subset_all_nodes; });
-=======
-            [&]() {
-                return MeshLib::MeshSubsets{_mesh_subset_all_nodes.get()};
-            });
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
 
         std::vector<int> const vec_n_components{1, DisplacementDim};
         _local_to_global_index_map =
@@ -154,21 +131,11 @@ void PhaseFieldProcess<DisplacementDim>::constructDofTable()
     {
         // For displacement equation.
         const int process_id = 0;
-<<<<<<< HEAD
         std::vector<MeshLib::MeshSubset> all_mesh_subsets;
         std::generate_n(
             std::back_inserter(all_mesh_subsets),
             getProcessVariables(process_id)[0].get().getNumberOfComponents(),
             [&]() { return *_mesh_subset_all_nodes; });
-=======
-        std::vector<MeshLib::MeshSubsets> all_mesh_subsets;
-        std::generate_n(
-            std::back_inserter(all_mesh_subsets),
-            getProcessVariables(process_id)[0].get().getNumberOfComponents(),
-            [&]() {
-                return MeshLib::MeshSubsets{_mesh_subset_all_nodes.get()};
-            });
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
 
         std::vector<int> const vec_n_components{DisplacementDim};
         _local_to_global_index_map =
@@ -194,22 +161,14 @@ void PhaseFieldProcess<DisplacementDim>::initializeConcreteProcess(
         mesh.getElements(), dof_table, _local_assemblers,
         mesh.isAxiallySymmetric(), integration_order, _process_data);
 
-<<<<<<< HEAD
     _secondary_variables.addSecondaryVariable(
-=======
-    Base::_secondary_variables.addSecondaryVariable(
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
         "sigma",
         makeExtrapolator(MathLib::KelvinVector::KelvinVectorType<
                              DisplacementDim>::RowsAtCompileTime,
                          getExtrapolator(), _local_assemblers,
                          &LocalAssemblerInterface::getIntPtSigma));
 
-<<<<<<< HEAD
     _secondary_variables.addSecondaryVariable(
-=======
-    Base::_secondary_variables.addSecondaryVariable(
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
         "epsilon",
         makeExtrapolator(MathLib::KelvinVector::KelvinVectorType<
                              DisplacementDim>::RowsAtCompileTime,
@@ -359,12 +318,8 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
 
 template <int DisplacementDim>
 void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
-<<<<<<< HEAD
     GlobalVector const& x, const double /*t*/, const double /*delta_t*/,
     int const process_id)
-=======
-    GlobalVector const& x, int const process_id)
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
 {
     if (isPhaseFieldProcess(process_id))
     {
@@ -431,11 +386,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
             _process_data.pressure =
                 _process_data.injected_volume / _process_data.crack_volume;
             _process_data.pressure_error =
-<<<<<<< HEAD
                 std::fabs(_process_data.pressure_old - _process_data.pressure) /
-=======
-                abs(_process_data.pressure_old - _process_data.pressure) /
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
                 _process_data.pressure;
             INFO("Internal pressure: %g and Pressure error: %.4e",
                  _process_data.pressure, _process_data.pressure_error);
@@ -461,11 +412,7 @@ void PhaseFieldProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
 {
     lower.setZero();
     MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);
-<<<<<<< HEAD
     MathLib::LinAlg::copy(*_x_previous_timestep, upper);      
-=======
-    MathLib::LinAlg::copy(*_x_previous_timestep, upper);
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
 
     GlobalIndexType x_size = _x_previous_timestep->size();
 
@@ -474,7 +421,6 @@ void PhaseFieldProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
             upper.set(i, 1.0);
 
 }
-<<<<<<< HEAD
 
 
 template <int DisplacementDim>
@@ -483,10 +429,9 @@ bool PhaseFieldProcess<DisplacementDim>::isPhaseFieldProcess(
 {
     return !_use_monolithic_scheme && process_id == 1;
 }
-=======
+
 template class PhaseFieldProcess<2>;
 template class PhaseFieldProcess<3>;
->>>>>>> Moved PhaseFieldProcess-impl.h to PhaseFieldProcess.cpp
 
 }  // namespace PhaseField
 }  // namespace ProcessLib

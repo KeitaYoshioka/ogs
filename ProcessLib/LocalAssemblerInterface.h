@@ -13,6 +13,7 @@
 
 #include "NumLib/NumericsConfig.h"
 #include "MathLib/Point3d.h"
+#include <Eigen/Eigen>
 
 namespace NumLib
 {
