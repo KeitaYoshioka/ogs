@@ -9,22 +9,22 @@
 
 #pragma once
 
+#include "LocalAssemblerInterface.h"
 #include "ProcessLib/Process.h"
 
-#include "HydroPhaseFieldProcessData.h"
-#include "LocalAssemblerInterface.h"
+#include "HydroMechanicalPhaseFieldProcessData.h"
 
 namespace ProcessLib
 {
-namespace HydroPhaseField
+namespace HydroMechanicalPhaseField
 {
-template <int DisplacementDim>
-class HydroPhaseFieldProcess final : public Process
-{
-    using Base = Process;
+struct HydroMechanicalPhaseFieldLocalAssemblerInterface;
 
+template <int DisplacementDim>
+class HydroMechanicalPhaseFieldProcess final : public Process
+{
 public:
-    HydroPhaseFieldProcess(
+    HydroMechanicalPhaseFieldProcess(
         MeshLib::Mesh& mesh,
         std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&&
             jacobian_assembler,
@@ -32,13 +32,12 @@ public:
         unsigned const integration_order,
         std::vector<std::vector<std::reference_wrapper<ProcessVariable>>>&&
             process_variables,
-        HydroPhaseFieldProcessData<DisplacementDim>&& process_data,
+        HydroMechanicalPhaseFieldProcessData<DisplacementDim>&& process_data,
         SecondaryVariableCollection&& secondary_variables,
         NumLib::NamedFunctionCaller&& named_function_caller,
-        bool const use_monolithic_scheme,
-        int mechanics_related_id,
-        int hydro_process_id,
-        int phase_field_process_id);
+        int const mechanics_related_process_id,
+        int const phase_field_process_id,
+        int const hydro_process_id);
 
     //! \name ODESystem interface
     //! @{
@@ -52,8 +51,6 @@ public:
         const int process_id) const override;
 
 private:
-    using LocalAssemblerInterface = HydroPhaseFieldLocalAssemblerInterface;
-
     void constructDofTable() override;
 
     void initializeBoundaryConditions() override;
@@ -76,37 +73,51 @@ private:
                                     double const dt,
                                     const int process_id) override;
 
-    void postTimestepConcreteProcess(GlobalVector const& x,
+    void postTimestepConcreteProcess(GlobalVector const& x, double const t,
+                                     double const dt,
                                      int const process_id) override;
 
     void postNonLinearSolverConcreteProcess(GlobalVector const& x,
                                             const double t,
                                             int const process_id) override;
 
-private:
-    HydroPhaseFieldProcessData<DisplacementDim> _process_data;
+    void updateConstraints(GlobalVector& lower, GlobalVector& upper) override;
 
-    std::vector<std::unique_ptr<LocalAssemblerInterface>> _local_assemblers;
+    // To be replaced.
+    NumLib::LocalToGlobalIndexMap& getDOFTableByProcessID(
+        const int process_id) const;
+
+private:
+    HydroMechanicalPhaseFieldProcessData<DisplacementDim> _process_data;
+
+    std::vector<
+        std::unique_ptr<HydroMechanicalPhaseFieldLocalAssemblerInterface>>
+        _local_assemblers;
 
     std::unique_ptr<NumLib::LocalToGlobalIndexMap>
         _local_to_global_index_map_single_component;
 
+    MeshLib::PropertyVector<double>* _nodal_forces = nullptr;
+
+    /// Previous time step solution used for the constraints.
+    std::unique_ptr<GlobalVector> _x_previous_timestep;
+
     /// Sparsity pattern for the phase field equation, and it is initialized
-    ///  only if the staggered scheme is used.
+    //  only if the staggered scheme is used.
     GlobalSparsityPattern _sparsity_pattern_with_single_component;
 
     /// ID of the processes that contains mechanical process.
     int const _mechanics_related_process_id;
 
-    /// ID of hydro process.
-    int const _hydro_process_id;
-
     /// ID of phase field process.
     int const _phase_field_process_id;
+
+    /// ID of hydro process.
+    int const _hydro_process_id;
 };
 
-extern template class HydroPhaseFieldProcess<2>;
-extern template class HydroPhaseFieldProcess<3>;
+extern template class HydroMechanicalPhaseFieldProcess<2>;
+extern template class HydroMechanicalPhaseFieldProcess<3>;
 
-}  // namespace HydroPhaseField
+}  // namespace HydroMechanicalPhaseField
 }  // namespace ProcessLib
