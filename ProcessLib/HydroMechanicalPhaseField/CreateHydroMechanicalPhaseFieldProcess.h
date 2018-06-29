@@ -30,10 +30,10 @@ class ProcessVariable;
 
 namespace ProcessLib
 {
-namespace HydroPhaseField
+namespace HydroMechanicalPhaseField
 {
 template <int DisplacementDim>
-std::unique_ptr<Process> createHydroPhaseFieldProcess(
+std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -41,7 +41,8 @@ std::unique_ptr<Process> createHydroPhaseFieldProcess(
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
-extern template std::unique_ptr<Process> createHydroPhaseFieldProcess<2>(
+extern template std::unique_ptr<Process>
+createHydroMechanicalPhaseFieldProcess<2>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -49,12 +50,14 @@ extern template std::unique_ptr<Process> createHydroPhaseFieldProcess<2>(
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
-extern template std::unique_ptr<Process> createHydroPhaseFieldProcess<3>(
+extern template std::unique_ptr<Process>
+createHydroMechanicalPhaseFieldProcess<3>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
-}  // namespace HydroPhaseField
+
+}  // namespace HydroMechanicalPhaseField
 }  // namespace ProcessLib
