@@ -46,7 +46,7 @@ struct HydroMechanicalPhaseFieldProcessData
         Parameter<double> const& fluid_density_,
         Parameter<double> const& biot_coefficient_,
         Parameter<double> const& biot_modulus_,
-        Parameter<double> const& porosoty_)
+        Parameter<double> const& porosity_)
         : material{std::move(material_)},
           residual_stiffness(residual_stiffness_),
           crack_resistance(crack_resistance_),
@@ -54,7 +54,7 @@ struct HydroMechanicalPhaseFieldProcessData
           solid_density(solid_density_),
           specific_body_force(specific_body_force_),
           pf_irrv(pf_irrv_),
-          at_param(at_param_)
+          at_param(at_param_),
           intrinsic_permeability(intrinsic_permeability_),
           fluid_viscosity(fluid_viscosity_),
           fluid_density(fluid_density_),
@@ -79,7 +79,7 @@ struct HydroMechanicalPhaseFieldProcessData
           fluid_density(other.fluid_density),
           biot_coefficient(other.biot_coefficient),
           biot_modulus(other.biot_modulus),
-          porosity(other.porosity)
+          porosity(other.porosity),
           dt(other.dt),
           t(other.t)
     {

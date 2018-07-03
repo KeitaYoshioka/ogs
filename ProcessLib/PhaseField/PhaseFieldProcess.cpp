@@ -101,7 +101,7 @@ void PhaseFieldProcess<DisplacementDim>::constructDofTable()
     // for extrapolation of secondary variables of stress or strain
     std::vector<MeshLib::MeshSubset> all_mesh_subsets_single_component{
         *_mesh_subset_all_nodes};
-        std::make_unique<MeshLib::MeshSubset>(_mesh, _mesh.getNodes());
+    std::make_unique<MeshLib::MeshSubset>(_mesh, _mesh.getNodes());
     _local_to_global_index_map_single_component =
         std::make_unique<NumLib::LocalToGlobalIndexMap>(
             std::move(all_mesh_subsets_single_component),
@@ -412,16 +412,14 @@ void PhaseFieldProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
 {
     lower.setZero();
     MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);
-    MathLib::LinAlg::copy(*_x_previous_timestep, upper);      
+    MathLib::LinAlg::copy(*_x_previous_timestep, upper);
 
     GlobalIndexType x_size = _x_previous_timestep->size();
 
-    for (GlobalIndexType i=0 ; i < x_size; i++)
-        if((*_x_previous_timestep)[i] > _process_data.pf_irrv)
+    for (GlobalIndexType i = 0; i < x_size; i++)
+        if ((*_x_previous_timestep)[i] > _process_data.pf_irrv)
             upper.set(i, 1.0);
-
 }
-
 
 template <int DisplacementDim>
 bool PhaseFieldProcess<DisplacementDim>::isPhaseFieldProcess(

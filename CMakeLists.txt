@@ -94,7 +94,7 @@ set(ProcessesList
     HeatConduction
     HeatTransportBHE
     HydroMechanics
-#    HydroMechanicalPhaseField
+    HydroMechanicalPhaseField
     LiquidFlow
     LIE
     PhaseField

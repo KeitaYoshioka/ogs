@@ -46,7 +46,7 @@ struct IntegrationPointData final
 
     typename BMatricesType::KelvinVectorType sigma_tensile, sigma_compressive,
         sigma;
-    double strain_energy_tensile, elastic_energy;
+    double strain_energy_tensile, elastic_energy, width;
     typename ShapeMatrixType::GlobalDimVectorType velocity;
 
     MaterialLib::Solids::MechanicsBase<DisplacementDim>& solid_material;
@@ -74,12 +74,11 @@ struct IntegrationPointData final
                                     double const biot_coefficient,
                                     double const degradation)
     {
-        eps_m.noalias() = eps - alpha * delta_T * Invariants::identity2;
 
         static_cast<MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
             solid_material)
             .calculateDegradedStress(
-                t, x_position, eps_m, strain_energy_tensile, sigma_tensile,
+                t, x_position, eps, strain_energy_tensile, sigma_tensile,
                 sigma_compressive, C_tensile, C_compressive, sigma, degradation,
                 elastic_energy);
     }
@@ -124,14 +123,14 @@ public:
         HydroMechanicalPhaseFieldProcessData<DisplacementDim>& process_data,
         int const mechanics_related_process_id,
         int const phase_field_process_id,
-        int const heat_conduction_process_id)
+        int const hydro_process_id)
         : _process_data(process_data),
           _integration_method(integration_order),
           _element(e),
           _is_axially_symmetric(is_axially_symmetric),
           _mechanics_related_process_id(mechanics_related_process_id),
           _phase_field_process_id(phase_field_process_id),
-          _heat_conduction_process_id(heat_conduction_process_id)
+          _hydro_process_id(hydro_process_id)
     {
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
@@ -161,7 +160,6 @@ public:
                     DisplacementDim>::value;
             ip_data.eps.setZero(kelvin_vector_size);
             ip_data.eps_prev.resize(kelvin_vector_size);
-            ip_data.eps_m.setZero(kelvin_vector_size);
             ip_data.C_tensile.setZero(kelvin_vector_size, kelvin_vector_size);
             ip_data.C_compressive.setZero(kelvin_vector_size,
                                           kelvin_vector_size);
@@ -171,6 +169,7 @@ public:
             ip_data.sigma.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
+            ip_data.width = 0.0;
 
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;
@@ -217,6 +216,16 @@ public:
         // assumes N is stored contiguously in memory
         return Eigen::Map<const Eigen::RowVectorXd>(N.data(), N.size());
     }
+
+    void computeEnergy(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        GlobalVector const& x, double const t, double& elastic_energy,
+        double& surface_energy, double& pressure_work,
+        bool const use_monolithic_scheme,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
 private:
     std::vector<double> const& getIntPtSigma(
@@ -271,36 +280,6 @@ private:
         return cache;
     }
 
-    std::vector<double> const& getIntPtHeatFlux(
-        const double /*t*/,
-        GlobalVector const& /*current_solution*/,
-        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
-        std::vector<double>& cache) const override
-    {
-        using KelvinVectorType = typename BMatricesType::KelvinVectorType;
-
-        auto const num_intpts = _ip_data.size();
-
-        cache.clear();
-        auto cache_mat = MathLib::createZeroedMatrix<Eigen::Matrix<
-            double, DisplacementDim, Eigen::Dynamic, Eigen::RowMajor>>(
-            cache, DisplacementDim, num_intpts);
-
-        for (unsigned ip = 0; ip < num_intpts; ++ip)
-        {
-            auto const& heatflux = _ip_data[ip].heatflux;
-
-            for (typename KelvinVectorType::Index component = 0;
-                 component < DisplacementDim;
-                 ++component)
-            {  // x, y, z components
-                cache_mat(component, ip) = heatflux[component];
-            }
-        }
-
-        return cache;
-    }
-
     void assembleWithJacobianForDeformationEquations(
         double const t, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
@@ -308,7 +287,7 @@ private:
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions);
 
-    void assembleWithJacobianForHeatConductionEquations(
+    void assembleWithJacobianForHydroProcessEquations(
         double const t, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
@@ -335,8 +314,8 @@ private:
     bool const _is_axially_symmetric;
     SecondaryData<typename ShapeMatrices::ShapeType> _secondary_data;
 
-    static const int temperature_index = 0;
-    static const int temperature_size = ShapeFunction::NPOINTS;
+    static const int pressure_index = 0;
+    static const int pressure_size = ShapeFunction::NPOINTS;
     static const int phasefield_index = ShapeFunction::NPOINTS;
     static const int phasefield_size = ShapeFunction::NPOINTS;
     static const int displacement_index = 2 * ShapeFunction::NPOINTS;
@@ -349,8 +328,8 @@ private:
     /// ID of phase field process.
     int const _phase_field_process_id;
 
-    /// ID of heat conduction process.
-    int const _heat_conduction_process_id;
+    /// ID of hydro process.
+    int const _hydro_process_id;
 };
 
 }  // namespace HydroMechanicalPhaseField
