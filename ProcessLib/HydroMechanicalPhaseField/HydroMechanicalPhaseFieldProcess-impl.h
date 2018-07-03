@@ -151,7 +151,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         mesh.getElements(), dof_table, _local_assemblers,
         mesh.isAxiallySymmetric(), integration_order, _process_data,
         _mechanics_related_process_id, _phase_field_process_id,
-        _heat_conduction_process_id);
+        _hydro_process_id);
 
     _secondary_variables.addSecondaryVariable(
         "sigma",
@@ -192,16 +192,13 @@ void HydroMechanicalPhaseFieldProcess<
         _phase_field_process_id);
     // for heat conduction
     initializeProcessBoundaryConditionsAndSourceTerms(
-        getDOFTableByProcessID(_hydro_process_id),
-        _hydro_process_id);
+        getDOFTableByProcessID(_hydro_process_id), _hydro_process_id);
 }
 
 template <int DisplacementDim>
-void HydroMechanicalPhaseFieldProcess<
-    DisplacementDim>::assembleConcreteProcess(const double t,
-                                              GlobalVector const& x,
-                                              GlobalMatrix& M, GlobalMatrix& K,
-                                              GlobalVector& b)
+void HydroMechanicalPhaseFieldProcess<DisplacementDim>::assembleConcreteProcess(
+    const double t, GlobalVector const& x, GlobalMatrix& M, GlobalMatrix& K,
+    GlobalVector& b)
 {
     DBUG("Assemble the equations for HydroMechanicalPhaseFieldProcess.");
 
@@ -250,8 +247,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
             "HydroMechanicalPhaseFieldProcess for "
             "the staggered scheme.");
     }
-    dof_tables.emplace_back(
-        getDOFTableByProcessID(_hydro_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_hydro_process_id));
     dof_tables.emplace_back(
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
@@ -294,24 +290,30 @@ void HydroMechanicalPhaseFieldProcess<
 {
     DBUG("PostTimestep HydroMechanicalPhaseFieldProcess.");
 
-    _process_data.poroelastic_energy = 0.0;
-    _process_data.surface_energy = 0.0;
-    _process_data.pressure_work = 0.0;
-
     GlobalExecutor::executeMemberOnDereferenced(
         &HydroMechanicalPhaseFieldLocalAssemblerInterface::postTimestep,
         _local_assemblers, getDOFTable(process_id), x);
 
-    GlobalExecutor::executeMemberOnDereferenced(
-                &LocalAssemblerInterface::computeEnergy, _local_assemblers,
-                dof_tables, x, _process_data.t, _process_data.poroelastic_energy,
-                _process_data.surface_energy, _process_data.pressure_work,
-                _use_monolithic_scheme, _coupled_solutions);
+    /*
+        _process_data.poroelastic_energy = 0.0;
+        _process_data.surface_energy = 0.0;
+        _process_data.pressure_work = 0.0;
+        std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+            dof_tables;
 
-            INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
-                 _process_data.elastic_energy, _process_data.surface_energy,
-                 _process_data.pressure_work);
+        dof_tables.emplace_back(*_local_to_global_index_map);
+        dof_tables.emplace_back(*_local_to_global_index_map_single_component);
 
+        GlobalExecutor::executeMemberOnDereferenced(
+            &LocalAssemblerInterface::computeEnergy, _local_assemblers,
+     dof_tables, x, _process_data.t, _process_data.poroelastic_energy,
+            _process_data.surface_energy, _process_data.pressure_work,
+            _use_monolithic_scheme, _coupled_solutions);
+
+        INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
+             _process_data.elastic_energy, _process_data.surface_energy,
+             _process_data.pressure_work);
+             */
 }
 
 template <int DisplacementDim>
@@ -334,8 +336,8 @@ void HydroMechanicalPhaseFieldProcess<
 }
 
 template <int DisplacementDim>
-void HydroMechanicalPhaseFieldProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
-                                                           GlobalVector& upper)
+void HydroMechanicalPhaseFieldProcess<DisplacementDim>::updateConstraints(
+    GlobalVector& lower, GlobalVector& upper)
 {
     lower.setZero();
     MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);
@@ -343,10 +345,9 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::updateConstraints(Global
 
     GlobalIndexType x_size = _x_previous_timestep->size();
 
-    for (GlobalIndexType i=0 ; i < x_size; i++)
-        if((*_x_previous_timestep)[i] > _process_data.pf_irrv)
+    for (GlobalIndexType i = 0; i < x_size; i++)
+        if ((*_x_previous_timestep)[i] > _process_data.pf_irrv)
             upper.set(i, 1.0);
-
 }
 
 }  // namespace HydroMechanicalPhaseField

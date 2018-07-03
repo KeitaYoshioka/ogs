@@ -20,7 +20,7 @@ namespace HydroMechanicalPhaseField
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                              DisplacementDim>::
+                                             DisplacementDim>::
     assembleWithJacobianForStaggeredScheme(
         double const t, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
@@ -36,9 +36,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         return;
     }
 
-    if (local_coupled_solutions.process_id == _heat_conduction_process_id)
+    if (local_coupled_solutions.process_id == _hydro_process_id)
     {
-        assembleWithJacobianForHeatConductionEquations(
+        assembleWithJacobianForHydroProcessEquations(
             t, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
             local_b_data, local_Jac_data, local_coupled_solutions);
         return;
@@ -53,7 +53,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                              DisplacementDim>::
+                                             DisplacementDim>::
     assembleWithJacobianForDeformationEquations(
         double const t, std::vector<double> const& /*local_xdot*/,
         const double /*dxdot_dx*/, const double /*dx_dx*/,
@@ -66,9 +66,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
     auto const& local_u =
         local_coupled_solutions.local_coupled_xs[_mechanics_related_process_id];
-    auto const& local_T =
-        local_coupled_solutions.local_coupled_xs[_heat_conduction_process_id];
-    assert(local_T.size() == temperature_size);
+    auto const& local_p =
+        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
+    assert(local_p.size() == pressure_size);
     assert(local_d.size() == phasefield_size);
     assert(local_u.size() == displacement_size);
 
@@ -79,8 +79,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     auto u = Eigen::Map<typename ShapeMatricesType::template VectorType<
         displacement_size> const>(local_u.data(), displacement_size);
 
-    auto T = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        temperature_size> const>(local_T.data(), temperature_size);
+    auto p = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_p.data(), pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
         typename ShapeMatricesType::template MatrixType<displacement_size,
@@ -114,31 +115,17 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 dNdx, N, x_coord, _is_axially_symmetric);
 
         auto& eps = _ip_data[ip].eps;
-
-        auto const& C_tensile = _ip_data[ip].C_tensile;
-        auto const& C_compressive = _ip_data[ip].C_compressive;
-
-        auto const& sigma = _ip_data[ip].sigma;
-
-        auto const k = _process_data.residual_stiffness(t, x_position)[0];
-        auto rho_sr = _process_data.solid_density(t, x_position)[0];
-        auto const alpha = _process_data.linear_thermal_expansion_coefficient(
-            t, x_position)[0];
-        double const T0 = _process_data.reference_temperature;
-        auto const& b = _process_data.specific_body_force;
-
-        double const T_ip = N.dot(T);
-        double const delta_T = T_ip - T0;
-        // calculate real density
-        double const rho_s = rho_sr / (1 + 3 * alpha * delta_T);
-
+        eps.noalias() = B * u;
+        double const k = _process_data.residual_stiffness(t, x_position)[0];
+        double const alpha = _process_data.biot_coefficient(t, x_position)[0];
         double const d_ip = N.dot(d);
         double const degradation = d_ip * d_ip * (1 - k) + k;
-
-        auto const C_eff = degradation * C_tensile + C_compressive;
-        eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u, alpha,
-                                                delta_T, degradation);
+                                                degradation);
+
+        auto const& sigma = _ip_data[ip].sigma;
+        auto const& C_tensile = _ip_data[ip].C_tensile;
+        auto const& C_compressive = _ip_data[ip].C_compressive;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                         displacement_size>
@@ -151,18 +138,32 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                    i, i * displacement_size / DisplacementDim)
                 .noalias() = N;
 
-        local_Jac.noalias() += B.transpose() * C_eff * B * w;
+        auto rho_s = _process_data.solid_density(t, x_position)[0];
+        auto const& b = _process_data.specific_body_force;
+
+        double const p_ip = N.dot(p);
+        auto const C_eff = degradation * C_tensile + C_compressive;
+
+        // Check the dimension
+        auto const& identity2 = MathLib::KelvinVector::Invariants<
+            MathLib::KelvinVector::KelvinVectorDimensions<
+                DisplacementDim>::value>::identity2;
 
         local_rhs.noalias() -=
-            (B.transpose() * sigma - N_u.transpose() * rho_s * b) * w;
+            (B.transpose() * sigma - N_u.transpose() * rho_s * b -
+             p_ip * N_u.transpose() * dNdx * d -
+             d_ip * alpha * p_ip * identity2) *
+            w;
+
+        local_Jac.noalias() += B.transpose() * C_eff * B * w;
     }
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                              DisplacementDim>::
-    assembleWithJacobianForHeatConductionEquations(
+                                             DisplacementDim>::
+    assembleWithJacobianForHydroProcessEquations(
         double const t, std::vector<double> const& local_xdot,
         const double /*dxdot_dx*/, const double /*dx_dx*/,
         std::vector<double>& /*local_M_data*/,
@@ -172,29 +173,37 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 {
     auto const& local_d =
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
-    auto const& local_T =
-        local_coupled_solutions.local_coupled_xs[_heat_conduction_process_id];
-    assert(local_T.size() == temperature_size);
+    auto const& local_p =
+        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
+    assert(local_p.size() == pressure_size);
     assert(local_d.size() == phasefield_size);
 
     auto d = Eigen::Map<
         typename ShapeMatricesType::template VectorType<phasefield_size> const>(
         local_d.data(), phasefield_size);
 
-    auto T = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        temperature_size> const>(local_T.data(), temperature_size);
+    auto p = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_p.data(), pressure_size);
 
-    auto T_dot = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        temperature_size> const>(local_xdot.data(), temperature_size);
+    auto p_dot = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_xdot.data(), pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<temperature_size,
-                                                        temperature_size>>(
-        local_Jac_data, temperature_size, temperature_size);
+        typename ShapeMatricesType::template MatrixType<pressure_size,
+                                                        pressure_size>>(
+        local_Jac_data, pressure_size, pressure_size);
 
     auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<temperature_size>>(
-        local_b_data, temperature_size);
+        typename ShapeMatricesType::template VectorType<pressure_size>>(
+        local_b_data, pressure_size);
+
+    typename ShapeMatricesType::NodalMatrixType mass =
+        ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
+
+    typename ShapeMatricesType::NodalMatrixType laplace =
+        ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
 
     double const& dt = _process_data.dt;
 
@@ -209,65 +218,25 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
 
-        auto& eps_m = _ip_data[ip].eps_m;
-        auto& heatflux = _ip_data[ip].heatflux;
-
-        auto rho_sr = _process_data.solid_density(t, x_position)[0];
-        auto const alpha = _process_data.linear_thermal_expansion_coefficient(
-            t, x_position)[0];
-        double const c = _process_data.specific_heat_capacity(t, x_position)[0];
-        auto const lambda =
-            _process_data.thermal_conductivity(t, x_position)[0];
-        auto const lambda_res =
-            _process_data.residual_thermal_conductivity(t, x_position)[0];
-        double const T0 = _process_data.reference_temperature;
+        auto const alpha = _process_data.biot_coefficient(t, x_position)[0];
 
         double const d_ip = N.dot(d);
-        double const T_ip = N.dot(T);
-        double const T_dot_ip = N.dot(T_dot);
-        double const delta_T = T_ip - T0;
-        // calculate real density
-        double const rho_s = rho_sr / (1 + 3 * alpha * delta_T);
-        // calculate effective thermal conductivity
-        auto const lambda_eff =
-            d_ip * d_ip * lambda + (1 - d_ip) * (1 - d_ip) * lambda_res;
+        double const K_over_mu =
+            _process_data.intrinsic_permeability(t, x_position)[0] /
+            _process_data.fluid_viscosity(t, x_position)[0];
 
-        using Invariants = MathLib::KelvinVector::Invariants<
-            MathLib::KelvinVector::KelvinVectorDimensions<
-                DisplacementDim>::value>;
-
-        double const eps_m_trace = Invariants::trace(eps_m);
-        if (eps_m_trace >= 0)
-        {
-            local_Jac.noalias() += (dNdx.transpose() * lambda_eff * dNdx +
-                                    N.transpose() * rho_s * c * N / dt) *
-                                   w;
-
-            local_rhs.noalias() -= (N.transpose() * rho_s * c * T_dot_ip +
-                                    dNdx.transpose() * lambda_eff * dNdx * T) *
-                                   w;
-
-            heatflux.noalias() = -(lambda_eff * dNdx * T) * w;
-        }
-        else
-        {
-            local_Jac.noalias() += (dNdx.transpose() * lambda * dNdx +
-                                    N.transpose() * rho_s * c * N / dt) *
-                                   w;
-
-            local_rhs.noalias() -= (N.transpose() * rho_s * c * T_dot_ip +
-                                    dNdx.transpose() * lambda * dNdx * T) *
-                                   w;
-
-            heatflux.noalias() = -(lambda * dNdx * T) * w;
-        }
+        laplace.noalias() += dNdx.transpose() * K_over_mu * dNdx * w;
+        mass.noalias() += N.transpose() * N * w;
     }
+    local_Jac.noalias() = laplace + mass / dt;
+
+    local_rhs.noalias() -= laplace * p + mass * p_dot;
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                              DisplacementDim>::
+                                             DisplacementDim>::
     assembleWithJacobianForPhaseFieldEquations(
         double const t, std::vector<double> const& /*local_xdot*/,
         const double /*dxdot_dx*/, const double /*dx_dx*/,
@@ -276,25 +245,42 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
+    using DeformationVector =
+        typename ShapeMatricesType::template VectorType<displacement_size>;
+    using PhaseFieldVector =
+        typename ShapeMatricesType::template VectorType<phasefield_size>;
+    using PhaseFieldMatrix =
+        typename ShapeMatricesType::template MatrixType<phasefield_size,
+                                                        phasefield_size>;
+
+    auto const& local_u =
+        local_coupled_solutions.local_coupled_xs[_mechanics_related_process_id];
     auto const& local_d =
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
+    auto const& local_p =
+        local_coupled_solutions.local_coupled_xs[_hydro_process_id] assert(
+            local_u.size() == displacement_size);
     assert(local_d.size() == phasefield_size);
+    assert(local_p.size() == pressure_size);
 
-    auto d = Eigen::Map<
-        typename ShapeMatricesType::template VectorType<phasefield_size> const>(
-        local_d.data(), phasefield_size);
+    auto const local_matrix_size = local_d.size();
+    auto d =
+        Eigen::Map<PhaseFieldVector const>(local_d.data(), phasefield_size);
+    auto u =
+        Eigen::Map<DeformationVector const>(local_u.data(), displacement_size);
 
-    auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<phasefield_size,
-                                                        phasefield_size>>(
-        local_Jac_data, phasefield_size, phasefield_size);
+    auto p = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_p.data(), pressure_size);
 
-    auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<phasefield_size>>(
-        local_b_data, phasefield_size);
+    auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
+        local_Jac_data, local_matrix_size, local_matrix_size);
+    auto local_rhs = MathLib::createZeroedVector<PhaseFieldVector>(
+        local_b_data, local_matrix_size);
 
     SpatialPosition x_position;
     x_position.setElementID(_element.getID());
+    double const& dt = _process_data.dt;
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
     for (int ip = 0; ip < n_integration_points; ip++)
@@ -304,25 +290,79 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
 
+        double const gc = _process_data.crack_resistance(t, x_position)[0];
+        double const ls = _process_data.crack_length_scale(t, x_position)[0];
+
+        double const k = _process_data.residual_stiffness(t, x_position)[0];
+        auto const alpha = _process_data.biot_coefficient(t, x_position)[0];
+        double const d_ip = N.dot(d);
+        double const p_ip = N.dot(p);
+
+        double const degradation = d_ip * d_ip * (1 - k) + k;
+        auto const x_coord =
+            interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
+                                                                     N);
+        auto const& B =
+            LinearBMatrix::computeBMatrix<DisplacementDim,
+                                          ShapeFunction::NPOINTS,
+                                          typename BMatricesType::BMatrixType>(
+                dNdx, N, x_coord, _is_axially_symmetric);
+
+        auto& eps = _ip_data[ip].eps;
+        eps.noalias() = B * u;
+        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
+                                                degradation);
+
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 
-        auto const gc = _process_data.crack_resistance(t, x_position)[0];
-        auto const ls = _process_data.crack_length_scale(t, x_position)[0];
+        auto& ip_data = _ip_data[ip];
+        ip_data.strain_energy_tensile = strain_energy_tensile;
 
-        double const d_ip = N.dot(d);
+        typename ShapeMatricesType::template MatrixType<DisplacementDim,
+                                                        displacement_size>
+            N_u = ShapeMatricesType::template MatrixType<
+                DisplacementDim, displacement_size>::Zero(DisplacementDim,
+                                                          displacement_size);
 
-        local_Jac.noalias() += (dNdx.transpose() * gc * ls * dNdx +
-                                N.transpose() * 2 * strain_energy_tensile * N +
-                                N.transpose() * gc / ls * N) *
-                               w;
+        for (int i = 0; i < DisplacementDim; ++i)
+            N_u.template block<1, displacement_size / DisplacementDim>(
+                   i, i * displacement_size / DisplacementDim)
+                .noalias() = N;
 
-        local_rhs.noalias() -=
-            (dNdx.transpose() * gc * ls * dNdx * d +
-             N.transpose() * d_ip * 2 * strain_energy_tensile -
-             N.transpose() * gc / ls * (1 - d_ip)) *
-            w;
+        // For AT2
+        if (_process_data.at_param == 2)
+        {
+            local_Jac.noalias() +=
+                (2 * N.transpose() * N * strain_energy_tensile +
+                 gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) *
+                w;
+
+            local_rhs.noalias() -=
+                (N.transpose() * N * d * 2 * strain_energy_tensile +
+                 gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
+                           d -
+                       N.transpose() / ls) -
+                 p_ip * dNdx.transpose() * N_u * u -
+                 N.transpose() * alpha * p_ip) *
+                w;
+        }
+        // For AT1
+        else
+        {
+            local_Jac.noalias() +=
+                (2 * N.transpose() * N * strain_energy_tensile +
+                 gc * (0.75 * dNdx.transpose() * dNdx * ls)) *
+                w;
+
+            local_rhs.noalias() -=
+                (N.transpose() * N * d * 2 * strain_energy_tensile +
+                 gc * (-0.375 * N.transpose() / ls +
+                       0.75 * dNdx.transpose() * dNdx * ls * d) -
+                 p_ip * dNdx.transpose() * N_u * u -
+                 N.transpose() * alpha * p_ip) *
+                w;
+        }
     }
 }
-
 }  // namespace HydroMechanicalPhaseField
 }  // namespace ProcessLib

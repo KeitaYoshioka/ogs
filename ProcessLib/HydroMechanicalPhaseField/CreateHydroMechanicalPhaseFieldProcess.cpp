@@ -52,7 +52,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         {//! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables__pressure}
          "pressure"});
     process_variables.push_back(std::move(process_variable_P));
-    ProcessVariable* variable_P =
+    ProcessVariable* variable_p =
         &process_variables[process_variables.size() - 1][0].get();
 
     auto process_variable_u = findProcessVariables(
@@ -103,8 +103,8 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
             "Temperature process variable '%s' is not a scalar variable but "
             "has "
             "%d components.",
-            variable_P->getName().c_str(),
-            variable_P->getNumberOfComponents());
+            variable_p->getName().c_str(),
+            variable_p->getNumberOfComponents());
     }
 
     // Constitutive relation.
@@ -231,6 +231,27 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "porosity", parameters, 1);
     DBUG("Use \'%s\' as porosity parameter.", porosity.name.c_str());
 
+
+    auto pf_irrv_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
+        config.getConfigParameterOptional<double>("pf_irrv");
+
+    double pf_irrv;
+    if(pf_irrv_read)
+        pf_irrv = *pf_irrv_read;
+    else
+        pf_irrv = 0.05;
+
+    auto at_num =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__at_num}
+        config.getConfigParameterOptional<int>("at_num");
+
+    int at_param;
+    if(at_num && (*at_num == 1))
+        at_param = 1;
+    else
+        at_param = 2;
+
     HydroMechanicalPhaseFieldProcessData<DisplacementDim> process_data{
         std::move(material),
         residual_stiffness,
@@ -238,6 +259,8 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         crack_length_scale,
         solid_density,
         specific_body_force,
+        pf_irrv,
+        at_param,
         intrinsic_permeability,
         fluid_viscosity,
         fluid_density,
@@ -258,7 +281,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         std::move(process_variables), std::move(process_data),
         std::move(secondary_variables), std::move(named_function_caller),
         mechanics_related_process_id, phase_field_process_id,
-        heat_conduction_process_id);
+        hydro_process_id);
 }
 
 template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<2>(
