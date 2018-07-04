@@ -205,6 +205,12 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     typename ShapeMatricesType::NodalMatrixType laplace =
         ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
 
+    typename ShapeMatricesType::NodalMatrixType fixed_stress =
+        ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
+
+    typename ShapeMatricesType::NodalMatrixType source =
+        ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
+
     double const& dt = _process_data.dt;
 
     SpatialPosition x_position;
@@ -217,16 +223,52 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
+        auto const& width = _ip_data[ip].width;
+        auto const& width_prev = _ip_data[ip].width_prev;
+
+        auto const& eps = _ip_data[ip].eps;
+        auto const& eps_prev = _ip_data[ip].eps_prev;
 
         auto const alpha = _process_data.biot_coefficient(t, x_position)[0];
+        auto const m_inv = 1 / _process_data.biot_modulus(t, x_position)[0];
+        auto const kappa = _process_data.drained_modulus(t, x_position)[0];
+
+        using Invariants = MathLib::KelvinVector::Invariants<
+            MathLib::KelvinVector::KelvinVectorDimensions<
+                DisplacementDim>::value>;
 
         double const d_ip = N.dot(d);
-        double const K_over_mu =
-            _process_data.intrinsic_permeability(t, x_position)[0] /
-            _process_data.fluid_viscosity(t, x_position)[0];
+        auto& pressure = _ip_data[ip].pressure;
+        auto& pressure_prev = _ip_data[ip].pressure_prev;
+        pressure = N.dot(p);
+        double const perm =
+            _process_data.intrinsic_permeability(t, x_position)[0];
+        double const mu = _process_data.fluid_viscosity(t, x_position)[0];
 
-        laplace.noalias() += dNdx.transpose() * K_over_mu * dNdx * w;
-        mass.noalias() += N.transpose() * N * w;
+        double const grad_d_norm = (dNdx * d).norm();
+        auto const norm_gamma = (dNdx * d) / grad_d_norm;
+        auto const dNdx_gamma =
+            dNdx - norm_gamma * norm_gamma.transpose() * dNdx;
+
+        double const frac_trans = 4 * pow(width, 3) / (12 * mu);
+        double const modulus_rm =
+            alpha * alpha / kappa - m_inv * (1 - d_ip * d_ip);
+        double const dp_dt = (pressure - pressure_prev) / dt;
+        double const dw_dt = (width - width_prev) / dt;
+        double const dv_dt =
+            (Invariants::trace(eps) - Invariants::trace(eps_prev)) / dt;
+
+        laplace.noalias() +=
+            (perm / mu * dNdx.transpose() * dNdx +
+             frac_trans * dNdx_gamma.transpose() * dNdx_gamma * grad_d_norm) *
+            w;
+
+        mass.noalias() += (m_inv + d_ip * d_ip * alpha * alpha / kappa) *
+                          N.transpose() * N * w;
+        local_rhs.noalias() -=
+            (modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt +
+             dw_dt * grad_d_norm) *
+            N * w;
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -258,8 +300,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     auto const& local_d =
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
     auto const& local_p =
-        local_coupled_solutions.local_coupled_xs[_hydro_process_id] assert(
-            local_u.size() == displacement_size);
+        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
+
+    assert(local_u.size() == displacement_size);
     assert(local_d.size() == phasefield_size);
     assert(local_p.size() == pressure_size);
 
@@ -310,7 +353,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
+        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u, alpha,
                                                 degradation);
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
@@ -364,5 +407,69 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         }
     }
 }
+
+template <typename ShapeFunction, typename IntegrationMethod,
+          int DisplacementDim>
+void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
+                              DisplacementDim>::
+    computeFractureWidth(std::size_t mesh_item_id,
+                         std::vector<std::reference_wrapper<
+                             NumLib::LocalToGlobalIndexMap>> const& dof_tables,
+                         CoupledSolutionsForStaggeredScheme const* const cpl_xs)
+{
+    assert(cpl_xs != nullptr);
+
+    std::vector<std::vector<GlobalIndexType>> indices_of_processes;
+    indices_of_processes.reserve(dof_tables.size());
+    std::transform(dof_tables.begin(), dof_tables.end(),
+                   std::back_inserter(indices_of_processes),
+                   [&](NumLib::LocalToGlobalIndexMap const& dof_table) {
+                       return NumLib::getIndices(mesh_item_id, dof_table);
+                   });
+
+    auto local_coupled_xs =
+        getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
+    assert(local_coupled_xs.size() == 3);
+
+    auto const& local_u = local_coupled_xs[_mechanics_related_process_id];
+    auto const& local_d = local_coupled_xs[_phase_field_process_id];
+
+    assert(local_u.size() == displacement_size);
+    assert(local_d.size() == phasefield_size);
+
+    auto d = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<phasefield_size> const>(
+        local_d.data(), phasefield_size);
+
+    auto u = Eigen::Map<typename ShapeMatricesType::template VectorType<
+        displacement_size> const>(local_u.data(), displacement_size);
+
+    SpatialPosition x_position;
+    x_position.setElementID(_element.getID());
+
+    int const n_integration_points = _integration_method.getNumberOfPoints();
+    for (int ip = 0; ip < n_integration_points; ip++)
+    {
+        x_position.setIntegrationPoint(ip);
+        auto const& w = _ip_data[ip].integration_weight;
+        auto const& N = _ip_data[ip].N;
+        auto const& dNdx = _ip_data[ip].dNdx;
+        auto& width = _ip_data[ip].width;
+
+        typename ShapeMatricesType::template MatrixType<DisplacementDim,
+                                                        displacement_size>
+            N_u = ShapeMatricesType::template MatrixType<
+                DisplacementDim, displacement_size>::Zero(DisplacementDim,
+                                                          displacement_size);
+
+        for (int i = 0; i < DisplacementDim; ++i)
+            N_u.template block<1, displacement_size / DisplacementDim>(
+                   i, i * displacement_size / DisplacementDim)
+                .noalias() = N;
+
+        width += (N_u * u).dot(dNdx * d) * w;
+    }
+}
+
 }  // namespace HydroMechanicalPhaseField
 }  // namespace ProcessLib

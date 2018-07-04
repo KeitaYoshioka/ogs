@@ -46,6 +46,7 @@ struct HydroMechanicalPhaseFieldProcessData
         Parameter<double> const& fluid_density_,
         Parameter<double> const& biot_coefficient_,
         Parameter<double> const& biot_modulus_,
+        Parameter<double> const& drained_modulus_,
         Parameter<double> const& porosity_)
         : material{std::move(material_)},
           residual_stiffness(residual_stiffness_),
@@ -60,6 +61,7 @@ struct HydroMechanicalPhaseFieldProcessData
           fluid_density(fluid_density_),
           biot_coefficient(biot_coefficient_),
           biot_modulus(biot_modulus_),
+          drained_modulus(drained_modulus_),
           porosity(porosity_)
     {
     }
@@ -79,6 +81,7 @@ struct HydroMechanicalPhaseFieldProcessData
           fluid_density(other.fluid_density),
           biot_coefficient(other.biot_coefficient),
           biot_modulus(other.biot_modulus),
+          drained_modulus(other.drained_modulus),
           porosity(other.porosity),
           dt(other.dt),
           t(other.t)
@@ -107,6 +110,7 @@ struct HydroMechanicalPhaseFieldProcessData
     Parameter<double> const& fluid_density;
     Parameter<double> const& biot_coefficient;
     Parameter<double> const& biot_modulus;
+    Parameter<double> const& drained_modulus;
     Parameter<double> const& porosity;
     double poroelastic_energy = 0.0;
     double surface_energy = 0.0;

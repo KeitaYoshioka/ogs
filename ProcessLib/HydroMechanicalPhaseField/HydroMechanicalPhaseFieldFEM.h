@@ -21,8 +21,8 @@
 #include "ProcessLib/Parameter/SpatialPosition.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
-#include "LocalAssemblerInterface.h"
 #include "HydroMechanicalPhaseFieldProcessData.h"
+#include "LocalAssemblerInterface.h"
 
 namespace ProcessLib
 {
@@ -46,7 +46,8 @@ struct IntegrationPointData final
 
     typename BMatricesType::KelvinVectorType sigma_tensile, sigma_compressive,
         sigma;
-    double strain_energy_tensile, elastic_energy, width;
+    double strain_energy_tensile, elastic_energy, width, width_prev, pressure,
+        pressure_prev;
     typename ShapeMatrixType::GlobalDimVectorType velocity;
 
     MaterialLib::Solids::MechanicsBase<DisplacementDim>& solid_material;
@@ -60,6 +61,8 @@ struct IntegrationPointData final
     void pushBackState()
     {
         eps_prev = eps;
+        width_prev = width;
+        pressure_prev = pressure;
         material_state_variables->pushBackState();
     }
 
@@ -74,13 +77,12 @@ struct IntegrationPointData final
                                     double const biot_coefficient,
                                     double const degradation)
     {
-
         static_cast<MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
             solid_material)
-            .calculateDegradedStress(
-                t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                sigma_compressive, C_tensile, C_compressive, sigma, degradation,
-                elastic_energy);
+            .calculateDegradedStress(t, x_position, eps, strain_energy_tensile,
+                                     sigma_tensile, sigma_compressive,
+                                     C_tensile, C_compressive, sigma,
+                                     degradation, elastic_energy);
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -165,7 +167,6 @@ public:
                                           kelvin_vector_size);
             ip_data.sigma_tensile.setZero(kelvin_vector_size);
             ip_data.sigma_compressive.setZero(kelvin_vector_size);
-            ip_data.heatflux.setZero(DisplacementDim);
             ip_data.sigma.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
@@ -216,6 +217,13 @@ public:
         // assumes N is stored contiguously in memory
         return Eigen::Map<const Eigen::RowVectorXd>(N.data(), N.size());
     }
+
+    void computeFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
     void computeEnergy(
         std::size_t mesh_item_id,
@@ -280,6 +288,32 @@ private:
         return cache;
     }
 
+    /*    virtual std::vector<double> const& getIntPtDarcy(
+            const double /*t,
+            GlobalVector const& /*current_solution,
+            NumLib::LocalToGlobalIndexMap const& /*dof_table,
+            std::vector<double>& cache) const override
+        {
+            auto const kelvin_vector_size =
+                MathLib::KelvinVector::KelvinVectorDimensions<
+                    DisplacementDim>::value;
+            auto const num_intpts = _ip_data.size();
+
+            cache.clear();
+            auto cache_mat = MathLib::createZeroedMatrix<Eigen::Matrix<
+                double, kelvin_vector_size, Eigen::Dynamic, Eigen::RowMajor>>(
+                cache, kelvin_vector_size, num_intpts);
+
+            for (unsigned ip = 0; ip < num_intpts; ++ip)
+            {
+                auto const& eps = _ip_data[ip].eps;
+                cache_mat.col(ip) =
+                    MathLib::KelvinVector::kelvinVectorToSymmetricTensor(eps);
+            }
+
+            return cache;
+        }
+    */
     void assembleWithJacobianForDeformationEquations(
         double const t, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,

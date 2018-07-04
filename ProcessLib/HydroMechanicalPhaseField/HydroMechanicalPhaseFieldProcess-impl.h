@@ -169,12 +169,13 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
                          &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                              getIntPtEpsilon));
 
-    _secondary_variables.addSecondaryVariable(
-        "velocity",
-        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
-                         _local_assemblers,
-                         &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                             getIntPtDarcyVelocity));
+    /*    _secondary_variables.addSecondaryVariable(
+            "velocity",
+            makeExtrapolator(mesh.getDimension(), getExtrapolator(),
+                             _local_assemblers,
+                             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                                 getIntPtDarcyVelocity));
+                                 */
 }
 
 template <int DisplacementDim>
@@ -326,6 +327,19 @@ void HydroMechanicalPhaseFieldProcess<
     {
         return;
     }
+
+    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+        dof_tables;
+    dof_tables.emplace_back(getDOFTableByProcessID(_hydro_process_id));
+    dof_tables.emplace_back(
+        getDOFTableByProcessID(_mechanics_related_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
+
+    DBUG("Fracture width computation after mechanics.");
+
+    GlobalExecutor::executeMemberOnDereferenced(
+        &HydroMechanicalPhaseFieldLocalAssemblerInterface::computeFractureWidth,
+        _local_assemblers, dof_tables, _coupled_solutions);
 
     DBUG("PostNonLinearSolver HydroMechanicalPhaseFieldProcess.");
     // Calculate strain, stress or other internal variables of mechanics.
