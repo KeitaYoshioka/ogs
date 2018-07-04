@@ -161,7 +161,6 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "crack_length_scale", parameters, 1);
     DBUG("Use \'%s\' as crack length scale.", crack_length_scale.name.c_str());
 
-
     // Solid density
     auto& solid_density = findParameter<double>(
         config,
@@ -224,6 +223,12 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICS__biot_modulus}
         "biot_modulus", parameters, 1);
 
+    // drained modulus
+    auto& drained_modulus = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICS__drained_modulus}
+        "drained_modulus", parameters, 1);
+
     // Porosity
     auto& porosity = findParameter<double>(
         config,
@@ -231,13 +236,12 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "porosity", parameters, 1);
     DBUG("Use \'%s\' as porosity parameter.", porosity.name.c_str());
 
-
     auto pf_irrv_read =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
         config.getConfigParameterOptional<double>("pf_irrv");
 
     double pf_irrv;
-    if(pf_irrv_read)
+    if (pf_irrv_read)
         pf_irrv = *pf_irrv_read;
     else
         pf_irrv = 0.05;
@@ -247,7 +251,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         config.getConfigParameterOptional<int>("at_num");
 
     int at_param;
-    if(at_num && (*at_num == 1))
+    if (at_num && (*at_num == 1))
         at_param = 1;
     else
         at_param = 2;
@@ -266,6 +270,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         fluid_density,
         biot_coefficient,
         biot_modulus,
+        drained_modulus,
         porosity};
 
     SecondaryVariableCollection secondary_variables;
@@ -280,8 +285,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         mesh, std::move(jacobian_assembler), parameters, integration_order,
         std::move(process_variables), std::move(process_data),
         std::move(secondary_variables), std::move(named_function_caller),
-        mechanics_related_process_id, phase_field_process_id,
-        hydro_process_id);
+        mechanics_related_process_id, phase_field_process_id, hydro_process_id);
 }
 
 template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<2>(
