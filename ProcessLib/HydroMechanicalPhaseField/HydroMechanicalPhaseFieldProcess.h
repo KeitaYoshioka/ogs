@@ -80,7 +80,6 @@ private:
     void postNonLinearSolverConcreteProcess(GlobalVector const& x,
                                             const double t,
                                             int const process_id) override;
-
     void updateConstraints(GlobalVector& lower, GlobalVector& upper) override;
 
     // To be replaced.

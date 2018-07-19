@@ -14,6 +14,8 @@
 #include <memory>
 #include <utility>
 
+#include "MeshLib/PropertyVector.h"
+
 namespace MaterialLib
 {
 namespace Solids
@@ -112,6 +114,11 @@ struct HydroMechanicalPhaseFieldProcessData
     Parameter<double> const& biot_modulus;
     Parameter<double> const& drained_modulus;
     Parameter<double> const& porosity;
+    MeshLib::PropertyVector<double>* ele_grad_d = nullptr;
+    MeshLib::PropertyVector<double>* ele_d = nullptr;
+    MeshLib::PropertyVector<double>* ele_u_dot_grad_d = nullptr;
+    MeshLib::PropertyVector<double>* width = nullptr;
+    MeshLib::PropertyVector<double>* width_prev = nullptr;
     double poroelastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;

@@ -13,6 +13,7 @@
 
 #include "NumLib/Extrapolation/ExtrapolatableElement.h"
 #include "ProcessLib/LocalAssemblerInterface.h"
+#include "MeshLib/Mesh.h"
 
 namespace ProcessLib
 {
@@ -45,9 +46,17 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        MeshLib::Mesh const& mesh) = 0;
+
+    virtual void computeFractureNormal(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
 
-    virtual void computeEnergy(
+/*    virtual void computeEnergy(
         std::size_t mesh_item_id,
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
@@ -55,7 +64,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
         GlobalVector const& x, double const t, double& elastic_energy,
         double& surface_energy, double& pressure_work,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;*/
 };
 
 }  // namespace HydroMechanicalPhaseField

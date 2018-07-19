@@ -68,7 +68,7 @@ HydroMechanicalPhaseFieldProcess<DisplacementDim>::getMatrixSpecifications(
                 &l.getGhostIndices(), &this->_sparsity_pattern};
     }
 
-    // For staggered scheme and phase field process or heat conduction.
+    // For staggered scheme and phase field process or hydro.
     auto const& l = *_local_to_global_index_map_single_component;
     return {l.dofSizeWithoutGhosts(), l.dofSizeWithoutGhosts(),
             &l.getGhostIndices(), &_sparsity_pattern_with_single_component};
@@ -84,7 +84,7 @@ HydroMechanicalPhaseFieldProcess<DisplacementDim>::getDOFTable(
         return *_local_to_global_index_map;
     }
 
-    // For the equation of phasefield or heat conduction.
+    // For the equation of phasefield or hydro.
     return *_local_to_global_index_map_single_component;
 }
 
@@ -98,7 +98,7 @@ HydroMechanicalPhaseFieldProcess<DisplacementDim>::getDOFTableByProcessID(
         return *_local_to_global_index_map;
     }
 
-    // For the equation of phasefield or heat conduction.
+    // For the equation of phasefield or hydro.
     return *_local_to_global_index_map_single_component;
 }
 
@@ -176,6 +176,22 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
                              &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                                  getIntPtDarcyVelocity));
                                  */
+
+    _process_data.ele_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,
+        1);
+
+    _process_data.ele_u_dot_grad_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,
+        1);
+
+    _process_data.width = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "width", MeshLib::MeshItemType::Cell,
+        1);
+
+    _process_data.ele_grad_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "grad_damage",
+        MeshLib::MeshItemType::Cell, DisplacementDim);
 }
 
 template <int DisplacementDim>
@@ -231,11 +247,10 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
             "HydroMechanicalPhaseFieldProcess for "
             "the staggered scheme.");
     }
-
-    if (_coupled_solutions->process_id == _phase_field_process_id)
+    else if (_coupled_solutions->process_id == _phase_field_process_id)
     {
         DBUG(
-            "Assemble the Jacobian equations of"
+            "Assemble the Jacobian equations of z"
             "phase field in "
             "HydroMechanicalPhaseFieldProcess for "
             "the staggered scheme.");
@@ -323,11 +338,6 @@ void HydroMechanicalPhaseFieldProcess<
                                                          const double t,
                                                          const int process_id)
 {
-    if (process_id != _mechanics_related_process_id)
-    {
-        return;
-    }
-
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
     dof_tables.emplace_back(getDOFTableByProcessID(_hydro_process_id));
@@ -335,18 +345,18 @@ void HydroMechanicalPhaseFieldProcess<
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    DBUG("Fracture width computation after mechanics.");
-
-    GlobalExecutor::executeMemberOnDereferenced(
-        &HydroMechanicalPhaseFieldLocalAssemblerInterface::computeFractureWidth,
-        _local_assemblers, dof_tables, _coupled_solutions);
-
-    DBUG("PostNonLinearSolver HydroMechanicalPhaseFieldProcess.");
-    // Calculate strain, stress or other internal variables of mechanics.
-    const bool use_monolithic_scheme = false;
-    GlobalExecutor::executeMemberOnDereferenced(
-        &LocalAssemblerInterface::postNonLinearSolver, _local_assemblers,
-        getDOFTable(process_id), x, t, use_monolithic_scheme);
+    if (process_id == _phase_field_process_id)
+    {
+        DBUG("Fracture width computation before hydro process.");
+        GlobalExecutor::executeMemberOnDereferenced(
+            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                computeFractureNormal,
+            _local_assemblers, dof_tables, _coupled_solutions);
+        GlobalExecutor::executeMemberOnDereferenced(
+            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                computeFractureWidth,
+            _local_assemblers, dof_tables, _coupled_solutions, _mesh);
+    }
 }
 
 template <int DisplacementDim>

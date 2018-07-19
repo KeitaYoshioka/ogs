@@ -69,6 +69,9 @@
 #ifdef OGS_BUILD_PROCESS_HYDROMECHANICS
 #include "ProcessLib/HydroMechanics/CreateHydroMechanicsProcess.h"
 #endif
+#ifdef OGS_BUILD_PROCESS_HYDROMECHANICALPHASEFIELD
+#include "ProcessLib/HydroMechanicalPhaseField/CreateHydroMechanicalPhaseFieldProcess.h"
+#endif
 #ifdef OGS_BUILD_PROCESS_LIE
 #include "ProcessLib/LIE/HydroMechanics/CreateHydroMechanicsProcess.h"
 #include "ProcessLib/LIE/SmallDeformation/CreateSmallDeformationProcess.h"
@@ -619,6 +622,29 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                     OGS_FATAL(
                         "HYDRO_MECHANICS_WITH_LIE process does not support "
                         "given dimension");
+            }
+        }
+        else
+#endif
+#ifdef OGS_BUILD_PROCESS_HYDROMECHANICALPHASEFIELD
+            if (type == "HYDRO_MECHANICAL_PHASE_FIELD")
+        {
+            switch (_mesh_vec[0]->getDimension())
+            {
+                case 2:
+                    process =
+                        ProcessLib::HydroMechanicalPhaseField::createHydroMechanicalPhaseFieldProcess<
+                            2>(*_mesh_vec[0], std::move(jacobian_assembler),
+                               _process_variables, _parameters,
+                               integration_order, process_config);
+                    break;
+                case 3:
+                    process =
+                        ProcessLib::HydroMechanicalPhaseField::createHydroMechanicalPhaseFieldProcess<
+                            3>(*_mesh_vec[0], std::move(jacobian_assembler),
+                               _process_variables, _parameters,
+                               integration_order, process_config);
+                    break;
             }
         }
         else
