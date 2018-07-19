@@ -24,6 +24,17 @@
 #include "HydroMechanicalPhaseFieldProcessData.h"
 #include "LocalAssemblerInterface.h"
 
+#include "GeoLib/Polyline.h"
+#include "GeoLib/Surface.h"
+
+#include "MeshGeoToolsLib/BoundaryElementsSearcher.h"
+#include "MeshGeoToolsLib/HeuristicSearchLength.h"
+#include "MeshGeoToolsLib/MeshNodeSearcher.h"
+#include "MeshLib/Elements/Element.h"
+#include "MeshLib/Mesh.h"
+#include "MeshLib/MeshSearch/NodeSearch.h"
+#include "MeshLib/Node.h"
+
 namespace ProcessLib
 {
 namespace HydroMechanicalPhaseField
@@ -45,10 +56,8 @@ struct IntegrationPointData final
     typename BMatricesType::KelvinVectorType eps, eps_prev;
 
     typename BMatricesType::KelvinVectorType sigma_tensile, sigma_compressive,
-        sigma;
-    double strain_energy_tensile, elastic_energy, width, width_prev, pressure,
-        pressure_prev;
-    typename ShapeMatrixType::GlobalDimVectorType velocity;
+        sigma_eff;
+    double strain_energy_tensile, elastic_energy, pressure, pressure_prev;
 
     MaterialLib::Solids::MechanicsBase<DisplacementDim>& solid_material;
     std::unique_ptr<typename MaterialLib::Solids::MechanicsBase<
@@ -61,7 +70,6 @@ struct IntegrationPointData final
     void pushBackState()
     {
         eps_prev = eps;
-        width_prev = width;
         pressure_prev = pressure;
         material_state_variables->pushBackState();
     }
@@ -81,7 +89,7 @@ struct IntegrationPointData final
             solid_material)
             .calculateDegradedStress(t, x_position, eps, strain_energy_tensile,
                                      sigma_tensile, sigma_compressive,
-                                     C_tensile, C_compressive, sigma,
+                                     C_tensile, C_compressive, sigma_eff,
                                      degradation, elastic_energy);
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -167,10 +175,9 @@ public:
                                           kelvin_vector_size);
             ip_data.sigma_tensile.setZero(kelvin_vector_size);
             ip_data.sigma_compressive.setZero(kelvin_vector_size);
-            ip_data.sigma.setZero(kelvin_vector_size);
+            ip_data.sigma_eff.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
-            ip_data.width = 0.0;
 
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;
@@ -207,6 +214,7 @@ public:
         {
             _ip_data[ip].pushBackState();
         }
+        _process_data.width_prev = _process_data.width;
     }
 
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
@@ -218,14 +226,22 @@ public:
         return Eigen::Map<const Eigen::RowVectorXd>(N.data(), N.size());
     }
 
-    void computeFractureWidth(
+    void computeFractureNormal(
         std::size_t mesh_item_id,
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
-    void computeEnergy(
+    void computeFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        MeshLib::Mesh const& mesh) override;
+
+/*    void computeEnergy(
         std::size_t mesh_item_id,
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
@@ -233,7 +249,7 @@ public:
         GlobalVector const& x, double const t, double& elastic_energy,
         double& surface_energy, double& pressure_work,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;*/
 
 private:
     std::vector<double> const& getIntPtSigma(
@@ -254,9 +270,9 @@ private:
 
         for (unsigned ip = 0; ip < num_intpts; ++ip)
         {
-            auto const& sigma = _ip_data[ip].sigma;
+            auto const& sigma_eff = _ip_data[ip].sigma_eff;
             cache_mat.col(ip) =
-                MathLib::KelvinVector::kelvinVectorToSymmetricTensor(sigma);
+                MathLib::KelvinVector::kelvinVectorToSymmetricTensor(sigma_eff);
         }
 
         return cache;

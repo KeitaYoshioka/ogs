@@ -47,11 +47,11 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     int mechanics_related_process_id = 1;
     int phase_field_process_id = 2;
 
-    auto process_variable_P = findProcessVariables(
+    auto process_variable_p = findProcessVariables(
         variables, pv_config,
         {//! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables__pressure}
          "pressure"});
-    process_variables.push_back(std::move(process_variable_P));
+    process_variables.push_back(std::move(process_variable_p));
     ProcessVariable* variable_p =
         &process_variables[process_variables.size() - 1][0].get();
 
@@ -62,6 +62,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     process_variables.push_back(std::move(process_variable_u));
     ProcessVariable* variable_u =
         &process_variables[process_variables.size() - 1][0].get();
+
     auto process_variable_ph = findProcessVariables(
         variables, pv_config,
         {//! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables__phasefield}
@@ -70,9 +71,20 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     ProcessVariable* variable_ph =
         &process_variables[process_variables.size() - 1][0].get();
 
+    DBUG("Associate pressure with process variable \'%s\'.",
+         variable_p->getName().c_str());
+    if (variable_p->getNumberOfComponents() != 1)
+    {
+        OGS_FATAL(
+            "Pressure process variable '%s' is not a scalar variable but "
+            "has "
+            "%d components.",
+            variable_p->getName().c_str(),
+            variable_p->getNumberOfComponents());
+    }
+
     DBUG("Associate displacement with process variable \'%s\'.",
          variable_u->getName().c_str());
-
     if (variable_u->getNumberOfComponents() != DisplacementDim)
     {
         OGS_FATAL(
@@ -93,18 +105,6 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
             "%d components.",
             variable_ph->getName().c_str(),
             variable_ph->getNumberOfComponents());
-    }
-
-    DBUG("Associate temperature with process variable \'%s\'.",
-         variable_p->getName().c_str());
-    if (variable_p->getNumberOfComponents() != 1)
-    {
-        OGS_FATAL(
-            "Temperature process variable '%s' is not a scalar variable but "
-            "has "
-            "%d components.",
-            variable_p->getName().c_str(),
-            variable_p->getNumberOfComponents());
     }
 
     // Constitutive relation.
@@ -276,7 +276,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     SecondaryVariableCollection secondary_variables;
 
     NumLib::NamedFunctionCaller named_function_caller(
-        {"pressure_phasefield_displacement"});
+        {"pressure_displacement_phasefield"});
 
     ProcessLib::createSecondaryVariables(config, secondary_variables,
                                          named_function_caller);
