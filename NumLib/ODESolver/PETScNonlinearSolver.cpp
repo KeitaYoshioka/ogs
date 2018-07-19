@@ -167,9 +167,9 @@ bool PETScNonlinearSolver::solve(
     // Constraints
     DBUG("PETScNonlinearSolver: set constraints");
     auto& xl = NumLib::GlobalVectorProvider::provider.getVector(
-        system->getMatrixSpecifications(1), _petsc_xl_id);
+        system->getMatrixSpecifications(process_id), _petsc_xl_id);
     auto& xu = NumLib::GlobalVectorProvider::provider.getVector(
-        system->getMatrixSpecifications(1), _petsc_xu_id);
+        system->getMatrixSpecifications(process_id), _petsc_xu_id);
     VecSet(xl.getRawVector(), 0.0);
     VecSet(xu.getRawVector(), 1.0);
 
