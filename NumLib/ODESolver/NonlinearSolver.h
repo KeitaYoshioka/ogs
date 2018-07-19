@@ -55,7 +55,7 @@ public:
      */
     virtual bool solve(GlobalVector& x,
                        std::function<void(unsigned, GlobalVector const&)> const&
-                           postIterationCallback) = 0;
+                           postIterationCallback, int process_id) = 0;
 
     virtual ~NonlinearSolverBase() = default;
 };
@@ -107,7 +107,7 @@ public:
 
     bool solve(GlobalVector& x,
                std::function<void(unsigned, GlobalVector const&)> const&
-                   postIterationCallback) override;
+                   postIterationCallback, int process_id) override;
 
 private:
     GlobalLinearSolver& _linear_solver;
@@ -166,7 +166,7 @@ public:
 
     bool solve(GlobalVector& x,
                std::function<void(unsigned, GlobalVector const&)> const&
-                   postIterationCallback) override;
+                   postIterationCallback, int process_id) override;
 
 private:
     GlobalLinearSolver& _linear_solver;

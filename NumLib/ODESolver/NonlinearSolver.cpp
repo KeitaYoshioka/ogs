@@ -31,15 +31,15 @@ void NonlinearSolver<NonlinearSolverTag::Picard>::assemble(
 
 bool NonlinearSolver<NonlinearSolverTag::Picard>::solve(
     GlobalVector& x,
-    std::function<void(unsigned, GlobalVector const&)> const& postIterationCallback)
+    std::function<void(unsigned, GlobalVector const&)> const&
+        postIterationCallback,
+    int const process_id)
 {
     namespace LinAlg = MathLib::LinAlg;
     auto& sys = *_equation_system;
 
-    auto& A =
-        NumLib::GlobalMatrixProvider::provider.getMatrix(_A_id);
-    auto& rhs = NumLib::GlobalVectorProvider::provider.getVector(
-        _rhs_id);
+    auto& A = NumLib::GlobalMatrixProvider::provider.getMatrix(_A_id);
+    auto& rhs = NumLib::GlobalVectorProvider::provider.getVector(_rhs_id);
     auto& x_new = NumLib::GlobalVectorProvider::provider.getVector(_x_new_id);
 
     bool error_norms_met = false;
@@ -129,10 +129,14 @@ bool NonlinearSolver<NonlinearSolverTag::Picard>::solve(
             break;
         }
 
-        if (sys.isLinear()) {
+        if (sys.isLinear())
+        {
             error_norms_met = true;
-        } else {
-            if (_convergence_criterion->hasDeltaXCheck()) {
+        }
+        else
+        {
+            if (_convergence_criterion->hasDeltaXCheck())
+            {
                 GlobalVector minus_delta_x(x);
                 LinAlg::axpy(minus_delta_x, -1.0,
                              x_new);  // minus_delta_x = x - x_new
@@ -177,18 +181,17 @@ void NonlinearSolver<NonlinearSolverTag::Newton>::assemble(
 
 bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
     GlobalVector& x,
-    std::function<void(unsigned, GlobalVector const&)> const& postIterationCallback)
+    std::function<void(unsigned, GlobalVector const&)> const&
+        postIterationCallback,
+    int const process_id)
 {
     namespace LinAlg = MathLib::LinAlg;
     auto& sys = *_equation_system;
 
-    auto& res = NumLib::GlobalVectorProvider::provider.getVector(
-        _res_id);
+    auto& res = NumLib::GlobalVectorProvider::provider.getVector(_res_id);
     auto& minus_delta_x =
-        NumLib::GlobalVectorProvider::provider.getVector(
-            _minus_delta_x_id);
-    auto& J =
-        NumLib::GlobalMatrixProvider::provider.getMatrix(_J_id);
+        NumLib::GlobalVectorProvider::provider.getVector(_minus_delta_x_id);
+    auto& J = NumLib::GlobalMatrixProvider::provider.getMatrix(_J_id);
 
     bool error_norms_met = false;
 
@@ -253,7 +256,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
             if (postIterationCallback)
                 postIterationCallback(iteration, x_new);
 
-            switch(sys.postIteration(x_new))
+            switch (sys.postIteration(x_new))
             {
                 case IterationResult::SUCCESS:
                     break;
@@ -283,10 +286,14 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
             break;
         }
 
-        if (sys.isLinear()) {
+        if (sys.isLinear())
+        {
             error_norms_met = true;
-        } else {
-            if (_convergence_criterion->hasDeltaXCheck()) {
+        }
+        else
+        {
+            if (_convergence_criterion->hasDeltaXCheck())
+            {
                 // Note: x contains the new solution!
                 _convergence_criterion->checkDeltaX(minus_delta_x, x);
             }
@@ -310,8 +317,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 
     NumLib::GlobalMatrixProvider::provider.releaseMatrix(J);
     NumLib::GlobalVectorProvider::provider.releaseVector(res);
-    NumLib::GlobalVectorProvider::provider.releaseVector(
-        minus_delta_x);
+    NumLib::GlobalVectorProvider::provider.releaseVector(minus_delta_x);
 
     return error_norms_met;
 }
@@ -325,7 +331,8 @@ createNonlinearSolver(GlobalLinearSolver& linear_solver,
     //! \ogs_file_param{prj__nonlinear_solvers__nonlinear_solver__max_iter}
     auto const max_iter = config.getConfigParameter<unsigned>("max_iter");
 
-    if (type == "Picard") {
+    if (type == "Picard")
+    {
         auto const tag = NonlinearSolverTag::Picard;
         using ConcreteNLS = NonlinearSolver<tag>;
         return std::make_pair(
@@ -360,4 +367,4 @@ createNonlinearSolver(GlobalLinearSolver& linear_solver,
 #endif
     OGS_FATAL("Unsupported nonlinear solver type \"%s\".", type.c_str());
 }
-}
+}  // namespace NumLib

@@ -281,7 +281,7 @@ bool solveOneTimeStepOneProcess(int const process_id, GlobalVector& x,
     };
 
     bool nonlinear_solver_succeeded =
-        nonlinear_solver.solve(x, post_iteration_callback);
+        nonlinear_solver.solve(x, post_iteration_callback, process_id);
 
     if (nonlinear_solver_succeeded)
     {
