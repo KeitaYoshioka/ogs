@@ -53,8 +53,10 @@ void PETScNonlinearSolver::assemble(GlobalVector const& x) const
 }
 
 bool PETScNonlinearSolver::solve(
-    GlobalVector& x, std::function<void(unsigned, GlobalVector const&)> const&
-    /*postIterationCallback*/)
+    GlobalVector& x,
+    std::function<void(unsigned, GlobalVector const&)> const&
+    /*postIterationCallback*/,
+    int const process_id)
 {
     DBUG("PETScNonlinearSolver: solve()");
     using TimeDiscretizedSystem =
@@ -66,19 +68,19 @@ bool PETScNonlinearSolver::solve(
     DBUG("PETScNonlinearSolver: create vectors");
     // r and J on which the ogs assembly operates.
     auto& r = NumLib::GlobalVectorProvider::provider.getVector(
-        system->getMatrixSpecifications(1), _residual_id);
+        system->getMatrixSpecifications(process_id), _residual_id);
     auto& J = NumLib::GlobalMatrixProvider::provider.getMatrix(
-        system->getMatrixSpecifications(1), _jacobian_id);
+        system->getMatrixSpecifications(process_id), _jacobian_id);
 
     // temporary r and J for petsc operations. These are copies of r and J
     // after the assembly.
     auto& petsc_r = NumLib::GlobalVectorProvider::provider.getVector(
-        system->getMatrixSpecifications(1), _petsc_residual_id);
+        system->getMatrixSpecifications(process_id), _petsc_residual_id);
     auto& petsc_x = NumLib::GlobalVectorProvider::provider.getVector(
-        system->getMatrixSpecifications(1), _petsc_x_id);
+        system->getMatrixSpecifications(process_id), _petsc_x_id);
     VecCopy(x.getRawVector(), petsc_x.getRawVector());
     auto& petsc_J = NumLib::GlobalMatrixProvider::provider.getMatrix(
-        system->getMatrixSpecifications(1), _petsc_jacobian_id);
+        system->getMatrixSpecifications(process_id), _petsc_jacobian_id);
 
     ::detail::PetscContext petsc_context{_equation_system, &x, &r, &J};
 
