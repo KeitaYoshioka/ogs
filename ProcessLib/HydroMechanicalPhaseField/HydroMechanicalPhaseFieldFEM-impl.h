@@ -540,8 +540,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<
         neighbor_ele_id = 0;
     else if (GeoLib::lineSegmentIntersect(seg1, LIntegral, intersectionpoint))
         neighbor_ele_id = 1;
-    else
+    else if (GeoLib::lineSegmentIntersect(seg2, LIntegral, intersectionpoint))
         neighbor_ele_id = 2;
+    else
+        neighbor_ele_id = -1;
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -602,6 +604,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         int neighbor_ele_id;
         findNeighborElement(_element,LIntegral,neighbor_ele_id);
 
+        INFO("neighbor_ele_id %d ",neighbor_ele_id);
         /*
                 pnts.push_back(
                     new GeoLib::Point(pnt_start.x(), pnt_start.y(),

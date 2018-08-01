@@ -291,38 +291,44 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
 {
     DBUG("PostTimestep PhaseFieldInSituProcess.");
 
-    GlobalExecutor::executeMemberOnDereferenced(
-        &PhaseFieldInSituLocalAssemblerInterface::postTimestep,
-        _local_assemblers, getDOFTable(process_id), x);
+    if (_coupled_solutions->process_id == _phase_field_process_id)
+    {
+        GlobalExecutor::executeMemberOnDereferenced(
+            &PhaseFieldInSituLocalAssemblerInterface::postTimestep,
+            _local_assemblers, getDOFTable(process_id), x);
 
-    _process_data.elastic_energy = 0.0;
-    _process_data.surface_energy = 0.0;
-    _process_data.pressure_work = 0.0;
-    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
-        dof_tables;
+        _process_data.elastic_energy = 0.0;
+        _process_data.surface_energy = 0.0;
+        _process_data.pressure_work = 0.0;
+        std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+            dof_tables;
 
-    dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process0_id));
-    dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process1_id));
-    dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
+        dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process0_id));
+        dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process1_id));
+        dof_tables.emplace_back(
+            getDOFTableByProcessID(_phase_field_process_id));
 
-    auto& u_p = _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
-    auto& u_s = _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
-    // u_p holds the unscaled displacement
-    // u_p = p*u_p + u_s
-    MathLib::LinAlg::aypx(const_cast<GlobalVector&>(u_p),
-                          _process_data.pressure,
-                          const_cast<GlobalVector&>(u_s));
+        auto& u_p =
+            _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
+        auto& u_s =
+            _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
+        // u_p holds the unscaled displacement
+        // u_p = p*u_p + u_s
+        MathLib::LinAlg::aypx(const_cast<GlobalVector&>(u_p),
+                              _process_data.pressure,
+                              const_cast<GlobalVector&>(u_s));
 
-    GlobalExecutor::executeMemberOnDereferenced(
-        &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
-        _local_assemblers, dof_tables, x, _process_data.t,
-        _process_data.elastic_energy, _process_data.surface_energy,
-        _process_data.pressure_work, _use_monolithic_scheme,
-        _coupled_solutions);
+        GlobalExecutor::executeMemberOnDereferenced(
+            &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
+            _local_assemblers, dof_tables, x, _process_data.t,
+            _process_data.elastic_energy, _process_data.surface_energy,
+            _process_data.pressure_work, _use_monolithic_scheme,
+            _coupled_solutions);
 
-    INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
-         _process_data.elastic_energy, _process_data.surface_energy,
-         _process_data.pressure_work);
+        INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
+             _process_data.elastic_energy, _process_data.surface_energy,
+             _process_data.pressure_work);
+    }
 }
 
 template <int DisplacementDim>
