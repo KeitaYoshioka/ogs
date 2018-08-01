@@ -308,7 +308,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
         dof_tables.emplace_back(
             getDOFTableByProcessID(_phase_field_process_id));
 
-        auto& u_p =
+   /*     auto& u_p =
             _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
         auto& u_s =
             _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
@@ -316,7 +316,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
         // u_p = p*u_p + u_s
         MathLib::LinAlg::aypx(const_cast<GlobalVector&>(u_p),
                               _process_data.pressure,
-                              const_cast<GlobalVector&>(u_s));
+                              const_cast<GlobalVector&>(u_s));*/
 
         GlobalExecutor::executeMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
@@ -355,7 +355,7 @@ void PhaseFieldInSituProcess<
             _local_assemblers, dof_tables, x, t, _process_data.crack_volume0,
             _use_monolithic_scheme, _coupled_solutions, _mechanics_process0_id);
 
-        INFO("Integral of crack with u_p: %g", _process_data.crack_volume1);
+        INFO("Integral of crack with u_p: %g", _process_data.crack_volume0);
     }
     else if (_coupled_solutions->process_id == _mechanics_process1_id)
     {
@@ -402,7 +402,7 @@ void PhaseFieldInSituProcess<
                                   const_cast<GlobalVector&>(u_s));
         }
     }
-    else
+/*    else
     {
         if (_process_data.propagating_crack)
         {
@@ -416,9 +416,8 @@ void PhaseFieldInSituProcess<
                 const_cast<GlobalVector&>(u_p), 1 / _process_data.pressure,
                 -1 / _process_data.pressure, const_cast<GlobalVector&>(u_s));
         }
-    }
+    }*/
 
-    INFO("Integral of crack: %g", _process_data.crack_volume0);
 }  // namespace PhaseFieldInSitu
 
 template <int DisplacementDim>
