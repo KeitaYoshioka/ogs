@@ -463,7 +463,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
     assert(local_coupled_xs.size() == 3);
 
-    //u_p has the real (unscaled) displacement
+    // u_p has the real (unscaled) displacement
     auto const& local_u = local_coupled_xs[_mechanics_process0_id];
     auto const& local_d = local_coupled_xs[_phase_field_process_id];
 
@@ -489,7 +489,6 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
         auto pressure_ip = _process_data.pressure;
-        auto u_corrected = pressure_ip * u;
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
@@ -523,8 +522,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         }
 
         if (_process_data.crack_pressure)
-            pressure_work +=
-                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
+            pressure_work += pressure_ip * (N_u * u).dot(dNdx * d) * w;
     }
 }
 

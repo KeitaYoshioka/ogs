@@ -673,7 +673,7 @@ bool UncoupledProcessesTimeLoop::solveUncoupledEquationSystems(
         const auto nonlinear_solver_succeeded = solveOneTimeStepOneProcess(
             process_id, x, timestep_id, t, dt, *process_data, *_output);
         process_data->nonlinear_solver_converged = nonlinear_solver_succeeded;
-        pcs.postTimestep(x, t, dt, process_id);
+//        pcs.postTimestep(x, t, dt, process_id);
         pcs.computeSecondaryVariable(t, x, process_id);
 
         INFO("[time] Solving process #%u took %g s in time step #%u ",
