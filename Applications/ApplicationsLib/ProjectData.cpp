@@ -74,6 +74,9 @@
 #ifdef OGS_BUILD_PROCESS_PHASEFIELD
 #include "ProcessLib/PhaseField/CreatePhaseFieldProcess.h"
 #endif
+#ifdef OGS_BUILD_PROCESS_PHASEFIELDINSITU
+#include "ProcessLib/PhaseFieldInSitu/CreatePhaseFieldInSituProcess.h"
+#endif
 #ifdef OGS_BUILD_PROCESS_RICHARDSCOMPONENTTRANSPORT
 #include "ProcessLib/RichardsComponentTransport/CreateRichardsComponentTransportProcess.h"
 #endif
@@ -522,6 +525,29 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                             *_mesh_vec[0], std::move(jacobian_assembler),
                             _process_variables, _parameters, integration_order,
                             process_config);
+                    break;
+            }
+        }
+        else
+#endif
+#ifdef OGS_BUILD_PROCESS_PHASEFIELDINSITU
+            if (type == "PHASE_FIELD_INSITU")
+        {
+            switch (_mesh_vec[0]->getDimension())
+            {
+                case 2:
+                    process =
+                        ProcessLib::PhaseFieldInSitu::createPhaseFieldInSituProcess<
+                            2>(*_mesh_vec[0], std::move(jacobian_assembler),
+                               _process_variables, _parameters,
+                               integration_order, process_config);
+                    break;
+                case 3:
+                    process =
+                        ProcessLib::PhaseFieldInSitu::createPhaseFieldInSituProcess<
+                            3>(*_mesh_vec[0], std::move(jacobian_assembler),
+                               _process_variables, _parameters,
+                               integration_order, process_config);
                     break;
             }
         }

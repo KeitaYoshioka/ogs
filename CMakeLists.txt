@@ -98,6 +98,7 @@ set(ProcessesList
     LiquidFlow
     LIE
     PhaseField
+    PhaseFieldInSitu
     RichardsComponentTransport
     RichardsFlow
     RichardsMechanics
