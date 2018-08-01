@@ -8,6 +8,7 @@
  */
 #pragma once
 
+#include "GeoLib/AnalyticalGeometry.h"
 #include "HydroMechanicalPhaseFieldFEM.h"
 #include "MathLib/Vector3.h"
 #include "NumLib/DOF/DOFTableUtil.h"
@@ -512,6 +513,39 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
+void HydroMechanicalPhaseFieldLocalAssembler<
+    ShapeFunction, IntegrationMethod,
+    DisplacementDim>::findNeighborElement(MeshLib::Element const& current_ele,
+                                          GeoLib::LineSegment& LIntegral,
+                                          int neighbor_ele_id)
+{
+    auto e0 = current_ele.getEdge(0);
+    auto e1 = current_ele.getEdge(1);
+    auto p0 = e0->getNode(0);
+    auto p1 = e0->getNode(1);
+    auto p2 = e1->getNode(1);
+    GeoLib::LineSegment seg0(
+        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p0)),
+        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p1)));
+    GeoLib::LineSegment seg1(
+        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p1)),
+        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p2)));
+    GeoLib::LineSegment seg2(
+        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p2)),
+        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p0)));
+
+    // Find neighbor element
+    GeoLib::Point intersectionpoint;
+    if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionpoint))
+        neighbor_ele_id = 0;
+    else if (GeoLib::lineSegmentIntersect(seg1, LIntegral, intersectionpoint))
+        neighbor_ele_id = 1;
+    else
+        neighbor_ele_id = 2;
+}
+
+template <typename ShapeFunction, typename IntegrationMethod,
+          int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                              DisplacementDim>::
     computeFractureWidth(std::size_t mesh_item_id,
@@ -559,44 +593,53 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             pnt_start + ele_grad_d.normalized() * ls *
                             (_process_data.at_param == 1 ? 5 : 10);
 
-        pnts.push_back(
-            new GeoLib::Point(pnt_start.x(), pnt_start.y(), pnt_start.z()));
-        pnts.push_back(
-            new GeoLib::Point(pnt_end.x(), pnt_end.y(), pnt_end.z()));
-        GeoLib::Polyline ply(pnts);
+        // Line segment for line integral
+        GeoLib::Point LIntegral_end(pnt_end[0], pnt_end[1], pnt_end[2]);
+        GeoLib::Point LIntegral_start(pnt_start[0], pnt_start[1], pnt_start[2]);
+        GeoLib::LineSegment LIntegral(&LIntegral_start, &LIntegral_end);
 
-        // Find a list of elements that are interseted by the line
-        MeshGeoToolsLib::MeshNodeSearcher mesh_node_searcher(
-            mesh,
-            std::make_unique<MeshGeoToolsLib::SearchLength>(),
-            MeshGeoToolsLib::SearchAllNodes::Yes);
+        // Find the neighbor
+        int neighbor_ele_id;
+        findNeighborElement(_element,LIntegral,neighbor_ele_id);
 
-        MeshGeoToolsLib::BoundaryElementsSearcher boundary_element_searcher(
-            mesh, mesh_node_searcher);
-        std::vector<MeshLib::Element*> const& intersected_elements(
-            boundary_element_searcher.getBoundaryElements(ply));
+        /*
+                pnts.push_back(
+                    new GeoLib::Point(pnt_start.x(), pnt_start.y(),
+           pnt_start.z())); pnts.push_back( new GeoLib::Point(pnt_end.x(),
+           pnt_end.y(), pnt_end.z())); GeoLib::Polyline ply(pnts);
 
-        // Perform a line integral along the line
+                // Find a list of elements that are interseted by the line
+                MeshGeoToolsLib::MeshNodeSearcher mesh_node_searcher(
+                    mesh,
+                    std::make_unique<MeshGeoToolsLib::SearchLength>(),
+                    MeshGeoToolsLib::SearchAllNodes::Yes);
 
-        MathLib::Vector3 pnt0, pnt1;
-        //        MeshLib::Node pnt0(0, 0, 0), pnt1(0, 0, 0);
+                MeshGeoToolsLib::BoundaryElementsSearcher
+           boundary_element_searcher( mesh, mesh_node_searcher);
+                std::vector<MeshLib::Element*> const& intersected_elements(
+                    boundary_element_searcher.getBoundaryElements(ply));
 
-        double dist, u_dot_grad_d_0, u_dot_grad_d_1;
+                // Perform a line integral along the line
 
- /*       for (int i = 0; i < intersected_elements.size() - 1; ++i)
-        {
-            pnt0 = intersected_elements[i]->getCenterOfGravity();
-            pnt1 = intersected_elements[i + 1]->getCenterOfGravity();
-            dist = sqrt(pow(pnt0[0] - pnt1[0], 2) + pow(pnt0[1] - pnt1[1], 2) +
-                        pow(pnt0[2] - pnt1[2], 2));
-            u_dot_grad_d_0 =
-                (*_process_data.ele_grad_d)[intersected_elements[i]->getID()];
-            u_dot_grad_d_1 =
-                (*_process_data
-                      .ele_grad_d)[intersected_elements[i + 1]->getID()];
-            width += 0.5 * dist * (u_dot_grad_d_0 + u_dot_grad_d_1);
-        }
-*/
+                MathLib::Vector3 pnt0, pnt1;
+                //        MeshLib::Node pnt0(0, 0, 0), pnt1(0, 0, 0);
+
+                double dist, u_dot_grad_d_0, u_dot_grad_d_1;
+
+                for (int i = 0; i < intersected_elements.size() - 1; ++i)
+                {
+                    pnt0 = intersected_elements[i]->getCenterOfGravity();
+                    pnt1 = intersected_elements[i + 1]->getCenterOfGravity();
+                    dist = sqrt(pow(pnt0[0] - pnt1[0], 2) + pow(pnt0[1] -
+           pnt1[1], 2) + pow(pnt0[2] - pnt1[2], 2)); u_dot_grad_d_0 =
+                        (*_process_data.ele_grad_d)[intersected_elements[i]->getID()];
+                    u_dot_grad_d_1 =
+                        (*_process_data
+                              .ele_grad_d)[intersected_elements[i +
+           1]->getID()]; width += 0.5 * dist * (u_dot_grad_d_0 +
+           u_dot_grad_d_1);
+                }
+        */
         // Repeat the procedure for the negative normal direction
     }
 

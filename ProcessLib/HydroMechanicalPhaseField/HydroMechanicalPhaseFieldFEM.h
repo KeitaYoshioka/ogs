@@ -241,15 +241,19 @@ public:
         CoupledSolutionsForStaggeredScheme const* const cpl_xs,
         MeshLib::Mesh const& mesh) override;
 
-/*    void computeEnergy(
-        std::size_t mesh_item_id,
-        std::vector<
-            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
-            dof_tables,
-        GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double& pressure_work,
-        bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;*/
+    void findNeighborElement(MeshLib::Element const& current_ele,
+                             GeoLib::LineSegment& LIntegral,
+                             int neighbor_ele) override;
+
+    /*    void computeEnergy(
+            std::size_t mesh_item_id,
+            std::vector<
+                std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+                dof_tables,
+            GlobalVector const& x, double const t, double& elastic_energy,
+            double& surface_energy, double& pressure_work,
+            bool const use_monolithic_scheme,
+            CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;*/
 
 private:
     std::vector<double> const& getIntPtSigma(

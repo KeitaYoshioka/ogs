@@ -11,9 +11,10 @@
 
 #include <vector>
 
+#include "MeshLib/Mesh.h"
 #include "NumLib/Extrapolation/ExtrapolatableElement.h"
 #include "ProcessLib/LocalAssemblerInterface.h"
-#include "MeshLib/Mesh.h"
+#include "GeoLib/AnalyticalGeometry.h"
 
 namespace ProcessLib
 {
@@ -56,15 +57,19 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
             dof_tables,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
 
-/*    virtual void computeEnergy(
-        std::size_t mesh_item_id,
-        std::vector<
-            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
-            dof_tables,
-        GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double& pressure_work,
-        bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;*/
+    virtual void findNeighborElement(MeshLib::Element const& current_ele,
+                                     GeoLib::LineSegment& LIntegral,
+                                     int neighbor_ele) = 0;
+
+    /*    virtual void computeEnergy(
+            std::size_t mesh_item_id,
+            std::vector<
+                std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+                dof_tables,
+            GlobalVector const& x, double const t, double& elastic_energy,
+            double& surface_energy, double& pressure_work,
+            bool const use_monolithic_scheme,
+            CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;*/
 };
 
 }  // namespace HydroMechanicalPhaseField
