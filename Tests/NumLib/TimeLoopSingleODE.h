@@ -113,7 +113,7 @@ bool TimeLoopSingleODE<NLTag>::loop(const double t0, GlobalVector const& x0,
         // INFO("time: %e, delta_t: %e", t, delta_t);
         time_disc.nextTimestep(t, delta_t);
 
-        nl_slv_succeeded = _nonlinear_solver->solve(x, nullptr);
+        nl_slv_succeeded = _nonlinear_solver->solve(x, nullptr, 0);
         if (!nl_slv_succeeded)
             break;
 

@@ -182,7 +182,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         1);
 
     _process_data.ele_u_dot_grad_d = MeshLib::getOrCreateMeshProperty<double>(
-        const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,
+        const_cast<MeshLib::Mesh&>(mesh), "u_dot_grad_d", MeshLib::MeshItemType::Cell,
         1);
 
     _process_data.width = MeshLib::getOrCreateMeshProperty<double>(
@@ -317,8 +317,10 @@ void HydroMechanicalPhaseFieldProcess<
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
             dof_tables;
 
-        dof_tables.emplace_back(*_local_to_global_index_map);
-        dof_tables.emplace_back(*_local_to_global_index_map_single_component);
+    dof_tables.emplace_back(getDOFTableByProcessID(_hydro_process_id));
+    dof_tables.emplace_back(
+        getDOFTableByProcessID(_mechanics_related_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
         GlobalExecutor::executeMemberOnDereferenced(
             &LocalAssemblerInterface::computeEnergy, _local_assemblers,

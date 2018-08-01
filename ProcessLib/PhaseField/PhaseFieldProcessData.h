@@ -45,7 +45,8 @@ struct PhaseFieldProcessData
         Parameter<double> const& solid_density_,
         Parameter<double>& history_field_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        bool const propagating_crack_, bool const crack_pressure_, double const pf_irrv_, int const at_param_)
+        bool const propagating_crack_, bool const crack_pressure_, double const pf_irrv_,
+        int const at_param_)
         : material{std::move(material_)},
           residual_stiffness(residual_stiffness_),
           crack_resistance(crack_resistance_),
