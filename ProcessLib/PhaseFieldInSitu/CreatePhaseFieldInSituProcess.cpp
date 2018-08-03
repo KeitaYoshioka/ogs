@@ -43,9 +43,9 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
     auto const pv_config = config.getConfigSubtree("process_variables");
     std::vector<std::vector<std::reference_wrapper<ProcessVariable>>>
         process_variables;
-    //u_p
+    // u_p
     int mechanics_process0_id = 0;
-    //u_s
+    // u_s
     int mechanics_process1_id = 1;
     int phase_field_process_id = 2;
 
@@ -225,6 +225,16 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
     else
         at_param = 2;
 
+    auto split =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
+        config.getConfigParameterOptional<int>("split_method");
+
+    int split_method;
+    if (split && (*split == 1))
+        split_method = 1;
+    else
+        split_method = 0;
+
     PhaseFieldInSituProcessData<DisplacementDim> process_data{
         std::move(material),
         residual_stiffness,
@@ -233,6 +243,7 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
         solid_density,
         specific_body_force,
         propagating_crack,
+        split_method,
         crack_pressure,
         pf_irrv,
         at_param};

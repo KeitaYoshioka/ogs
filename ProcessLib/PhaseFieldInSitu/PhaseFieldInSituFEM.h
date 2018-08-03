@@ -73,14 +73,28 @@ struct IntegrationPointData final
                                     SpatialPosition const& x_position,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
-                                    double const degradation)
+                                    double const degradation, int split)
     {
-        static_cast<MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
-            solid_material)
-            .calculateDegradedStress(t, x_position, eps, strain_energy_tensile,
-                                     sigma_tensile, sigma_compressive,
-                                     C_tensile, C_compressive, sigma,
-                                     degradation, elastic_energy);
+        if (split == 0)
+        {
+            static_cast<
+                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
+                solid_material)
+                .calculateIsotropicDegradedStress(
+                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
+                    sigma_compressive, C_tensile, C_compressive, sigma,
+                    degradation, elastic_energy);
+        }
+        else if (split == 1)
+        {
+            static_cast<
+                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
+                solid_material)
+                .calculateDegradedStress(
+                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
+                    sigma_compressive, C_tensile, C_compressive, sigma,
+                    degradation, elastic_energy);
+        }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
@@ -212,7 +226,8 @@ public:
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs, int process_id) override;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        int process_id) override;
 
     void computeEnergy(
         std::size_t mesh_item_id,
