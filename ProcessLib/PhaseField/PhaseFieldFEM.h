@@ -74,7 +74,7 @@ struct IntegrationPointData final
                                     ParameterLib::SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
-                                    double const degradation)
+                                    double const degradation, int const split)
     {
         auto linear_elastic_mp =
             static_cast<MaterialLib::Solids::LinearElasticIsotropic<
@@ -88,6 +88,26 @@ struct IntegrationPointData final
                  strain_energy_tensile, elastic_energy) =
             MaterialLib::Solids::Phasefield::calculateDegradedStress<
                 DisplacementDim>(degradation, bulk_modulus, mu, eps);
+        if (split == 0)
+        {
+            static_cast<
+                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim> const&>(
+                solid_material)
+                .calculateIsotropicDegradedStress(
+                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
+                    sigma_compressive, C_tensile, C_compressive, sigma,
+                    degradation, elastic_energy);
+        }
+        else if (split == 1)
+        {
+            static_cast<
+                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim> const&>(
+                solid_material)
+                .calculateDegradedStress(
+                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
+                    sigma_compressive, C_tensile, C_compressive, sigma,
+                    degradation, elastic_energy);
+        }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 

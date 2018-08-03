@@ -59,6 +59,7 @@ struct PhaseFieldProcessData
     double pressure_work = 0.0;
     double pf_irrv = 0.05;
     int at_param = 2;
+    int split_method = 0;
 };
 
 }  // namespace PhaseField

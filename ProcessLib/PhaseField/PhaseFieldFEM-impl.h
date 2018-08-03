@@ -107,8 +107,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const k = _process_data.residual_stiffness(t, x_position)[0];
         double const d_ip = N.dot(d);
         double const degradation = d_ip * d_ip * (1 - k) + k;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
-                                                degradation);
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, degradation, _process_data.split_method);
 
         auto& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -204,8 +204,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             auto& eps = _ip_data[ip].eps;
             eps.noalias() = B * u;
-            _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
-                                                    degradation);
+            _ip_data[ip].updateConstitutiveRelation(
+                t, x_position, dt, u, degradation, _process_data.split_method);
         }
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
@@ -400,7 +400,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             pressure_work +=
                 pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
-        }
     }
+}
 }  // namespace PhaseField
-}  // namespace PhaseField
+}  // namespace ProcessLib

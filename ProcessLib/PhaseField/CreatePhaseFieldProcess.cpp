@@ -194,7 +194,7 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         config.getConfigParameterOptional<double>("pf_irrv");
 
     double pf_irrv;
-    if(pf_irrv_read)
+    if (pf_irrv_read)
         pf_irrv = *pf_irrv_read;
     else
         pf_irrv = 0.05;
@@ -204,19 +204,31 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         config.getConfigParameterOptional<int>("at_num");
 
     int at_param;
-    if(at_num && (*at_num == 1))
+    if (at_num && (*at_num == 1))
         at_param = 1;
     else
         at_param = 2;
 
+    auto split =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
+        config.getConfigParameterOptional<int>("split_method");
 
-    PhaseFieldProcessData<DisplacementDim> process_data{
+    int split_method;
+    if (split && (*split == 1))
+        split_method = 1;
+    else
+        split_method = 0;
+
+    PhaseFieldProcessData<DisplacementDim> process_data{std::move(material),
         materialIDs(mesh),   std::move(solid_constitutive_relations),
         residual_stiffness,  crack_resistance,
         crack_length_scale,  kinetic_coefficient,
         solid_density,       history_field,
         specific_body_force, propagating_crack,
-        crack_pressure, pf_irrv, at_param};
+                                                        split_method,
+                                                        crack_pressure,
+                                                        pf_irrv,
+                                                        at_param};
 
     SecondaryVariableCollection secondary_variables;
 

@@ -58,7 +58,6 @@ calculateDegradedStress(
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
 
-    /*
     if (eps_curr_trace >= 0)
     {
         double const strain_energy_tensile =
@@ -103,6 +102,46 @@ calculateDegradedStress(
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);
 }
+
+    bool calculateIsotropicDegradedStress(double const t,
+                                 ProcessLib::SpatialPosition const& x,
+                                 KelvinVector const& eps,
+                                 double& strain_energy_tensile,
+                                 KelvinVector& sigma_tensile,
+                                 KelvinVector& sigma_compressive,
+                                 KelvinMatrix& C_tensile,
+                                 KelvinMatrix& C_compressive,
+                                 KelvinVector& sigma_real,
+                                 double const degradation,
+                                 double& elastic_energy) const override
+    {
+        using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
+        // calculation of deviatoric parts
+        auto const& P_dev = Invariants::deviatoric_projection;
+        KelvinVector const epsd_curr = P_dev * eps;
+
+        // Hydrostatic part for the stress and the tangent.
+        double const eps_curr_trace = Invariants::trace(eps);
+
+        auto const& K =
+            LinearElasticIsotropic<DisplacementDim>::_mp.bulk_modulus(t, x);
+        auto const& mu = LinearElasticIsotropic<DisplacementDim>::_mp.mu(t, x);
+
+        C_tensile = KelvinMatrix::Zero();
+        C_compressive = KelvinMatrix::Zero();
+
+        strain_energy_tensile = K / 2 * eps_curr_trace * eps_curr_trace +
+                                mu * epsd_curr.transpose() * epsd_curr;
+        sigma_tensile.noalias() =
+            K * eps_curr_trace * Invariants::identity2 + 2 * mu * epsd_curr;
+        sigma_compressive.noalias() = KelvinVector::Zero();
+        C_tensile.template topLeftCorner<3, 3>().setConstant(K);
+        C_tensile.noalias() += 2 * mu * P_dev * KelvinMatrix::Identity();
+        sigma_real.noalias() = degradation * sigma_tensile + sigma_compressive;
+        elastic_energy = degradation * strain_energy_tensile;
+
+        return true;
+    }
 }  // namespace Phasefield
 }  // namespace Solids
 }  // namespace MaterialLib
