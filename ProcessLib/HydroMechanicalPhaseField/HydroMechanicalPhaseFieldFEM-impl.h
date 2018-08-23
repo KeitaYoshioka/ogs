@@ -9,7 +9,6 @@
 #pragma once
 
 #include "GeoLib/AnalyticalGeometry.h"
-#include "HydroMechanicalPhaseFieldFEM.h"
 #include "MathLib/Vector3.h"
 #include "NumLib/DOF/DOFTableUtil.h"
 #include "ProcessLib/CoupledSolutionsForStaggeredScheme.h"
@@ -79,10 +78,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto u = Eigen::Map<typename ShapeMatricesType::template VectorType<
         displacement_size> const>(local_u.data(), displacement_size);
-
-    auto p = Eigen::Map<
-        typename ShapeMatricesType::template VectorType<pressure_size> const>(
-        local_p.data(), pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
         typename ShapeMatricesType::template MatrixType<displacement_size,
