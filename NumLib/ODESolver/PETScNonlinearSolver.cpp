@@ -32,8 +32,7 @@ struct PetscContext
 
 namespace NumLib
 {
-PETScNonlinearSolver::PETScNonlinearSolver(GlobalLinearSolver& linear_solver)
-    : _linear_solver(linear_solver)
+PETScNonlinearSolver::PETScNonlinearSolver(GlobalLinearSolver&)
 {
     SNESCreate(PETSC_COMM_WORLD, &_snes_solver);
     // SNESSetType(_snes_solver, "vi");
