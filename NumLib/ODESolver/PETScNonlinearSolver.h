@@ -47,7 +47,9 @@ public:
                /*postIterationCallback*/, int process_id) override;
 
 private:
+    /* TODO (naumov) remove or use inside
     GlobalLinearSolver& _linear_solver;
+    */
 
     SNES _snes_solver;
 
