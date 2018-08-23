@@ -127,7 +127,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     {
         auto elastic_model =
             MaterialLib::Solids::createLinearElasticIsotropic<DisplacementDim>(
-                parameters, constitutive_relation_config);
+                parameters, constitutive_relation_config, false);
         material = std::make_unique<
             MaterialLib::Solids::LinearElasticIsotropicPhaseField<
                 DisplacementDim>>(
