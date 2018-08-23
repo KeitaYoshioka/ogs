@@ -108,8 +108,10 @@ bool PETScNonlinearSolver::solve(
         context->system->getResidual(*context->x, *context->r);
 
         context->system->getJacobian(*context->J);
-        context->system->applyKnownSolutionsNewton(*context->J, *context->r,
-                                                   *context->x);
+        context->system->applyKnownSolutionsNewton(
+            *context->J, *context->r, *context->x,
+            *context->x);  // TODO (naumov); The last two arguments are actually
+                           // minus_delta_x and x, but not here; why?
         /*
         DBUG("AFTER ASSEMBLY");
         DBUG("The ogs-x vector.")
