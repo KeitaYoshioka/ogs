@@ -51,29 +51,14 @@ struct PhaseFieldInSituProcessData
           solid_density(solid_density_),
           specific_body_force(specific_body_force_),
           propagating_crack(propagating_crack_),
-          split_method(split_method_),
           crack_pressure(crack_pressure_),
           pf_irrv(pf_irrv_),
-          at_param(at_param_)
+          at_param(at_param_),
+          split_method(split_method_)
     {
     }
 
-    PhaseFieldInSituProcessData(PhaseFieldInSituProcessData&& other)
-        : material{std::move(other.material)},
-          residual_stiffness(other.residual_stiffness),
-          crack_resistance(other.crack_resistance),
-          crack_length_scale(other.crack_length_scale),
-          solid_density(other.solid_density),
-          specific_body_force(other.specific_body_force),
-          propagating_crack(other.propagating_crack),
-          split_method(other.split_method),
-          crack_pressure(other.crack_pressure),
-          pf_irrv(other.pf_irrv),
-          at_param(other.at_param),
-          dt(other.dt),
-          t(other.t)
-    {
-    }
+    PhaseFieldInSituProcessData(PhaseFieldInSituProcessData&& other) = default;
 
     //! Copies are forbidden.
     PhaseFieldInSituProcessData(PhaseFieldInSituProcessData const&) = delete;
