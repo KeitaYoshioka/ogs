@@ -42,7 +42,7 @@ struct HydroMechanicalPhaseFieldProcessData
         Parameter<double> const& crack_length_scale_,
         Parameter<double> const& solid_density_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        double pf_irrv_, int at_param_,
+        double const pf_irrv_, int const at_param_,
         Parameter<double> const& intrinsic_permeability_,
         Parameter<double> const& fluid_viscosity_,
         Parameter<double> const& fluid_density_,
@@ -69,26 +69,7 @@ struct HydroMechanicalPhaseFieldProcessData
     }
 
     HydroMechanicalPhaseFieldProcessData(
-        HydroMechanicalPhaseFieldProcessData&& other)
-        : material{std::move(other.material)},
-          residual_stiffness(other.residual_stiffness),
-          crack_resistance(other.crack_resistance),
-          crack_length_scale(other.crack_length_scale),
-          solid_density(other.solid_density),
-          specific_body_force(other.specific_body_force),
-          pf_irrv(other.pf_irrv),
-          at_param(other.at_param),
-          intrinsic_permeability(other.intrinsic_permeability),
-          fluid_viscosity(other.fluid_viscosity),
-          fluid_density(other.fluid_density),
-          biot_coefficient(other.biot_coefficient),
-          biot_modulus(other.biot_modulus),
-          drained_modulus(other.drained_modulus),
-          porosity(other.porosity),
-          dt(other.dt),
-          t(other.t)
-    {
-    }
+        HydroMechanicalPhaseFieldProcessData&& other) = default;
 
     //! Copies are forbidden.
     HydroMechanicalPhaseFieldProcessData(
@@ -107,6 +88,8 @@ struct HydroMechanicalPhaseFieldProcessData
     Parameter<double> const& crack_length_scale;
     Parameter<double> const& solid_density;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
+    double const pf_irrv = 0.05;
+    int const at_param = 2;
     Parameter<double> const& intrinsic_permeability;
     Parameter<double> const& fluid_viscosity;
     Parameter<double> const& fluid_density;
@@ -122,8 +105,6 @@ struct HydroMechanicalPhaseFieldProcessData
     double poroelastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
-    double pf_irrv = 0.05;
-    int at_param = 2;
     double dt;
     double t;
 };
