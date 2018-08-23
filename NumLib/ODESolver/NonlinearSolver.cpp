@@ -33,7 +33,7 @@ bool NonlinearSolver<NonlinearSolverTag::Picard>::solve(
     GlobalVector& x,
     std::function<void(unsigned, GlobalVector const&)> const&
         postIterationCallback,
-    int const process_id)
+    int const /*process_id*/)
 {
     namespace LinAlg = MathLib::LinAlg;
     auto& sys = *_equation_system;
@@ -183,7 +183,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
     GlobalVector& x,
     std::function<void(unsigned, GlobalVector const&)> const&
         postIterationCallback,
-    int const process_id)
+    int const /*process_id*/)
 {
     namespace LinAlg = MathLib::LinAlg;
     auto& sys = *_equation_system;
