@@ -56,7 +56,7 @@ void PhaseFieldIrreversibleDamageOracleBoundaryCondition::preTimestep(
         const auto g_idx =
             _dof_table.getGlobalIndex(l, _variable_id, _component_id);
 
-        if (x[node_id] <= irreversibleDamage)
+        if (x[g_idx] <= irreversibleDamage)
         {
             _bc_values.ids.emplace_back(g_idx);
             _bc_values.values.emplace_back(0.0);
