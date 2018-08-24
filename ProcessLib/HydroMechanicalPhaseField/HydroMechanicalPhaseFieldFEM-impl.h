@@ -66,9 +66,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
     auto const& local_u =
         local_coupled_solutions.local_coupled_xs[_mechanics_related_process_id];
-    auto const& local_p =
-        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
-    assert(local_p.size() == pressure_size);
     assert(local_d.size() == phasefield_size);
     assert(local_u.size() == displacement_size);
 
