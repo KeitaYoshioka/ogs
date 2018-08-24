@@ -56,10 +56,10 @@ struct PhaseFieldProcessData
           history_field(history_field_),
           specific_body_force(specific_body_force_),
           propagating_crack(propagating_crack_),
-          split_method(split_method_),
           crack_pressure(crack_pressure_),
           pf_irrv(pf_irrv_),
-          at_param(at_param_)
+          at_param(at_param_),
+          split_method(split_method_)
     {
     }
 
