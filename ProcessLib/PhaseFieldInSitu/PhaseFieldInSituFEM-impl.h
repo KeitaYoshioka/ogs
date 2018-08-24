@@ -287,7 +287,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_pressure = 0.0;
     if (_process_data.crack_pressure)
-        local_pressure = _process_data.unity_pressure;
+        local_pressure =  _process_data.unity_pressure;
     else if (_process_data.propagating_crack)
         local_pressure = _process_data.pressure;
 
@@ -319,7 +319,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             auto& eps = _ip_data[ip].eps;
             eps.noalias() = B * u;
             _ip_data[ip].updateConstitutiveRelation(
-                t, x_position, dt, u, degradation, _process_data.split_method);
+                t, x_position, dt, u, degradation, _process_data.split_method
+                        );
         }
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
