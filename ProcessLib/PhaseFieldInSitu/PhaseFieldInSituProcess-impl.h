@@ -355,10 +355,10 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
 }
 
 template <int DisplacementDim>
-void PhaseFieldInSituProcess<
-    DisplacementDim>::postNonLinearSolverConcreteProcess(GlobalVector const& x,
-                                                         const double t,
-                                                         const int process_id)
+void PhaseFieldInSituProcess<DisplacementDim>::
+    postNonLinearSolverConcreteProcess(GlobalVector const& x,
+                                       const double t,
+                                       const int /*process_id*/)
 {
     if (_coupled_solutions->process_id == _mechanics_process0_id)
     {
