@@ -542,11 +542,13 @@ template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                              DisplacementDim>::
-    computeFractureWidth(std::size_t mesh_item_id,
-                         std::vector<std::reference_wrapper<
-                             NumLib::LocalToGlobalIndexMap>> const& dof_tables,
-                         CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-                         MeshLib::Mesh const& mesh)
+    computeFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const /*cpl_xs*/,
+        MeshLib::Mesh const& /*mesh*/)
 {
     double width = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];

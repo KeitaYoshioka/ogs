@@ -335,10 +335,10 @@ void HydroMechanicalPhaseFieldProcess<
 }
 
 template <int DisplacementDim>
-void HydroMechanicalPhaseFieldProcess<
-    DisplacementDim>::postNonLinearSolverConcreteProcess(GlobalVector const& x,
-                                                         const double t,
-                                                         const int process_id)
+void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
+    postNonLinearSolverConcreteProcess(GlobalVector const& /*x*/,
+                                       const double /*t*/,
+                                       const int process_id)
 {
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
