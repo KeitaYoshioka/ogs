@@ -11,10 +11,10 @@
 
 #include <vector>
 
+#include "GeoLib/AnalyticalGeometry.h"
 #include "MeshLib/Mesh.h"
 #include "NumLib/Extrapolation/ExtrapolatableElement.h"
 #include "ProcessLib/LocalAssemblerInterface.h"
-#include "GeoLib/AnalyticalGeometry.h"
 
 namespace ProcessLib
 {
@@ -59,7 +59,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
 
     virtual void findNeighborElement(MeshLib::Element const& current_ele,
                                      GeoLib::LineSegment& LIntegral,
-                                     int neighbor_ele) = 0;
+                                     MeshLib::Element const*& neighbor_ele) = 0;
 
     /*    virtual void computeEnergy(
             std::size_t mesh_item_id,

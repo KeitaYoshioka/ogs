@@ -242,7 +242,7 @@ public:
 
     void findNeighborElement(MeshLib::Element const& current_ele,
                              GeoLib::LineSegment& LIntegral,
-                             int neighbor_ele) override;
+                             MeshLib::Element const*& neighbor_ele) override;
 
     /*    void computeEnergy(
             std::size_t mesh_item_id,

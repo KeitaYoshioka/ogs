@@ -509,33 +509,59 @@ void HydroMechanicalPhaseFieldLocalAssembler<
     ShapeFunction, IntegrationMethod,
     DisplacementDim>::findNeighborElement(MeshLib::Element const& current_ele,
                                           GeoLib::LineSegment& LIntegral,
-                                          int neighbor_ele_id)
+                                          MeshLib::Element const*& neighbor_ele)
 {
-    auto e0 = current_ele.getEdge(0);
-    auto e1 = current_ele.getEdge(1);
-    auto p0 = e0->getNode(0);
-    auto p1 = e0->getNode(1);
-    auto p2 = e1->getNode(1);
-    GeoLib::LineSegment seg0(
-        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p0)),
-        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p1)));
-    GeoLib::LineSegment seg1(
-        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p1)),
-        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p2)));
-    GeoLib::LineSegment seg2(
-        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p2)),
-        dynamic_cast<GeoLib::Point*>(const_cast<MeshLib::Node*>(p0)));
-
-    // Find neighbor element
+    int num_edge = current_ele.getNumberOfEdges();
     GeoLib::Point intersectionpoint;
-    if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionpoint))
-        neighbor_ele_id = 0;
-    else if (GeoLib::lineSegmentIntersect(seg1, LIntegral, intersectionpoint))
-        neighbor_ele_id = 1;
-    else if (GeoLib::lineSegmentIntersect(seg2, LIntegral, intersectionpoint))
-        neighbor_ele_id = 2;
-    else
-        neighbor_ele_id = -1;
+    //    MeshLib::Element* edge_ele;
+    //    MeshLib::Node* n0,n1;
+    for (int i=0; i < num_edge; i++)
+    {
+        auto edge_ele = current_ele.getEdge(i);
+        auto n0 = *edge_ele->getNode(0);
+        auto n1 = *edge_ele->getNode(1);
+        GeoLib::Point point_0(n0[0], n0[1], n0[2]);
+        GeoLib::Point point_1(n1[0], n1[1], n1[2]);
+        GeoLib::LineSegment seg0(&point_0, &point_1);
+        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionpoint))
+        {
+            neighbor_ele = current_ele.getNeighbor(i);
+            break;
+        }
+    }
+    /*    auto e0 = current_ele.getEdge(0);
+        auto p0 = *e0->getNode(0);
+        auto p1 = *e0->getNode(1);
+        GeoLib::Point point_0(p0[0], p0[1], p0[2]);
+        GeoLib::Point point_1(p1[0], p1[1], p1[2]);
+        GeoLib::LineSegment seg0(&point_0, &point_1);
+        GeoLib::Point intersectionpoint;
+        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionpoint))
+            neighbor_ele = current_ele.getNeighbor(0);
+        /*
+            auto e1 = current_ele.getEdge(1);
+            auto p0 = e0->getNode(0);
+            auto p1 = e0->getNode(1);
+            auto p2 = e1->getNode(1);
+            GeoLib::Point point_0((*p0)[0], (*p0)[1], (*p0)[2]);
+            GeoLib::Point point_1((*p1)[0], (*p1)[1], (*p1)[2]);
+            GeoLib::Point point_2((*p2)[0], (*p2)[1], (*p2)[2]);
+
+            GeoLib::LineSegment seg0(&point_0, &point_1);
+            GeoLib::LineSegment seg1(&point_1, &point_2);
+            GeoLib::LineSegment seg2(&point_2, &point_0);
+
+            // Find neighbor element
+            GeoLib::Point intersectionpoint;
+            if (GeoLib::lineSegmentIntersect(seg0, LIntegral,
+       intersectionpoint)) neighbor_ele_id = current_ele.getNeighbor(0); else if
+       (GeoLib::lineSegmentIntersect(seg1, LIntegral, intersectionpoint))
+       neighbor_ele_id = cuurent_ele.getNeighbor(); else if
+           (GeoLib::lineSegmentIntersect(seg2, LIntegral, intersectionpoint))
+                neighbor_ele_id = 2;
+            else
+                neighbor_ele_id = -1;
+                */
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,

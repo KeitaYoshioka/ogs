@@ -280,26 +280,26 @@ void PhaseFieldInSituProcess<DisplacementDim>::preTimestepConcreteProcess(
     GlobalExecutor::executeMemberOnDereferenced(
         &PhaseFieldInSituLocalAssemblerInterface::preTimestep,
         _local_assemblers, getDOFTable(process_id), x, t, dt);
-/*    if (_coupled_solutions->process_id == _mechanics_process0_id)
-    {
-        std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
-            dof_tables;
+    /*    if (_coupled_solutions->process_id == _mechanics_process0_id)
+        {
+            std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+                dof_tables;
 
-        dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process0_id));
-        dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process1_id));
-        dof_tables.emplace_back(
-            getDOFTableByProcessID(_phase_field_process_id));
+            dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process0_id));
+            dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process1_id));
+            dof_tables.emplace_back(
+                getDOFTableByProcessID(_phase_field_process_id));
 
-        auto& u_p =
-            _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
-        auto& u_s =
-            _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
-        // u_p = 1/p * u_p - 1/p * u_s
-        MathLib::LinAlg::axpby(
-            const_cast<GlobalVector&>(u_p), 1 / _process_data.pressure,
-            -1 / _process_data.pressure, const_cast<GlobalVector&>(u_s));
-        INFO("u_p is scaled back for a new time step");
-    }*/
+            auto& u_p =
+                _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
+            auto& u_s =
+                _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
+            // u_p = 1/p * u_p - 1/p * u_s
+            MathLib::LinAlg::axpby(
+                const_cast<GlobalVector&>(u_p), 1 / _process_data.pressure,
+                -1 / _process_data.pressure, const_cast<GlobalVector&>(u_s));
+            INFO("u_p is scaled back for a new time step");
+        }*/
 }
 
 template <int DisplacementDim>
@@ -328,19 +328,19 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
         dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process1_id));
         dof_tables.emplace_back(
             getDOFTableByProcessID(_phase_field_process_id));
-/*
-        auto& u_p =
-            _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
-        auto& u_s =
-            _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
+        /*
+                auto& u_p =
+                    _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
+                auto& u_s =
+                    _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
 
-        // u_p holds the unscaled displacement
-        // u_p = p*u_p + u_s
-        MathLib::LinAlg::aypx(const_cast<GlobalVector&>(u_p),
-                              _process_data.pressure,
-                              const_cast<GlobalVector&>(u_s));
-        INFO("u_p is superposed for output ");
-        */
+                // u_p holds the unscaled displacement
+                // u_p = p*u_p + u_s
+                MathLib::LinAlg::aypx(const_cast<GlobalVector&>(u_p),
+                                      _process_data.pressure,
+                                      const_cast<GlobalVector&>(u_s));
+                INFO("u_p is superposed for output ");
+                */
         GlobalExecutor::executeMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
             _local_assemblers, dof_tables, x, _process_data.t,
@@ -404,6 +404,8 @@ void PhaseFieldInSituProcess<DisplacementDim>::
 
         if (_process_data.propagating_crack)
         {
+ /*           _process_data.crack_volume0 =
+                _process_data.crack_volume0 / _process_data.unity_pressure; */
             _process_data.pressure_old = _process_data.pressure;
             _process_data.pressure =
                 (_process_data.injected_volume - _process_data.crack_volume1) /
