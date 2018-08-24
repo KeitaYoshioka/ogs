@@ -307,7 +307,7 @@
             </eigen>-->
             <petsc>
                 <prefix>u</prefix>
-                <parameters>-u_ksp_type cg -u_pc_type hypre -u_ksp_atol 1e-8 -u_ksp_rtol 1e-10 -u_pc_hypre_boomeramg_strong_threshold 0.7 -u_pc_hypre_type boomeramg </parameters>
+                <parameters>-u_ksp_type cg -u_pc_type bjacobi -u_ksp_atol 1e-8 -u_ksp_rtol 1e-10 -snes_type vinewtonssls</parameters>
             </petsc>
         </linear_solver>
     </linear_solvers>
