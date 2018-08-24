@@ -82,7 +82,6 @@ struct IntegrationPointData final
                                     SpatialPosition const& x_position,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
-                                    double const biot_coefficient,
                                     double const degradation)
     {
         static_cast<MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
