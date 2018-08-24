@@ -56,6 +56,16 @@ void PhaseFieldIrreversibleDamageOracleBoundaryCondition::preTimestep(
         const auto g_idx =
             _dof_table.getGlobalIndex(l, _variable_id, _component_id);
 
+        // For the DDC approach (e.g. with PETSc option), the negative
+        // index of global_index means that the entry by that index is a ghost
+        // one, which should be dropped. Especially for PETSc routines
+        // MatZeroRows and MatZeroRowsColumns, which are called to apply the
+        // Dirichlet BC, the negative index is not accepted like other matrix or
+        // vector PETSc routines. Therefore, the following if-condition is
+        // applied.
+        if (g_idx < 0)
+            continue;
+
         if (x[g_idx] <= irreversibleDamage)
         {
             _bc_values.ids.emplace_back(g_idx);
