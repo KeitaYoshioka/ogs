@@ -308,32 +308,6 @@ private:
         return cache;
     }
 
-    /*    virtual std::vector<double> const& getIntPtDarcy(
-            const double /*t,
-            GlobalVector const& /*current_solution,
-            NumLib::LocalToGlobalIndexMap const& /*dof_table,
-            std::vector<double>& cache) const override
-        {
-            auto const kelvin_vector_size =
-                MathLib::KelvinVector::KelvinVectorDimensions<
-                    DisplacementDim>::value;
-            auto const num_intpts = _ip_data.size();
-
-            cache.clear();
-            auto cache_mat = MathLib::createZeroedMatrix<Eigen::Matrix<
-                double, kelvin_vector_size, Eigen::Dynamic, Eigen::RowMajor>>(
-                cache, kelvin_vector_size, num_intpts);
-
-            for (unsigned ip = 0; ip < num_intpts; ++ip)
-            {
-                auto const& eps = _ip_data[ip].eps;
-                cache_mat.col(ip) =
-                    MathLib::KelvinVector::kelvinVectorToSymmetricTensor(eps);
-            }
-
-            return cache;
-        }
-    */
     void assembleWithJacobianForDeformationEquations(
         double const t, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
