@@ -554,8 +554,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double elem_d = (*_process_data.ele_d)[_element.getID()];
     if (0.0 < elem_d && elem_d < 1.0)
     {
-        assert(cpl_xs != nullptr);
-
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
         indices_of_processes.reserve(dof_tables.size());
         std::transform(dof_tables.begin(), dof_tables.end(),
