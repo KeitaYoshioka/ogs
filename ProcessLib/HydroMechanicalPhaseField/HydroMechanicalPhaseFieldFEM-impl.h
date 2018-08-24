@@ -113,7 +113,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const alpha = _process_data.biot_coefficient(t, x_position)[0];
         double const d_ip = N.dot(d);
         double const degradation = d_ip * d_ip * (1 - k) + k;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u, alpha,
+        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
                                                 degradation);
 
         auto const& sigma_eff = _ip_data[ip].sigma_eff;
@@ -355,7 +355,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u, alpha,
+        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
                                                 degradation);
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
