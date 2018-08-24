@@ -619,10 +619,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         GeoLib::LineSegment LIntegral(&LIntegral_start, &LIntegral_end);
 
         // Find the neighbor
-        int neighbor_ele_id = -1;
-        findNeighborElement(_element, LIntegral, neighbor_ele_id);
+        MeshLib::Element const* neighbor_ele;
+        findNeighborElement(_element, LIntegral, neighbor_ele);
 
-        INFO("neighbor_ele_id %d ",neighbor_ele_id);
+        INFO("neighbor_ele_id %d ",neighbor_ele->getID());
         /*
                 pnts.push_back(
                     new GeoLib::Point(pnt_start.x(), pnt_start.y(),
