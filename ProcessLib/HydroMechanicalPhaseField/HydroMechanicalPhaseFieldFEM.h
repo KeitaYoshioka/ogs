@@ -177,6 +177,8 @@ public:
             ip_data.sigma_eff.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
+            ip_data.pressure = 0.0;
+            ip_data.pressure_prev = 0.0;
 
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;
