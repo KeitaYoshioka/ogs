@@ -239,12 +239,13 @@ public:
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
         MeshLib::Mesh const& mesh) override;
 
     void findNeighborElement(MeshLib::Element const& current_ele,
                              GeoLib::LineSegment& LIntegral,
-                             MeshLib::Element const*& neighbor_ele) override;
+                             MeshLib::Element const*& neighbor_ele,
+                             GeoLib::Point& IntersectionPoint, int last_visited) override;
 
     /*    void computeEnergy(
             std::size_t mesh_item_id,

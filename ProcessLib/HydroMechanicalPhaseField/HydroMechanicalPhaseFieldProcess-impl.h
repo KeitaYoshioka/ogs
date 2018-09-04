@@ -337,7 +337,7 @@ void HydroMechanicalPhaseFieldProcess<
 template <int DisplacementDim>
 void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
     postNonLinearSolverConcreteProcess(GlobalVector const& /*x*/,
-                                       const double /*t*/,
+                                       const double t,
                                        const int process_id)
 {
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
@@ -357,7 +357,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         GlobalExecutor::executeMemberOnDereferenced(
             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                 computeFractureWidth,
-            _local_assemblers, dof_tables, _coupled_solutions, _mesh);
+            _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
     }
 }
 
