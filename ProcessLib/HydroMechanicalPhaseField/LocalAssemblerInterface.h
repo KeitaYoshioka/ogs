@@ -47,7 +47,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
         MeshLib::Mesh const& mesh) = 0;
 
     virtual void computeFractureNormal(
@@ -59,7 +59,9 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
 
     virtual void findNeighborElement(MeshLib::Element const& current_ele,
                                      GeoLib::LineSegment& LIntegral,
-                                     MeshLib::Element const*& neighbor_ele) = 0;
+                                     MeshLib::Element const*& neighbor_ele,
+                                     GeoLib::Point& intersectionPoint,
+                                     int last_visited) = 0;
 
     /*    virtual void computeEnergy(
             std::size_t mesh_item_id,

@@ -66,8 +66,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
     auto const& local_u =
         local_coupled_solutions.local_coupled_xs[_mechanics_related_process_id];
+    auto const& local_p =
+        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
     assert(local_d.size() == phasefield_size);
     assert(local_u.size() == displacement_size);
+    assert(local_p.size() == pressure_size);
 
     auto d = Eigen::Map<
         typename ShapeMatricesType::template VectorType<phasefield_size> const>(
@@ -75,6 +78,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto u = Eigen::Map<typename ShapeMatricesType::template VectorType<
         displacement_size> const>(local_u.data(), displacement_size);
+
+    auto p = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_p.data(), pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
         typename ShapeMatricesType::template MatrixType<displacement_size,
@@ -112,6 +119,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const k = _process_data.residual_stiffness(t, x_position)[0];
         double const alpha = _process_data.biot_coefficient(t, x_position)[0];
         double const d_ip = N.dot(d);
+        double const p_ip = N.dot(p);
         double const degradation = d_ip * d_ip * (1 - k) + k;
         _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
                                                 degradation);
@@ -134,7 +142,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto rho_s = _process_data.solid_density(t, x_position)[0];
         auto const& b = _process_data.specific_body_force;
 
-        double const p_ip = _ip_data[ip].pressure;
         auto const C_eff = degradation * C_tensile + C_compressive;
 
         // Check the dimension
@@ -241,21 +248,23 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             _process_data.intrinsic_permeability(t, x_position)[0];
         double const mu = _process_data.fluid_viscosity(t, x_position)[0];
 
-        if (d_ip > 0.0 && d_ip < 1.0)
-        {
-            double const dw_dt = (width - width_prev) / dt;
-            double const grad_d_norm = (dNdx * d).norm();
-            auto norm_gamma = (dNdx * d).normalized();
+        /*        if (d_ip > 0.0 && d_ip < 1.0)
+                {
+                    double const dw_dt = (width - width_prev) / dt;
+                    double const grad_d_norm = (dNdx * d).norm();
+                    auto norm_gamma = (dNdx * d).normalized();
 
-            decltype(dNdx) const dNdx_gamma =
-                (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
+                    decltype(dNdx) const dNdx_gamma =
+                        (dNdx - norm_gamma * norm_gamma.transpose() *
+           dNdx).eval();
 
-            double const frac_trans = 4 * pow(width, 3) / (12 * mu);
-            laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
-                                  dNdx_gamma * grad_d_norm) *
-                                 w;
-            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
-        }
+                    double const frac_trans = 4 * pow(width, 3) / (12 * mu);
+                    laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
+                                          dNdx_gamma * grad_d_norm) *
+                                         w;
+                    local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
+                }
+                */
         double const modulus_rm =
             alpha * alpha / kappa - m_inv * (1 - d_ip * d_ip);
         // TODO
@@ -269,8 +278,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         mass.noalias() += (m_inv + d_ip * d_ip * alpha * alpha / kappa) *
                           N.transpose() * N * w;
-        local_rhs.noalias() -=
-            (modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
+        //        local_rhs.noalias() -=
+        //            (modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N *
+        //            w;
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -509,13 +519,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<
     ShapeFunction, IntegrationMethod,
     DisplacementDim>::findNeighborElement(MeshLib::Element const& current_ele,
                                           GeoLib::LineSegment& LIntegral,
-                                          MeshLib::Element const*& neighbor_ele)
+                                          MeshLib::Element const*& neighbor_ele,
+                                          GeoLib::Point& intersectionPoint,
+                                          int last_visited)
 {
     int num_edge = current_ele.getNumberOfEdges();
-    GeoLib::Point intersectionpoint;
-    //    MeshLib::Element* edge_ele;
-    //    MeshLib::Node* n0,n1;
-    for (int i=0; i < num_edge; i++)
+    //   GeoLib::Point intersectionpoint;
+    neighbor_ele = &current_ele;
+
+    for (int i = 0; i < num_edge; i++)
     {
         auto edge_ele = current_ele.getEdge(i);
         auto n0 = *edge_ele->getNode(0);
@@ -523,45 +535,13 @@ void HydroMechanicalPhaseFieldLocalAssembler<
         GeoLib::Point point_0(n0[0], n0[1], n0[2]);
         GeoLib::Point point_1(n1[0], n1[1], n1[2]);
         GeoLib::LineSegment seg0(&point_0, &point_1);
-        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionpoint))
+        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionPoint) &&
+            last_visited != current_ele.getNeighbor(i)->getID())
         {
             neighbor_ele = current_ele.getNeighbor(i);
             break;
         }
     }
-    /*    auto e0 = current_ele.getEdge(0);
-        auto p0 = *e0->getNode(0);
-        auto p1 = *e0->getNode(1);
-        GeoLib::Point point_0(p0[0], p0[1], p0[2]);
-        GeoLib::Point point_1(p1[0], p1[1], p1[2]);
-        GeoLib::LineSegment seg0(&point_0, &point_1);
-        GeoLib::Point intersectionpoint;
-        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionpoint))
-            neighbor_ele = current_ele.getNeighbor(0);
-        /*
-            auto e1 = current_ele.getEdge(1);
-            auto p0 = e0->getNode(0);
-            auto p1 = e0->getNode(1);
-            auto p2 = e1->getNode(1);
-            GeoLib::Point point_0((*p0)[0], (*p0)[1], (*p0)[2]);
-            GeoLib::Point point_1((*p1)[0], (*p1)[1], (*p1)[2]);
-            GeoLib::Point point_2((*p2)[0], (*p2)[1], (*p2)[2]);
-
-            GeoLib::LineSegment seg0(&point_0, &point_1);
-            GeoLib::LineSegment seg1(&point_1, &point_2);
-            GeoLib::LineSegment seg2(&point_2, &point_0);
-
-            // Find neighbor element
-            GeoLib::Point intersectionpoint;
-            if (GeoLib::lineSegmentIntersect(seg0, LIntegral,
-       intersectionpoint)) neighbor_ele_id = current_ele.getNeighbor(0); else if
-       (GeoLib::lineSegmentIntersect(seg1, LIntegral, intersectionpoint))
-       neighbor_ele_id = cuurent_ele.getNeighbor(); else if
-           (GeoLib::lineSegmentIntersect(seg2, LIntegral, intersectionpoint))
-                neighbor_ele_id = 2;
-            else
-                neighbor_ele_id = -1;
-                */
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -573,6 +553,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
+        double const t,
         CoupledSolutionsForStaggeredScheme const* const /*cpl_xs*/,
         MeshLib::Mesh const& /*mesh*/)
 {
@@ -591,16 +572,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         SpatialPosition x_position;
         x_position.setElementID(_element.getID());
 
-        double const ls =
-            _process_data.crack_length_scale(_process_data.t, x_position)[0];
+        double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
-        // Define a line using the normal vector
-
-        std::vector<GeoLib::Point*> pnts;
-
-        auto node = _element.getCenterOfGravity();
-        auto pnt_start = Eigen::Map<Eigen::Vector3d const>(node.getCoords(), 3);
-
+        auto node_orig = _element.getCenterOfGravity();
         auto ele_grad_d_head =
             Eigen::Map<typename ShapeMatricesType::template VectorType<
                 DisplacementDim> const>(
@@ -609,59 +583,64 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         Eigen::Vector3d ele_grad_d = Eigen::Vector3d::Zero();
         ele_grad_d.head(DisplacementDim) = ele_grad_d_head;
 
-        Eigen::Vector3d const pnt_end =
-            pnt_start + ele_grad_d.normalized() * ls *
-                            (_process_data.at_param == 1 ? 5 : 10);
+        Eigen::Vector3d pnt_start, pnt_end;
+        int i = 0;
+        GeoLib::Point intersection_point;
 
-        // Line segment for line integral
-        GeoLib::Point LIntegral_end(pnt_end[0], pnt_end[1], pnt_end[2]);
-        GeoLib::Point LIntegral_start(pnt_start[0], pnt_start[1], pnt_start[2]);
-        GeoLib::LineSegment LIntegral(&LIntegral_start, &LIntegral_end);
-
-        // Find the neighbor
+        MeshLib::Element const* current_ele;
         MeshLib::Element const* neighbor_ele;
-        findNeighborElement(_element, LIntegral, neighbor_ele);
+        Eigen::Vector3d delta_l = ele_grad_d.normalized() * ls / 5;
+        int last_visited = _element.getID();
+        double dist;
 
-        INFO("neighbor_ele_id %d ",neighbor_ele->getID());
-        /*
-                pnts.push_back(
-                    new GeoLib::Point(pnt_start.x(), pnt_start.y(),
-           pnt_start.z())); pnts.push_back( new GeoLib::Point(pnt_end.x(),
-           pnt_end.y(), pnt_end.z())); GeoLib::Polyline ply(pnts);
-
-                // Find a list of elements that are interseted by the line
-                MeshGeoToolsLib::MeshNodeSearcher mesh_node_searcher(
-                    mesh,
-                    std::make_unique<MeshGeoToolsLib::SearchLength>(),
-                    MeshGeoToolsLib::SearchAllNodes::Yes);
-
-                MeshGeoToolsLib::BoundaryElementsSearcher
-           boundary_element_searcher( mesh, mesh_node_searcher);
-                std::vector<MeshLib::Element*> const& intersected_elements(
-                    boundary_element_searcher.getBoundaryElements(ply));
-
-                // Perform a line integral along the line
-
-                MathLib::Vector3 pnt0, pnt1;
-                //        MeshLib::Node pnt0(0, 0, 0), pnt1(0, 0, 0);
-
-                double dist, u_dot_grad_d_0, u_dot_grad_d_1;
-
-                for (int i = 0; i < intersected_elements.size() - 1; ++i)
+        while (0.0 < elem_d && elem_d < 1.0)
+        {
+            if (i == 0)
+            {
+                pnt_start =
+                    Eigen::Map<Eigen::Vector3d const>(node_orig.getCoords(), 3);
+                current_ele = &_element;
+            }
+            else
+            {
+                if (current_ele->getID() == neighbor_ele->getID())
+                    pnt_start = pnt_end;
+                else
                 {
-                    pnt0 = intersected_elements[i]->getCenterOfGravity();
-                    pnt1 = intersected_elements[i + 1]->getCenterOfGravity();
-                    dist = sqrt(pow(pnt0[0] - pnt1[0], 2) + pow(pnt0[1] -
-           pnt1[1], 2) + pow(pnt0[2] - pnt1[2], 2)); u_dot_grad_d_0 =
-                        (*_process_data.ele_grad_d)[intersected_elements[i]->getID()];
-                    u_dot_grad_d_1 =
-                        (*_process_data
-                              .ele_grad_d)[intersected_elements[i +
-           1]->getID()]; width += 0.5 * dist * (u_dot_grad_d_0 +
-           u_dot_grad_d_1);
+                    pnt_start[0] = intersection_point[0];
+                    pnt_start[1] = intersection_point[1];
+                    pnt_start[2] = intersection_point[2];
+                    last_visited = current_ele->getID();
                 }
-        */
-        // Repeat the procedure for the negative normal direction
+                current_ele = neighbor_ele;
+            }
+
+            pnt_end = pnt_start + delta_l;
+
+            // Line segment for line integral
+            GeoLib::Point LIntegral_end(pnt_end[0], pnt_end[1], pnt_end[2]);
+            GeoLib::Point LIntegral_start(pnt_start[0], pnt_start[1],
+                                          pnt_start[2]);
+            GeoLib::LineSegment LIntegral(&LIntegral_start, &LIntegral_end);
+
+            // Find the neighbor
+            findNeighborElement(*current_ele, LIntegral, neighbor_ele,
+                                intersection_point, last_visited);
+
+//            INFO("neighbor_ele_id %d %d ", neighbor_ele->getID(),
+//                 _element.getID());
+
+            dist =
+                sqrt((pnt_start[0] - pnt_end[0]) * (pnt_start[0] - pnt_end[0]) +
+                     (pnt_start[1] - pnt_end[1]) * (pnt_start[1] - pnt_end[1]) +
+                     (pnt_start[1] - pnt_end[2]) * (pnt_start[1] - pnt_end[2]));
+            width += 0.5 * dist*
+                     ((*_process_data.ele_u_dot_grad_d)[current_ele->getID()] +
+                      (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()]);
+
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            i++;
+        }
     }
 
     (*_process_data.width)[_element.getID()] = width;
