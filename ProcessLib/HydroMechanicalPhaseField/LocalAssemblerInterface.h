@@ -61,7 +61,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
                                      GeoLib::LineSegment& LIntegral,
                                      MeshLib::Element const*& neighbor_ele,
                                      GeoLib::Point& intersectionPoint,
-                                     int last_visited) = 0;
+                                     std::size_t last_visited) = 0;
 
     /*    virtual void computeEnergy(
             std::size_t mesh_item_id,

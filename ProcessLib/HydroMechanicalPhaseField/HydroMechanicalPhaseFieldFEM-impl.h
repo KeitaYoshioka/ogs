@@ -521,7 +521,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<
                                           GeoLib::LineSegment& LIntegral,
                                           MeshLib::Element const*& neighbor_ele,
                                           GeoLib::Point& intersectionPoint,
-                                          int last_visited)
+                                          std::size_t last_visited)
 {
     int num_edge = current_ele.getNumberOfEdges();
     //   GeoLib::Point intersectionpoint;
@@ -589,9 +589,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         MeshLib::Element const* current_ele;
         MeshLib::Element const* neighbor_ele;
-        Eigen::Vector3d delta_l = ele_grad_d.normalized() * ls / 5;
-        int last_visited = _element.getID();
-        double dist;
+        Eigen::Vector3d const delta_l = ele_grad_d.normalized() * ls / 5;
+        double const dist = delta_l.norm();
+        auto last_visited = _element.getID();
 
         while (0.0 < elem_d && elem_d < 1.0)
         {
@@ -607,12 +607,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                     pnt_start = pnt_end;
                 else
                 {
-                    pnt_start[0] = intersection_point[0];
-                    pnt_start[1] = intersection_point[1];
-                    pnt_start[2] = intersection_point[2];
+                    pnt_start = Eigen::Map<Eigen::Vector3d const>(
+                        intersection_point.getCoords(), 3);
                     last_visited = current_ele->getID();
+                    current_ele = neighbor_ele;
                 }
-                current_ele = neighbor_ele;
             }
 
             pnt_end = pnt_start + delta_l;
@@ -630,11 +629,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 //            INFO("neighbor_ele_id %d %d ", neighbor_ele->getID(),
 //                 _element.getID());
 
-            dist =
-                sqrt((pnt_start[0] - pnt_end[0]) * (pnt_start[0] - pnt_end[0]) +
-                     (pnt_start[1] - pnt_end[1]) * (pnt_start[1] - pnt_end[1]) +
-                     (pnt_start[1] - pnt_end[2]) * (pnt_start[1] - pnt_end[2]));
-            width += 0.5 * dist*
+            width += 0.5 * dist *
                      ((*_process_data.ele_u_dot_grad_d)[current_ele->getID()] +
                       (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()]);
 
