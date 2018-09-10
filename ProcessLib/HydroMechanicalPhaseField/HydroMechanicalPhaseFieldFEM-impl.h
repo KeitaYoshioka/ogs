@@ -585,6 +585,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         ref_ele_grad_d.head(DisplacementDim) = ref_ele_grad_d_head;
         auto current_ele_grad_d = ref_ele_grad_d;
         auto cumul_ele_grad_d = ref_ele_grad_d;
+        auto current_norm = ref_ele_grad_d.normalized();
 
         Eigen::Vector3d pnt_start, pnt_end;
         int i = 0;
@@ -617,13 +618,13 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             findNeighborElement(*current_ele, LIntegral, neighbor_ele,
                                 intersection_point, last_visited);
 
-            if (_element.getID() == 899 || _element.getID() == 898)
+            if (_element.getID() == 569 || _element.getID() == 568)
             {
                 INFO("+neighbor_ele_id %d %d", neighbor_ele->getID(),
                      _element.getID());
             }
 
-            auto old_ele_grad_d = current_ele_grad_d;
+            auto old_norm = current_norm;
             auto current_ele_grad_d_head =
                 Eigen::Map<typename ShapeMatricesType::template VectorType<
                     DisplacementDim> const>(
@@ -631,25 +632,27 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                         neighbor_ele->getID(), 0),
                     DisplacementDim);
             current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
-
+            current_norm = current_ele_grad_d.normalized();
+            if (current_ele_grad_d.norm() == 0.0)
+            {
+                current_norm = old_norm;
+            }
             auto node = neighbor_ele->getCenterOfGravity();
             pnt_end = Eigen::Map<Eigen::Vector3d const>(node.getCoords(), 3);
             cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
             cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
-
             last_visited = current_ele->getID();
             current_ele = neighbor_ele;
             dist = (pnt_end - pnt_start).norm();
             pnt_start = pnt_end;
-            if ((current_ele_grad_d.normalized())
-                    .dot(old_ele_grad_d.normalized()) < 0.0)
+
+            if (current_norm.dot(old_norm) < 0.0)
             {
                 search_dir = -1.0 * search_dir;
                 ref_ele_grad_d = -1.0 * ref_ele_grad_d;
             }
-            delta_l = current_ele_grad_d.normalized() * ls;
-            deviation = (ref_ele_grad_d.normalized())
-                            .dot(current_ele_grad_d.normalized());
+            delta_l = search_dir * current_norm * ls;
+            deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
 
             width += 0.5 * dist * (cod_start + cod_end);
             cumul_ele_grad_d = cumul_ele_grad_d + current_ele_grad_d;
@@ -666,6 +669,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         i = 0;
         elem_d = (*_process_data.ele_d)[_element.getID()];
         current_ele_grad_d = ref_ele_grad_d;
+        current_norm = current_ele_grad_d.normalized();
         ref_ele_grad_d = -1.0 * ref_ele_grad_d;
         delta_l = ref_ele_grad_d.normalized() * ls;
         deviation = -1.0;
@@ -685,11 +689,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             findNeighborElement(*current_ele, LIntegral, neighbor_ele,
                                 intersection_point, last_visited);
 
-            if (_element.getID() == 899 || _element.getID() == 898)
+            if (_element.getID() == 569 || _element.getID() == 568)
                 INFO("-neighbor_ele_id %d %d", neighbor_ele->getID(),
                      _element.getID());
 
-            auto old_ele_grad_d = current_ele_grad_d;
+            auto old_norm = current_norm;
             auto current_ele_grad_d_head =
                 Eigen::Map<typename ShapeMatricesType::template VectorType<
                     DisplacementDim> const>(
@@ -697,12 +701,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                         neighbor_ele->getID(), 0),
                     DisplacementDim);
             current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
-            //            if (current_ele_grad_d.norm() == 0.0)
-            //                     current_ele_grad_d = ele_grad_d;
-            double cur_norm = current_ele_grad_d.norm();
-            if (cur_norm == 0.0)
+            current_norm = current_ele_grad_d.normalized();
+            if (current_ele_grad_d.norm() == 0.0)
             {
-                current_ele_grad_d = old_ele_grad_d;
+                current_norm = old_norm;
             }
             auto node = neighbor_ele->getCenterOfGravity();
             pnt_end = Eigen::Map<Eigen::Vector3d const>(node.getCoords(), 3);
@@ -712,24 +714,26 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             current_ele = neighbor_ele;
             dist = (pnt_end - pnt_start).norm();
             pnt_start = pnt_end;
-            if ((current_ele_grad_d.normalized())
-                    .dot(old_ele_grad_d.normalized()) < 0.0)
+
+            if (current_norm.dot(old_norm) < 0.0)
             {
                 search_dir = -1.0 * search_dir;
                 ref_ele_grad_d = -1.0 * ref_ele_grad_d;
             }
 
-            delta_l = search_dir * current_ele_grad_d.normalized() * ls;
-            deviation = (ref_ele_grad_d.normalized())
-                            .dot(current_ele_grad_d.normalized());
+            delta_l = search_dir * current_norm * ls;
+            deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
+
             width += 0.5 * dist * (cod_start + cod_end);
             cumul_ele_grad_d = cumul_ele_grad_d + current_ele_grad_d;
+
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+
             i++;
         }
-        //  double temp_value = cumul_ele_grad_d.norm();
-        //        if (cumul_ele_grad_d.norm() > 0.1)
-        //            width = 0.0;
+        //if (cumul_ele_grad_d.norm() > 0.1)
+        //    width = 0.0;
+        width = cumul_ele_grad_d.norm();
     }
 
     (*_process_data.width)[_element.getID()] = width;
