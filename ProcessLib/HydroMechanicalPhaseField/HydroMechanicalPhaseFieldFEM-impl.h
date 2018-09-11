@@ -558,6 +558,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         MeshLib::Mesh const& /*mesh*/)
 {
     double width = 0.0;
+    double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
     if (0.0 < elem_d && elem_d < 1.0)
     {
@@ -584,7 +585,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         ref_ele_grad_d.head(DisplacementDim) = ref_ele_grad_d_head;
         auto current_ele_grad_d = ref_ele_grad_d;
-        auto cumul_ele_grad_d = ref_ele_grad_d;
+        Eigen::Vector3d cumul_ele_grad_d = Eigen::Vector3d::Zero();
         auto current_norm = ref_ele_grad_d.normalized();
 
         Eigen::Vector3d pnt_start, pnt_end;
@@ -618,13 +619,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             findNeighborElement(*current_ele, LIntegral, neighbor_ele,
                                 intersection_point, last_visited);
 
-            if (_element.getID() == 569 || _element.getID() == 568)
+            if (_element.getID() == 956)
             {
                 INFO("+neighbor_ele_id %d %d", neighbor_ele->getID(),
                      _element.getID());
             }
 
             auto old_norm = current_norm;
+            auto old_ele_grad_d = current_ele_grad_d;
             auto current_ele_grad_d_head =
                 Eigen::Map<typename ShapeMatricesType::template VectorType<
                     DisplacementDim> const>(
@@ -655,7 +657,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
 
             width += 0.5 * dist * (cod_start + cod_end);
-            cumul_ele_grad_d = cumul_ele_grad_d + current_ele_grad_d;
+            cumul_ele_grad_d =
+                cumul_ele_grad_d +
+                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
 
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
 
@@ -689,11 +693,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             findNeighborElement(*current_ele, LIntegral, neighbor_ele,
                                 intersection_point, last_visited);
 
-            if (_element.getID() == 569 || _element.getID() == 568)
+            if (_element.getID() == 956)
+            {
                 INFO("-neighbor_ele_id %d %d", neighbor_ele->getID(),
                      _element.getID());
+            }
 
             auto old_norm = current_norm;
+            auto old_ele_grad_d = current_ele_grad_d;
             auto current_ele_grad_d_head =
                 Eigen::Map<typename ShapeMatricesType::template VectorType<
                     DisplacementDim> const>(
@@ -720,23 +727,25 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 search_dir = -1.0 * search_dir;
                 ref_ele_grad_d = -1.0 * ref_ele_grad_d;
             }
-
             delta_l = search_dir * current_norm * ls;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
 
             width += 0.5 * dist * (cod_start + cod_end);
-            cumul_ele_grad_d = cumul_ele_grad_d + current_ele_grad_d;
+            cumul_ele_grad_d =
+                cumul_ele_grad_d +
+                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
 
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
 
             i++;
         }
-        //if (cumul_ele_grad_d.norm() > 0.1)
+        // if (cumul_ele_grad_d.norm() > 0.1)
         //    width = 0.0;
-        width = cumul_ele_grad_d.norm();
+        cumul_grad_d = cumul_ele_grad_d.norm();
     }
 
     (*_process_data.width)[_element.getID()] = width;
+    (*_process_data.cum_grad_d)[_element.getID()] = cumul_grad_d;
 }
 
 }  // namespace HydroMechanicalPhaseField

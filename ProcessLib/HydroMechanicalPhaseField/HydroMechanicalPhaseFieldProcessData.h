@@ -102,6 +102,7 @@ struct HydroMechanicalPhaseFieldProcessData
     MeshLib::PropertyVector<double>* ele_u_dot_grad_d = nullptr;
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* width_prev = nullptr;
+    MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
     double poroelastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;

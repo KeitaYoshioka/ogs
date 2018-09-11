@@ -189,6 +189,13 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         const_cast<MeshLib::Mesh&>(mesh), "width", MeshLib::MeshItemType::Cell,
         1);
 
+    _process_data.width_prev = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "width_prev", MeshLib::MeshItemType::Cell,
+        1);
+
+    _process_data.cum_grad_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "cum_grad_d", MeshLib::MeshItemType::Cell,
+        1);
     _process_data.ele_grad_d = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "grad_damage",
         MeshLib::MeshItemType::Cell, DisplacementDim);
