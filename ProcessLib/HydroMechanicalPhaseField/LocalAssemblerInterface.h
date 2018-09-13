@@ -60,7 +60,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
     virtual void findNeighborElement(MeshLib::Element const& current_ele,
                                      GeoLib::LineSegment& LIntegral,
                                      MeshLib::Element const*& neighbor_ele,
-                                     GeoLib::Point& intersectionPoint,
+                                     Eigen::Vector3d& intersectionMidPoint,
                                      std::size_t last_visited) = 0;
 
     /*    virtual void computeEnergy(

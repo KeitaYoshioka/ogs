@@ -245,7 +245,7 @@ public:
     void findNeighborElement(MeshLib::Element const& current_ele,
                              GeoLib::LineSegment& LIntegral,
                              MeshLib::Element const*& neighbor_ele,
-                             GeoLib::Point& IntersectionPoint, std::size_t last_visited) override;
+                            Eigen::Vector3d& intersectionMidPoint, std::size_t last_visited) override;
 
     /*    void computeEnergy(
             std::size_t mesh_item_id,
