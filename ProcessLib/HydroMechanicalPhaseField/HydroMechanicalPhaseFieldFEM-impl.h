@@ -520,13 +520,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<
     DisplacementDim>::findNeighborElement(MeshLib::Element const& current_ele,
                                           GeoLib::LineSegment& LIntegral,
                                           MeshLib::Element const*& neighbor_ele,
-                                          GeoLib::Point& intersectionPoint,
+                                          Eigen::Vector3d& intersectionMidPoint,
                                           std::size_t last_visited)
 {
     int num_edge = current_ele.getNumberOfEdges();
-    //   GeoLib::Point intersectionpoint;
-    neighbor_ele = &current_ele;
-
+    //    neighbor_ele = &current_ele;
+    std::vector<int> possible_neighbor;
+    //    std::vector<GeoLib::Point> int_point;
+    GeoLib::Point intersection_point;
+    Eigen::Vector3d int_point1, int_point2;
     for (int i = 0; i < num_edge; i++)
     {
         auto edge_ele = current_ele.getEdge(i);
@@ -535,13 +537,49 @@ void HydroMechanicalPhaseFieldLocalAssembler<
         GeoLib::Point point_0(n0[0], n0[1], n0[2]);
         GeoLib::Point point_1(n1[0], n1[1], n1[2]);
         GeoLib::LineSegment seg0(&point_0, &point_1);
-        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersectionPoint) &&
+
+        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersection_point) &&
             last_visited != current_ele.getNeighbor(i)->getID())
         {
             neighbor_ele = current_ele.getNeighbor(i);
             break;
         }
     }
+    int_point1 =
+        Eigen::Map<Eigen::Vector3d const>(intersection_point.getCoords(), 3);
+
+    num_edge = neighbor_ele->getNumberOfEdges();
+    for (int i = 0; i < num_edge; i++)
+    {
+        auto edge_ele = neighbor_ele->getEdge(i);
+        auto n0 = *edge_ele->getNode(0);
+        auto n1 = *edge_ele->getNode(1);
+        GeoLib::Point point_0(n0[0], n0[1], n0[2]);
+        GeoLib::Point point_1(n1[0], n1[1], n1[2]);
+        GeoLib::LineSegment seg0(&point_0, &point_1);
+
+        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersection_point) &&
+            current_ele.getID() != neighbor_ele->getNeighbor(i)->getID())
+        {
+            //            INFO("check %d",
+            //            neighbor_ele->getNeighbor(i)->getID());
+            break;
+        }
+    }
+    int_point2 =
+        Eigen::Map<Eigen::Vector3d const>(intersection_point.getCoords(), 3);
+    //    int_point1 = 0.5 * (int_point1 + int_point2);
+    /*    if (possible_neighbor.size() > 1)
+        {
+            INFO("check");
+
+        }
+        else
+        {
+            neighbor_ele = current_ele.getNeighbor(possible_neighbor[0]);
+            intersectionPoint = int_point[possible_neighbor[0]];
+        }*/
+    intersectionMidPoint = 0.5 * (int_point1 + int_point2);
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -559,6 +597,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 {
     double width = 0.0;
     double cumul_grad_d = 0.0;
+    double total_len = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
     if (0.0 < elem_d && elem_d < 1.0)
     {
@@ -591,6 +630,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         Eigen::Vector3d pnt_start, pnt_end;
         int i = 0;
         GeoLib::Point intersection_point;
+        Eigen::Vector3d intersectionMidPoint = Eigen::Vector3d::Zero();
         MeshLib::Element const* current_ele;
         MeshLib::Element const* neighbor_ele;
         Eigen::Vector3d delta_l = ref_ele_grad_d.normalized() * ls;
@@ -605,7 +645,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
         current_ele = &_element;
         current_ele_grad_d = ref_ele_grad_d;
-        while (elem_d < 1.0 && deviation >= 0.0)
+        while (elem_d < 1.0 && deviation >= 0.0 /*&& abs(deviation) > 0.9*/)
         {
             pnt_end = pnt_start + delta_l;
 
@@ -615,15 +655,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                           pnt_start[2]);
             GeoLib::LineSegment LIntegral(&LIntegral_start, &LIntegral_end);
 
+            if (_element.getID() == 899 || _element.getID() == 894)
+                INFO("+ dir");
             // Find the neighbor
             findNeighborElement(*current_ele, LIntegral, neighbor_ele,
-                                intersection_point, last_visited);
+                                intersectionMidPoint, last_visited);
 
-            if (_element.getID() == 956)
-            {
+//            if (_element.getID() == 899 || _element.getID() == 894)
                 INFO("+neighbor_ele_id %d %d", neighbor_ele->getID(),
                      _element.getID());
-            }
 
             auto old_norm = current_norm;
             auto old_ele_grad_d = current_ele_grad_d;
@@ -640,7 +680,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 current_norm = old_norm;
             }
             auto node = neighbor_ele->getCenterOfGravity();
-            pnt_end = Eigen::Map<Eigen::Vector3d const>(node.getCoords(), 3);
+
+            //            pnt_end = Eigen::Map<Eigen::Vector3d
+            //            const>(node.getCoords(), 3);
+            //           pnt_end = Eigen::Map<Eigen::Vector3d
+            //           const>(intersection_point.getCoords(), 3);
+            //           /*+search_dir * current_norm * 0.1 * ls;*/
+            pnt_end = intersectionMidPoint;
+
             cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
             cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
             last_visited = current_ele->getID();
@@ -662,6 +709,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
 
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            total_len += dist;
 
             i++;
         }
@@ -679,7 +727,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         deviation = -1.0;
         search_dir = -1.0;
 
-        while (elem_d < 1.0 && deviation <= 0.0)
+        while (elem_d < 1.0 &&
+               deviation <= 0.0 /* && abs(deviation) > 0.9  && i < 100*/)
         {
             pnt_end = pnt_start + delta_l;
 
@@ -689,15 +738,16 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                           pnt_start[2]);
             GeoLib::LineSegment LIntegral(&LIntegral_start, &LIntegral_end);
 
+            if (_element.getID() == 899 || _element.getID() == 894)
+                INFO("- dir");
+
             // Find the neighbor
             findNeighborElement(*current_ele, LIntegral, neighbor_ele,
-                                intersection_point, last_visited);
+                                intersectionMidPoint, last_visited);
 
-            if (_element.getID() == 956)
-            {
+//            if (_element.getID() == 899 || _element.getID() == 894)
                 INFO("-neighbor_ele_id %d %d", neighbor_ele->getID(),
                      _element.getID());
-            }
 
             auto old_norm = current_norm;
             auto old_ele_grad_d = current_ele_grad_d;
@@ -714,7 +764,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 current_norm = old_norm;
             }
             auto node = neighbor_ele->getCenterOfGravity();
-            pnt_end = Eigen::Map<Eigen::Vector3d const>(node.getCoords(), 3);
+
+            //            pnt_end = Eigen::Map<Eigen::Vector3d
+            //            const>(node.getCoords(), 3);
+            //           pnt_end = Eigen::Map<Eigen::Vector3d
+            //           const>(intersection_point.getCoords(), 3);
+            //           /*+search_dir * current_norm * 0.1 * ls;*/
+            pnt_end = intersectionMidPoint;
+
             cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
             cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
             last_visited = current_ele->getID();
@@ -736,7 +793,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
 
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
-
+            total_len += dist;
             i++;
         }
         // if (cumul_ele_grad_d.norm() > 0.1)
