@@ -63,6 +63,9 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
                                      Eigen::Vector3d& intersectionMidPoint,
                                      std::size_t last_visited) = 0;
 
+    virtual void findHostElement(MeshLib::Element const& current_ele,
+                                     Eigen::Vector3d pnt_end,
+                                     MeshLib::Element const*& neighbor_ele) = 0;
     /*    virtual void computeEnergy(
             std::size_t mesh_item_id,
             std::vector<
