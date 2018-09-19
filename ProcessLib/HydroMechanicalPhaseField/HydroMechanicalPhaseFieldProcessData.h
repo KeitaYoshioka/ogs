@@ -42,7 +42,7 @@ struct HydroMechanicalPhaseFieldProcessData
         Parameter<double> const& crack_length_scale_,
         Parameter<double> const& solid_density_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        double const pf_irrv_, int const at_param_,
+        double const pf_irrv_, double const li_disc_, int const at_param_,
         Parameter<double> const& intrinsic_permeability_,
         Parameter<double> const& fluid_viscosity_,
         Parameter<double> const& fluid_density_,
@@ -57,6 +57,7 @@ struct HydroMechanicalPhaseFieldProcessData
           solid_density(solid_density_),
           specific_body_force(specific_body_force_),
           pf_irrv(pf_irrv_),
+          li_disc(li_disc_),
           at_param(at_param_),
           intrinsic_permeability(intrinsic_permeability_),
           fluid_viscosity(fluid_viscosity_),
@@ -89,6 +90,7 @@ struct HydroMechanicalPhaseFieldProcessData
     Parameter<double> const& solid_density;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     double const pf_irrv = 0.05;
+    double const li_disc = 60;
     int const at_param = 2;
     Parameter<double> const& intrinsic_permeability;
     Parameter<double> const& fluid_viscosity;
