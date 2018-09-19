@@ -246,6 +246,16 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         pf_irrv = 0.05;
 
+    auto li_disc_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__li_disc}
+        config.getConfigParameterOptional<double>("li_disc");
+
+    double li_disc;
+    if (li_disc_read)
+        li_disc = *li_disc_read;
+    else
+        li_disc = 60;
+
     auto at_num =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__at_num}
         config.getConfigParameterOptional<int>("at_num");
@@ -264,6 +274,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         solid_density,
         specific_body_force,
         pf_irrv,
+        li_disc,
         at_param,
         intrinsic_permeability,
         fluid_viscosity,
