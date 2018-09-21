@@ -37,28 +37,6 @@ std::size_t elementIdAtPoint(Eigen::Vector3d const& pnt)
     auto const row = static_cast<int>(std::floor(pnt[1]));
     return row * 10 + column;
 }
-TEST_F(FindHostElement, HostElementQuadSingleElement)
-{
-    auto mesh =
-        std::unique_ptr<Mesh>(MeshGenerator::generateRegularQuadMesh(10., 1));
-
-    auto same_element_returned = [&mesh](double const x,
-                                         double const y) -> bool {
-
-        Eigen::Vector3d const pnt(x, y, 0);
-        double const probe_offset = 10.;
-
-        MeshLib::Element const* ref_ele = mesh->getElement(0);
-        MeshLib::Element const* host_ele = nullptr;
-        findHostElement(*ref_ele, pnt, host_ele, probe_offset);
-        std::size_t const expected_ele_id = 0;
-        assert(host_ele != nullptr);
-        return expected_ele_id == host_ele->getID();
-    };
-
-    ac::check<double, double>(same_element_returned, 100,
-                              ac::make_arbitrary(x_gen, y_gen), gtest_reporter);
-}
 
 TEST_F(FindHostElement, HostElementQuadSameElement)
 {
@@ -99,11 +77,13 @@ TEST_F(FindHostElement, HostElementQuad)
         auto const expected_ele_id = elementIdAtPoint(pnt);
         MeshLib::Element const* expected_ele =
             mesh->getElement(expected_ele_id);
+
         std::size_t num_neighbor = expected_ele->getNumberOfNeighbors();
         for (std::size_t i = 0; i < num_neighbor; i++)
         {
-            MeshLib::Element const* ref_ele =
-                expected_ele->getNeighbor(i);
+            MeshLib::Element const* ref_ele = expected_ele->getNeighbor(i);
+            if (ref_ele == nullptr)
+                continue;
             MeshLib::Element const* host_ele = nullptr;
             findHostElement(*ref_ele, pnt, host_ele, probe_offset);
             assert(host_ele != nullptr);
@@ -116,4 +96,32 @@ TEST_F(FindHostElement, HostElementQuad)
 
     ac::check<double, double>(same_element_returned, 100,
                               ac::make_arbitrary(x_gen, y_gen), gtest_reporter);
+}
+
+TEST_F(FindHostElement, HostElementQuadCorner)
+{
+    auto mesh =
+        std::unique_ptr<Mesh>(MeshGenerator::generateRegularQuadMesh(10., 10));
+
+    auto same_element_returned = [&mesh](std::size_t const node_id) -> bool {
+
+        auto const& node = *mesh->getNode(node_id);
+        Eigen::Vector3d const corner_pnt(node[0], node[1], node[2]);
+        double const probe_offset = 10.;
+
+        for (auto const* element : node.getElements())
+        {
+            if (element == nullptr)
+                continue;
+            MeshLib::Element const* host_ele = nullptr;
+            findHostElement(*element, corner_pnt, host_ele, probe_offset);
+            assert(host_ele != nullptr);
+            if (element->getID() != host_ele->getID())
+                return false;
+        }
+        return true;
+    };
+    ac::IntervalGenerator<std::size_t> node_id_gen{0, mesh->getNumberOfNodes()};
+    ac::check<std::size_t>(same_element_returned, 100,
+                              ac::make_arbitrary(node_id_gen), gtest_reporter);
 }
