@@ -594,6 +594,7 @@ void findHostElement(MeshLib::Element const& current_ele,
     GeoLib::Point seg_end(pnt_end[0] + probe_offset, pnt_end[1], pnt_end[2]);
     GeoLib::LineSegment probe_line(&seg_start, &seg_end);
     int num_edge = current_ele.getNumberOfEdges();
+    double eps = std::numeric_limits<double>::epsilon();
 
     for (int i = 0; i < num_edge; i++)
     {
@@ -602,6 +603,16 @@ void findHostElement(MeshLib::Element const& current_ele,
         auto n1 = *edge_ele->getNode(1);
         GeoLib::Point point_0(n0[0], n0[1], n0[2]);
         GeoLib::Point point_1(n1[0], n1[1], n1[2]);
+
+        // check if the pnt_end lies on the corners
+        if (((abs(pnt_end[0] - n0[0]) <= eps) &&
+             (abs(pnt_end[1] - n0[1]) <= eps)) ||
+            ((abs(pnt_end[0] - n1[0]) <= eps) &&
+             (abs(pnt_end[1] - n0[1]) <= eps)))
+        {
+            neighbor_ele = &current_ele;
+            return;
+        }
         GeoLib::LineSegment seg0(&point_0, &point_1);
 
         if (GeoLib::lineSegmentIntersect(seg0, probe_line, intersection_point))
