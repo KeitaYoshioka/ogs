@@ -123,5 +123,45 @@ TEST_F(FindHostElement, HostElementQuadCorner)
     };
     ac::IntervalGenerator<std::size_t> node_id_gen{0, mesh->getNumberOfNodes()};
     ac::check<std::size_t>(same_element_returned, 100,
-                              ac::make_arbitrary(node_id_gen), gtest_reporter);
+                           ac::make_arbitrary(node_id_gen), gtest_reporter);
+}
+
+TEST_F(FindHostElement, HostElementQuadEdge)
+{
+    auto mesh =
+        std::unique_ptr<Mesh>(MeshGenerator::generateRegularQuadMesh(10., 10));
+
+    auto same_element_returned = [&mesh](std::size_t const ele_id) -> bool {
+
+        double const probe_offset = 10.;
+        auto const* ref_ele = mesh->getElement(ele_id);
+        int num_edge = ref_ele->getNumberOfEdges();
+        for (int i = 0; i < num_edge; i++)
+        {
+            auto edge_ele = ref_ele->getEdge(i);
+            auto n0 = *edge_ele->getNode(0);
+            auto n1 = *edge_ele->getNode(1);
+            MeshLib::Element const* host_ele = nullptr;
+            Eigen::Vector3d const edge_pnt0(0.5 * (n0[0] + n1[0]), n0[1],
+                                             n0[2]);
+            findHostElement(*ref_ele, edge_pnt0, host_ele, probe_offset);
+            assert(host_ele != nullptr);
+            if (ref_ele->getID() != host_ele->getID())
+                return false;
+            Eigen::Vector3d const edge_pnt1(n0[0], 0.5 *(n0[1] + n1[1]),
+                                             n0[2]);
+            findHostElement(*ref_ele, edge_pnt1, host_ele, probe_offset);
+            assert(host_ele != nullptr);
+            if (ref_ele->getID() != host_ele->getID())
+                return false;
+        }
+
+        return true;
+    };
+    ac::IntervalGenerator<std::size_t> ele_id_gen{0,
+                                                  mesh->getNumberOfElements()-1};
+
+    ac::IntervalGenerator<double> frac_gen{0,1};
+    ac::check<std::size_t>(same_element_returned, 100,
+                           ac::make_arbitrary(ele_id_gen), gtest_reporter);
 }

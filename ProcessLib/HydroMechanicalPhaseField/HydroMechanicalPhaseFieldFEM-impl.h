@@ -582,6 +582,38 @@ void HydroMechanicalPhaseFieldLocalAssembler<
     intersectionMidPoint = 0.5 * (int_point1 + int_point2);
 }
 
+bool isPointAtCorner(Eigen::Vector3d pnt_end, GeoLib::Point p0,
+                     GeoLib::Point p1)
+{
+    double eps = std::numeric_limits<double>::epsilon();
+    if (((abs(pnt_end[0] - p0[0]) < eps) && (abs(pnt_end[1] - p0[1]) < eps) &&
+         (abs(pnt_end[2] - p0[2]) < eps)) ||
+        ((abs(pnt_end[0] - p1[0]) < eps) && (abs(pnt_end[1] - p1[1]) < eps) &&
+         (abs(pnt_end[2] - p1[2]) < eps)))
+        return true;
+    else
+        return false;
+}
+
+bool isPointOnEdge(Eigen::Vector3d pnt_end, GeoLib::Point p0, GeoLib::Point p1)
+{
+    double eps = std::numeric_limits<double>::epsilon();
+
+    // is it on the line?
+    if (abs((p0[1] - p1[1]) * (pnt_end[0] - p0[0]) -
+            (p0[0] - p1[0]) * (pnt_end[1] - p0[1])) < eps)
+    {
+        // is it within the range?
+        if ((pnt_end[0] >= std::min(p0[0], p1[0])) &&
+            (pnt_end[0] <= std::max(p0[0], p1[0])))
+            if ((pnt_end[1] >= std::min(p0[1], p1[1])) &&
+                (pnt_end[1] <= std::max(p0[1], p1[1])))
+                return true;
+    }
+    else
+        return false;
+}
+
 void findHostElement(MeshLib::Element const& current_ele,
                      Eigen::Vector3d pnt_end,
                      MeshLib::Element const*& neighbor_ele,
@@ -594,7 +626,6 @@ void findHostElement(MeshLib::Element const& current_ele,
     GeoLib::Point seg_end(pnt_end[0] + probe_offset, pnt_end[1], pnt_end[2]);
     GeoLib::LineSegment probe_line(&seg_start, &seg_end);
     int num_edge = current_ele.getNumberOfEdges();
-    double eps = std::numeric_limits<double>::epsilon();
 
     for (int i = 0; i < num_edge; i++)
     {
@@ -604,17 +635,15 @@ void findHostElement(MeshLib::Element const& current_ele,
         GeoLib::Point point_0(n0[0], n0[1], n0[2]);
         GeoLib::Point point_1(n1[0], n1[1], n1[2]);
 
-        // check if the pnt_end lies on the corners
-        if (((abs(pnt_end[0] - n0[0]) <= eps) &&
-             (abs(pnt_end[1] - n0[1]) <= eps)) ||
-            ((abs(pnt_end[0] - n1[0]) <= eps) &&
-             (abs(pnt_end[1] - n0[1]) <= eps)))
+        // check if pnt_end lies on the corners or the edge
+        if (isPointAtCorner(pnt_end, point_0, point_1) ||
+            isPointOnEdge(pnt_end, point_0, point_1))
         {
             neighbor_ele = &current_ele;
             return;
         }
-        GeoLib::LineSegment seg0(&point_0, &point_1);
 
+        GeoLib::LineSegment seg0(&point_0, &point_1);
         if (GeoLib::lineSegmentIntersect(seg0, probe_line, intersection_point))
             intersection_count++;
     }
