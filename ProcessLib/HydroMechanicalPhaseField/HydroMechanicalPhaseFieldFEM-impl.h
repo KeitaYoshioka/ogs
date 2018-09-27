@@ -121,8 +121,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const d_ip = N.dot(d);
         double const p_ip = N.dot(p);
         double const degradation = d_ip * d_ip * (1 - k) + k;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
-                                                degradation);
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, degradation, _process_data.split_method);
 
         auto const& sigma_eff = _ip_data[ip].sigma_eff;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -365,8 +365,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u,
-                                                degradation);
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, degradation, _process_data.split_method);
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 
@@ -604,11 +604,13 @@ bool isPointOnEdge(Eigen::Vector3d pnt_end, GeoLib::Point p0, GeoLib::Point p1)
             (p0[0] - p1[0]) * (pnt_end[1] - p0[1])) < eps)
     {
         // is it within the range?
-        if ((pnt_end[0] >= std::min(p0[0], p1[0])) &&
-            (pnt_end[0] <= std::max(p0[0], p1[0])))
-            if ((pnt_end[1] >= std::min(p0[1], p1[1])) &&
-                (pnt_end[1] <= std::max(p0[1], p1[1])))
-                return true;
+        if (((pnt_end[0] >= std::min(p0[0], p1[0])) &&
+             (pnt_end[0] <= std::max(p0[0], p1[0]))) &&
+            ((pnt_end[1] >= std::min(p0[1], p1[1])) &&
+             (pnt_end[1] <= std::max(p0[1], p1[1]))))
+            return true;
+        else
+            return false;
     }
     else
         return false;
