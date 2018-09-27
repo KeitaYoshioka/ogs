@@ -109,9 +109,7 @@ bool PETScNonlinearSolver::solve(
 
         context->system->getJacobian(*context->J);
         context->system->applyKnownSolutionsNewton(
-            *context->J, *context->r, *context->x,
-            *context->x);  // TODO (naumov); The last two arguments are actually
-                           // minus_delta_x and x, but not here; why?
+            *context->J, *context->r, *context->x);
         /*
         DBUG("AFTER ASSEMBLY");
         DBUG("The ogs-x vector.")
