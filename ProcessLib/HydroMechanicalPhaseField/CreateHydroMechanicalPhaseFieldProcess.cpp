@@ -266,6 +266,16 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         at_param = 2;
 
+    auto split =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
+        config.getConfigParameterOptional<int>("split_method");
+
+    int split_method;
+    if (split && (*split == 1))
+        split_method = 1;
+    else
+        split_method = 0;
+
     HydroMechanicalPhaseFieldProcessData<DisplacementDim> process_data{
         std::move(material),
         residual_stiffness,
@@ -273,6 +283,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         crack_length_scale,
         solid_density,
         specific_body_force,
+        split_method,
         pf_irrv,
         li_disc,
         at_param,
