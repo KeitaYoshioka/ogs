@@ -11,7 +11,9 @@
 
 #include "PhaseFieldProcess.h"
 #include <cassert>
-
+#ifdef USE_PETSC
+#include <petscvec.h>  //TODO: remove this by adding getVectorSum to PETScVector
+#endif
 #include "NumLib/DOF/ComputeSparsityPattern.h"
 
 #include "ProcessLib/Process.h"
@@ -370,13 +372,22 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
         DBUG("PostNonLinearSolver crack volume computation.");
 
-        ProcessLib::ProcessVariable const& pv
-            = getProcessVariables(process_id)[0];
-        GlobalExecutor::executeSelectedMemberOnDereferenced(
+        if (!_nodal_crack_volume)
+            _nodal_crack_volume =
+                MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+        _nodal_crack_volume->setZero();
+
+        GlobalExecutor::executeMemberOnDereferenced(
             &LocalAssemblerInterface::computeCrackIntegral, _local_assemblers,
             pv.getActiveElementIDs(), dof_tables, x, t,
-            _process_data.crack_volume, _use_monolithic_scheme,
-            _coupled_solutions);
+            _process_data.crack_volume,
+            _use_monolithic_scheme, _coupled_solutions, *_nodal_crack_volume);
+
+#ifdef USE_PETSC
+        _process_data.crack_volume = 0.0;
+        auto temp_cvol_Vec = _nodal_crack_volume->getRawVector();
+        VecSum(temp_cvol_Vec, &_process_data.crack_volume);
+#endif
 
         INFO("Integral of crack: %g", _process_data.crack_volume);
 
