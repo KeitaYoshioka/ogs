@@ -269,7 +269,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                              NumLib::LocalToGlobalIndexMap>> const& dof_tables,
                          GlobalVector const& /*x*/, double const /*t*/,
                          double& crack_volume,
-                         CoupledSolutionsForStaggeredScheme const* const cpl_xs)
+                         CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+                         GlobalVector& nodal_crack_volume)
 {
     assert(cpl_xs != nullptr);
 
@@ -293,7 +294,15 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
 
+    std::vector<double> local_crack_volume(local_d.size());
+    auto cvol = MathLib::createZeroedVector<
+        typename ShapeMatricesType::template VectorType<phasefield_size>>(
+        local_crack_volume, phasefield_size);
+
     int const n_integration_points = _integration_method.getNumberOfPoints();
+
+    double elem_A = 0.0;
+//    crack_volume = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         x_position.setIntegrationPoint(ip);
@@ -315,7 +324,19 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         }
 
         crack_volume += (N_u * u).dot(dNdx * d) * w;
+        elem_A += w;
+        cvol += (N_u * u).dot(dNdx * d) * w * N;
     }
+
+    double temp_cvol = 0.0;
+ //   cvol *= crack_volume/elem_A;
+    for (std::size_t i =0; i< cvol.size(); i++)
+    {
+        temp_cvol += cvol[i];
+    }
+
+//    INFO("crack_volume %g temp %g", crack_volume,temp_cvol);
+    nodal_crack_volume.add(indices_of_processes[1], local_crack_volume);
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,

@@ -129,6 +129,8 @@ private:
     /// Previous time step solution used for the constraints.
     std::unique_ptr<GlobalVector> _x_previous_timestep;
 
+    std::unique_ptr<GlobalVector> _nodal_crack_volume;
+
     /// Check whether the process represented by \c process_id is/has
     /// mechanical process. In the present implementation, the mechanical
     /// process has process_id == 0 in the staggered scheme.
