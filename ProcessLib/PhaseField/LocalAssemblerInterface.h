@@ -41,8 +41,7 @@ struct PhaseFieldLocalAssemblerInterface
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-        GlobalVector& nodal_crack_volume) = 0;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) const = 0;
 
     virtual void computeEnergy(
         std::size_t mesh_item_id,

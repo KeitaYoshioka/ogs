@@ -264,13 +264,13 @@ template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                               DisplacementDim>::
-    computeCrackIntegral(std::size_t mesh_item_id,
-                         std::vector<std::reference_wrapper<
-                             NumLib::LocalToGlobalIndexMap>> const& dof_tables,
-                         GlobalVector const& /*x*/, double const /*t*/,
-                         double& crack_volume,
-                         CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-                         GlobalVector& nodal_crack_volume)
+    computeCrackIntegral(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        GlobalVector const& /*x*/, double const /*t*/, double& crack_volume,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) const
 {
     assert(cpl_xs != nullptr);
 
@@ -322,8 +322,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
 #ifdef USE_PETSC
-    auto const n_all_nodes = indices_of_processes[1].size();
-    auto const n_regular_nodes = std::count_if(
+    int const n_all_nodes = indices_of_processes[1].size();
+    int const n_regular_nodes = std::count_if(
         begin(indices_of_processes[1]), end(indices_of_processes[1]),
         [](GlobalIndexType const& index) { return index >= 0; });
     if (n_all_nodes != n_regular_nodes)
