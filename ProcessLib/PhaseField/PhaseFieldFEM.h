@@ -273,8 +273,10 @@ public:
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
-        GlobalVector const& x, double const t, double& crack_volume,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs, GlobalVector & nodal_crack_volume) override;
+        GlobalVector const& x, double const t,
+        double& regular_element_crack_volume,
+        std::vector<GlobalIndexType>& ghost_element_ids,
+        std::vector<double>& ghost_element_values) const override;
 
     void computeEnergy(
         std::size_t mesh_item_id,

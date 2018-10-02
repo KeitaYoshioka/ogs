@@ -310,31 +310,34 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
         ProcessLib::ProcessVariable const& pv =
             getProcessVariables(process_id)[0];
-        if (!_nodal_crack_volume)
-            _nodal_crack_volume =
-                MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
-        _nodal_crack_volume->setZero();
+        // The additional vectors are needed for correct computation of the
+        // element-wise values sum.
+        // Let's call elements with ghost nodes the "ghost elements".
+        std::vector<GlobalIndexType> ghost_element_ids;
+        std::vector<double> ghost_element_values;
 
         GlobalExecutor::executeSelectedMemberOnDereferenced(
             &LocalAssemblerInterface::computeCrackIntegral, _local_assemblers,
             pv.getActiveElementIDs(), dof_tables, x, t,
-            _process_data.crack_volume, _coupled_solutions,
-            *_nodal_crack_volume);
+            _coupled_solutions,
+            _process_data.crack_volume, ghost_element_ids,
+            ghost_element_values);
 #ifdef USE_PETSC
-        double my_crack_volume = _process_data.crack_volume;
+        INFO("Integral of crack (regular elements): %g",
+             _process_data.crack_volume);
+        //
+        // Sum up the regular elements' crack volume
+        //
+        double crack_volume = _process_data.crack_volume;
         double global_result = 0.0;
-        MPI_Allreduce(&my_crack_volume, &global_result, 1, MPI_DOUBLE, MPI_SUM,
+        MPI_Allreduce(&crack_volume, &global_result, 1, MPI_DOUBLE, MPI_SUM,
                       PETSC_COMM_WORLD);
         _process_data.crack_volume = global_result;
+
+        //
+        // 
 #endif
-        /*
-#ifdef USE_PETSC
-       _process_data.crack_volume = 0.0;
-        auto temp_cvol_Vec = _nodal_crack_volume->getRawVector();
-        VecSum(temp_cvol_Vec, &_process_data.crack_volume);
-#endif
-*/
-        INFO("Integral of crack: %g", _process_data.crack_volume);
+        INFO("Integral of crack (total): %g", _process_data.crack_volume);
 
         if (_process_data.propagating_crack)
         {
