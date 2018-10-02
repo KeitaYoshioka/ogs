@@ -322,22 +322,19 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         elem_A += w;
         ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
+#ifdef USE_PETSC
+    auto const n_all_nodes = indices_of_processes[1].size();
+    auto const n_regular_nodes = std::count_if(
+        begin(indices_of_processes[1]), end(indices_of_processes[1]),
+        [](GlobalIndexType const& index) { return index >= 0; });
+    if (n_all_nodes != n_regular_nodes)
     {
-        temp_cvol += cvol[i];
+        ele_crack_vol *= static_cast<double>(n_regular_nodes) / n_all_nodes;
     }
-
-    for (auto i : indices_of_processes[1])
-    {
-        if (i < 0)
-        {
-            INFO("%d", i);
-            ele_crack_vol /= 2.0;
-            break;
-        }
-    }
-    crack_volume += ele_crack_vol;
-    //    INFO("crack_volume %g temp %g ", crack_volume,temp_cvol);
-    nodal_crack_volume.add(indices_of_processes[1], local_crack_volume);
+#endif  // USE_PETSC
+    regular_element_crack_volume += ele_crack_vol;
+    //    INFO("regular_element_crack_volume %g temp %g ",
+    //    regular_element_crack_volume);
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
