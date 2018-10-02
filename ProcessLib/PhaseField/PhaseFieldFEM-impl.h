@@ -462,14 +462,15 @@ template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                               DisplacementDim>::
-    computeCrackIntegral(std::size_t mesh_item_id,
+    computeCrackIntegral(std::size_t const mesh_item_id,
                          std::vector<std::reference_wrapper<
                              NumLib::LocalToGlobalIndexMap>> const& dof_tables,
                          GlobalVector const& /*x*/, double const /*t*/,
-                         double& crack_volume,
                          bool const /*use_monolithic_scheme*/,
                          CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-                         GlobalVector& nodal_crack_volume)
+                         double& regular_element_crack_volume,
+                         std::vector<GlobalIndexType>& ghost_element_ids,
+                         std::vector<double>& ghost_element_values) const
 {
     assert(cpl_xs != nullptr);
 
@@ -501,15 +502,9 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     SpatialPosition x_position;
     x_position.setElementID(_element.getID());
 
-    std::vector<double> local_crack_volume(local_d.size());
-    auto cvol = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<phasefield_size>>(
-        local_crack_volume, phasefield_size);
-
     int const n_integration_points = _integration_method.getNumberOfPoints();
 
     double elem_A = 0.0;
-    //    crack_volume = 0.0;
     double ele_crack_vol = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -529,15 +524,9 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                    i, i * displacement_size / DisplacementDim)
                 .noalias() = N;
 
-        //        crack_volume += (N_u * u).dot(dNdx * d) * w;
         elem_A += w;
-        cvol += (N_u * u).dot(dNdx * d) * w * N;
         ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
-
-    double temp_cvol = 0.0;
-    //   cvol *= crack_volume/elem_A;
-    for (std::size_t i = 0; i < cvol.size(); i++)
     {
         temp_cvol += cvol[i];
     }
