@@ -320,13 +320,20 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
             pv.getActiveElementIDs(), dof_tables, x, t,
             _process_data.crack_volume, _coupled_solutions,
             *_nodal_crack_volume);
-
 #ifdef USE_PETSC
-        _process_data.crack_volume = 0.0;
+        double my_crack_volume = _process_data.crack_volume;
+        double global_result = 0.0;
+        MPI_Allreduce(&my_crack_volume, &global_result, 1, MPI_DOUBLE, MPI_SUM,
+                      PETSC_COMM_WORLD);
+        _process_data.crack_volume = global_result;
+#endif
+        /*
+#ifdef USE_PETSC
+       _process_data.crack_volume = 0.0;
         auto temp_cvol_Vec = _nodal_crack_volume->getRawVector();
         VecSum(temp_cvol_Vec, &_process_data.crack_volume);
 #endif
-
+*/
         INFO("Integral of crack: %g", _process_data.crack_volume);
 
         if (_process_data.propagating_crack)

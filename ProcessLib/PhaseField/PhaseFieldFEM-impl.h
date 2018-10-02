@@ -302,7 +302,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     int const n_integration_points = _integration_method.getNumberOfPoints();
 
     double elem_A = 0.0;
-//    crack_volume = 0.0;
+    //    crack_volume = 0.0;
+    double ele_crack_vol = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         x_position.setIntegrationPoint(ip);
@@ -323,19 +324,30 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
         }
 
-        crack_volume += (N_u * u).dot(dNdx * d) * w;
+        //        crack_volume += (N_u * u).dot(dNdx * d) * w;
         elem_A += w;
         cvol += (N_u * u).dot(dNdx * d) * w * N;
+        ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
 
     double temp_cvol = 0.0;
- //   cvol *= crack_volume/elem_A;
-    for (std::size_t i =0; i< cvol.size(); i++)
+    //   cvol *= crack_volume/elem_A;
+    for (std::size_t i = 0; i < cvol.size(); i++)
     {
         temp_cvol += cvol[i];
     }
 
-//    INFO("crack_volume %g temp %g", crack_volume,temp_cvol);
+    for (auto i : indices_of_processes[1])
+    {
+        if (i < 0)
+        {
+            INFO("%d", i);
+            ele_crack_vol /= 2.0;
+            break;
+        }
+    }
+    crack_volume += ele_crack_vol;
+    //    INFO("crack_volume %g temp %g ", crack_volume,temp_cvol);
     nodal_crack_volume.add(indices_of_processes[1], local_crack_volume);
 }
 
