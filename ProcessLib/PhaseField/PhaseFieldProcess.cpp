@@ -372,16 +372,11 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
         DBUG("PostNonLinearSolver crack volume computation.");
 
-        if (!_nodal_crack_volume)
-            _nodal_crack_volume =
-                MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
-        _nodal_crack_volume->setZero();
-
         GlobalExecutor::executeMemberOnDereferenced(
             &LocalAssemblerInterface::computeCrackIntegral, _local_assemblers,
             pv.getActiveElementIDs(), dof_tables, x, t,
-            _process_data.crack_volume,
-            _use_monolithic_scheme, _coupled_solutions, *_nodal_crack_volume);
+            _process_data.crack_volume, _use_monolithic_scheme,
+            _coupled_solutions);
 #ifdef USE_PETSC
         double my_crack_volume = _process_data.crack_volume;
         double global_result = 0.0;
@@ -389,13 +384,6 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
                       PETSC_COMM_WORLD);
         _process_data.crack_volume = global_result;
 #endif
-        /*
-#ifdef USE_PETSC
-       _process_data.crack_volume = 0.0;
-        auto temp_cvol_Vec = _nodal_crack_volume->getRawVector();
-        VecSum(temp_cvol_Vec, &_process_data.crack_volume);
-#endif
-*/
         INFO("Integral of crack: %g", _process_data.crack_volume);
 
         if (_process_data.propagating_crack)

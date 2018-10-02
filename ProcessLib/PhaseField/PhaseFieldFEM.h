@@ -256,8 +256,7 @@ public:
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-        GlobalVector& nodal_crack_volume) override;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) const override;
 
     void computeEnergy(
         std::size_t mesh_item_id,
