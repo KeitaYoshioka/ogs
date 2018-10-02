@@ -264,14 +264,13 @@ template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                               DisplacementDim>::
-    computeCrackIntegral(std::size_t const mesh_item_id,
+    computeCrackIntegral(std::size_t mesh_item_id,
                          std::vector<std::reference_wrapper<
                              NumLib::LocalToGlobalIndexMap>> const& dof_tables,
                          GlobalVector const& /*x*/, double const /*t*/,
+                         double& crack_volume,
                          CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-                         double& regular_element_crack_volume,
-                         std::vector<GlobalIndexType>& ghost_element_ids,
-                         std::vector<double>& ghost_element_values) const
+                         GlobalVector& nodal_crack_volume)
 {
     assert(cpl_xs != nullptr);
 
@@ -332,7 +331,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         ele_crack_vol *= static_cast<double>(n_regular_nodes) / n_all_nodes;
     }
 #endif  // USE_PETSC
-    regular_element_crack_volume += ele_crack_vol;
+    crack_volume += ele_crack_vol;
     //    INFO("regular_element_crack_volume %g temp %g ",
     //    regular_element_crack_volume);
 }
