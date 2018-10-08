@@ -43,6 +43,7 @@ void PhaseFieldIrreversibleDamageOracleBoundaryCondition::preTimestep(
     // phase-field variable is considered irreversible if it loses more than 95%
     // of the stiffness, which is a widely used threshold.
     double irreversibleDamage = 0.05;
+    double fixedDamage = 1.1;
 
     _bc_values.ids.clear();
     _bc_values.values.clear();
@@ -70,6 +71,11 @@ void PhaseFieldIrreversibleDamageOracleBoundaryCondition::preTimestep(
         {
             _bc_values.ids.emplace_back(g_idx);
             _bc_values.values.emplace_back(0.0);
+        }
+        else if(x[g_idx] > fixedDamage)
+        {
+            _bc_values.ids.emplace_back(g_idx);
+            _bc_values.values.emplace_back(1.0);
         }
     }
 }
