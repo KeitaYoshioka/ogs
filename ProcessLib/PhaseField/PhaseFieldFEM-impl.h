@@ -295,8 +295,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     x_position.setElementID(_element.getID());
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
-
-    double elem_A = 0.0;
     double ele_crack_vol = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -318,7 +316,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
         }
 
-        elem_A += w;
         ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
 #ifdef USE_PETSC
@@ -332,8 +329,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     }
 #endif  // USE_PETSC
     crack_volume += ele_crack_vol;
-    //    INFO("regular_element_crack_volume %g temp %g ",
-    //    regular_element_crack_volume);
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
