@@ -287,7 +287,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_pressure = 0.0;
     if (_process_data.crack_pressure)
-        local_pressure =  _process_data.unity_pressure;
+        local_pressure = _process_data.unity_pressure;
     else if (_process_data.propagating_crack)
         local_pressure = _process_data.pressure;
 
@@ -319,8 +319,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             auto& eps = _ip_data[ip].eps;
             eps.noalias() = B * u;
             _ip_data[ip].updateConstitutiveRelation(
-                t, x_position, dt, u, degradation, _process_data.split_method
-                        );
+                t, x_position, dt, u, degradation, _process_data.split_method);
         }
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
@@ -416,6 +415,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
     x_position.setElementID(_element.getID());
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
+    double ele_crack_vol = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         x_position.setIntegrationPoint(ip);
@@ -434,8 +434,19 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
                    i, i * displacement_size / DisplacementDim)
                 .noalias() = N;
 
-        crack_volume += (N_u * u).dot(dNdx * d) * w;
+        ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
+#ifdef USE_PETSC
+    int const n_all_nodes = indices_of_processes[1].size();
+    int const n_regular_nodes = std::count_if(
+        begin(indices_of_processes[1]), end(indices_of_processes[1]),
+        [](GlobalIndexType const& index) { return index >= 0; });
+    if (n_all_nodes != n_regular_nodes)
+    {
+        ele_crack_vol *= static_cast<double>(n_regular_nodes) / n_all_nodes;
+    }
+#endif  // USE_PETSC
+    crack_volume += ele_crack_vol;
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,

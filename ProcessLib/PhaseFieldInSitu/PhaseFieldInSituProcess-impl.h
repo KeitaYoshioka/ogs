@@ -377,7 +377,11 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             &PhaseFieldInSituLocalAssemblerInterface::computeCrackIntegral,
             _local_assemblers, dof_tables, x, t, _process_data.crack_volume0,
             _use_monolithic_scheme, _coupled_solutions, _mechanics_process0_id);
-
+#ifdef USE_PETSC
+        double const crack_volume = _process_data.crack_volume0;
+        MPI_Allreduce(&crack_volume, &_process_data.crack_volume0, 1, MPI_DOUBLE,
+                      MPI_SUM, PETSC_COMM_WORLD);
+#endif
         INFO("Integral of crack with u_p: %g", _process_data.crack_volume0);
     }
     else if (_coupled_solutions->process_id == _mechanics_process1_id)
@@ -399,7 +403,11 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             &PhaseFieldInSituLocalAssemblerInterface::computeCrackIntegral,
             _local_assemblers, dof_tables, x, t, _process_data.crack_volume1,
             _use_monolithic_scheme, _coupled_solutions, _mechanics_process1_id);
-
+#ifdef USE_PETSC
+        double const crack_volume = _process_data.crack_volume1;
+        MPI_Allreduce(&crack_volume, &_process_data.crack_volume1, 1, MPI_DOUBLE,
+                      MPI_SUM, PETSC_COMM_WORLD);
+#endif
         INFO("Integral of crack with u_s: %g", _process_data.crack_volume1);
 
         if (_process_data.propagating_crack)
