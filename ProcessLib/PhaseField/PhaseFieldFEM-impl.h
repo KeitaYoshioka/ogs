@@ -278,6 +278,17 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         local_pressure = _process_data.unity_pressure;
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
+
+    double ele_d = 0.0;
+    for (int ip = 0; ip < n_integration_points; ip++)
+    {
+        x_position.setIntegrationPoint(ip);
+        auto const& N = _ip_data[ip].N;
+
+        ele_d += N * d;
+    }
+    ele_d = ele_d / n_integration_points;
+
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         x_position.setIntegrationPoint(ip);
@@ -298,7 +309,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
         double const k = _process_data.residual_stiffness(t, x_position)[0];
-        double const d_ip = N.dot(d);
+        double const d_ip = ele_d;//N.dot(d);
         double const degradation = d_ip * d_ip * (1 - k) + k;
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method);
