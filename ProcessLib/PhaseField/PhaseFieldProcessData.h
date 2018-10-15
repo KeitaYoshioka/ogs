@@ -45,7 +45,7 @@ struct PhaseFieldProcessData
         Parameter<double> const& solid_density_,
         Parameter<double>& history_field_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        bool const propagating_crack_, int const split_method_, bool const crack_pressure_,
+        bool const propagating_crack_, int const split_method_, int const secant_method_, bool const crack_pressure_,
         double const pf_irrv_, int const at_param_)
         : material{std::move(material_)},
           residual_stiffness(residual_stiffness_),
@@ -59,7 +59,8 @@ struct PhaseFieldProcessData
           crack_pressure(crack_pressure_),
           pf_irrv(pf_irrv_),
           at_param(at_param_),
-          split_method(split_method_)
+          split_method(split_method_),
+          secant_method(secant_method_)
     {
     }
 
@@ -94,6 +95,8 @@ struct PhaseFieldProcessData
     double pressure_error = 0.0;
     double injected_volume = 0.0;
     double crack_volume = 0.0;
+    double pressure_n = 0.0, pressure_nm1=0.0;
+    double crack_volume_n = 0.0, crack_volume_nm1=0.0;
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
@@ -102,6 +105,8 @@ struct PhaseFieldProcessData
     double pf_irrv = 0.05;
     int at_param = 2;
     int split_method = 0;
+    int nl_itr = 0;
+    int secant_method = 0;
 };
 
 }  // namespace PhaseField

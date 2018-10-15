@@ -215,6 +215,16 @@ std::unique_ptr<Process> createPhaseFieldProcess(
     else
         split_method = 0;
 
+    auto secant =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__secant_method}
+        config.getConfigParameterOptional<int>("secant_method");
+
+    int secant_method;
+    if (secant && (*secant == 1))
+        secant_method = 1;
+    else
+        secant_method = 0;
+
     PhaseFieldProcessData<DisplacementDim> process_data{std::move(material),
         materialIDs(mesh),   std::move(solid_constitutive_relations),
         residual_stiffness,  crack_resistance,
@@ -222,6 +232,7 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         solid_density,       history_field,
         specific_body_force, propagating_crack,
                                                         split_method,
+                                                        secant_method,
                                                         crack_pressure,
                                                         pf_irrv,
                                                         at_param};

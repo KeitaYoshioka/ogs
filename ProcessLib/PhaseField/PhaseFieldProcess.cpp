@@ -331,6 +331,12 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
         _process_data.surface_energy = 0.0;
         _process_data.pressure_work = 0.0;
 
+        _process_data.pressure_n = 0.0;
+        _process_data.pressure_nm1 = 0.0;
+        _process_data.crack_volume_n = 0.0;
+        _process_data.crack_volume_nm1 = 0.0;
+        _process_data.nl_itr = 0;
+
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
             dof_tables;
 
@@ -364,6 +370,8 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
     if (!isPhaseFieldProcess(process_id))
     {
+        _process_data.nl_itr++;
+
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
             dof_tables;
 
@@ -386,11 +394,38 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
         if (_process_data.propagating_crack)
         {
-            _process_data.pressure_old = _process_data.pressure;
-            _process_data.pressure =
-                _process_data.injected_volume / _process_data.crack_volume;
+            _process_data.pressure_nm1 = _process_data.pressure_n;
+            _process_data.pressure_n = _process_data.pressure;
+            _process_data.crack_volume_nm1 = _process_data.crack_volume_n;
+            _process_data.crack_volume_n = _process_data.crack_volume;
+
+            double p_n = 0.0, p_nm1 = 0.0;
+            double cvol_n = 0.0, cvol_nm1 = 0.0;
+            double vol = 0.0;
+            double epsilon = std::numeric_limits<double>::epsilon();
+            p_n = _process_data.pressure_n;
+            p_nm1 = _process_data.pressure_nm1;
+            cvol_n = _process_data.crack_volume_n * p_n;
+            cvol_nm1 = _process_data.crack_volume_nm1 * p_nm1;
+            vol = _process_data.injected_volume;
+
+            if (_process_data.pressure < epsilon |
+                fabs((cvol_n - cvol_nm1)) < epsilon |
+                _process_data.nl_itr == 1 | _process_data.nl_itr == 2 |
+                _process_data.secant_method == 0)
+            {
+                _process_data.pressure =
+                    _process_data.injected_volume / _process_data.crack_volume;
+                INFO("Secant method not used");
+            }
+            else
+            {
+                _process_data.pressure =
+                    p_n - (cvol_n - vol) * (p_n - p_nm1) / (cvol_n - cvol_nm1);
+            }
+
             _process_data.pressure_error =
-                std::fabs(_process_data.pressure_old - _process_data.pressure) /
+                std::fabs(_process_data.pressure_n - _process_data.pressure) /
                 _process_data.pressure;
             INFO("Internal pressure: %g and Pressure error: %.4e",
                  _process_data.pressure, _process_data.pressure_error);
