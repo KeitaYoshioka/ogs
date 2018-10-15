@@ -54,12 +54,16 @@ struct PhaseFieldProcessData
     double pressure_error = 0.0;
     double injected_volume = 0.0;
     double crack_volume = 0.0;
+    double pressure_n = 0.0, pressure_nm1=0.0;
+    double crack_volume_n = 0.0, crack_volume_nm1=0.0;
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
     double pf_irrv = 0.05;
     int at_param = 2;
     int split_method = 0;
+    int nl_itr = 0;
+    int secant_method = 0;
 };
 
 }  // namespace PhaseField
