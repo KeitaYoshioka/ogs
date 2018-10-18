@@ -437,10 +437,12 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
     }
 #ifdef USE_PETSC
-    int const n_all_nodes = indices_of_processes[1].size();
-    int const n_regular_nodes = std::count_if(
-        begin(indices_of_processes[1]), end(indices_of_processes[1]),
-        [](GlobalIndexType const& index) { return index >= 0; });
+    int const n_all_nodes =
+        indices_of_processes[_phase_field_process_id].size();
+    int const n_regular_nodes =
+        std::count_if(begin(indices_of_processes[_phase_field_process_id]),
+                      end(indices_of_processes[_phase_field_process_id]),
+                      [](GlobalIndexType const& index) { return index >= 0; });
     if (n_all_nodes != n_regular_nodes)
     {
         ele_crack_vol *= static_cast<double>(n_regular_nodes) / n_all_nodes;
