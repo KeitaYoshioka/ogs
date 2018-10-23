@@ -15,6 +15,7 @@
 
 #include <cassert>
 
+#include "MathLib/LinAlg/LinAlg.h"
 #include "NumLib/DOF/ComputeSparsityPattern.h"
 #include "ProcessLib/Process.h"
 #include "ProcessLib/SmallDeformation/CreateLocalAssemblers.h"
@@ -423,16 +424,18 @@ void PhaseFieldInSituProcess<DisplacementDim>::
                 _process_data.pressure;
             INFO("Internal pressure: %g and Pressure error: %.4e",
                  _process_data.pressure, _process_data.pressure_error);
-            auto& u_p =
-                _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
-            auto& u_s =
-                _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
+            GlobalVector u_p{
+                _coupled_solutions->coupled_xs[_mechanics_process0_id]};
+            GlobalVector u_s{
+                _coupled_solutions->coupled_xs[_mechanics_process1_id]};
 
             // u_p holds the unscaled displacement
             // u_p = p*u_p + u_s
-            MathLib::LinAlg::aypx(const_cast<GlobalVector&>(u_p),
-                                  _process_data.pressure,
-                                  const_cast<GlobalVector&>(u_s));
+            MathLib::LinAlg::aypx(u_p, _process_data.pressure, u_s);
+            MathLib::LinAlg::copy(
+                u_p, const_cast<GlobalVector&>(
+                         _coupled_solutions->coupled_xs[_mechanics_process0_id]
+                             .get()));
         }
     }
     else
