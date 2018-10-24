@@ -442,15 +442,19 @@ void PhaseFieldInSituProcess<DisplacementDim>::
     {
         if (_process_data.propagating_crack)
         {
-            // u_s keeps the sclaed displacement
-            auto& u_p =
-                _coupled_solutions->coupled_xs[_mechanics_process0_id].get();
-            auto& u_s =
-                _coupled_solutions->coupled_xs[_mechanics_process1_id].get();
+            GlobalVector u_p{
+                _coupled_solutions->coupled_xs[_mechanics_process0_id]};
+            GlobalVector u_s{
+                _coupled_solutions->coupled_xs[_mechanics_process1_id]};
+
+
+
             // u_p = 1/p * u_p - 1/p * u_s
-            MathLib::LinAlg::axpby(
-                const_cast<GlobalVector&>(u_p), 1 / _process_data.pressure,
-                -1 / _process_data.pressure, const_cast<GlobalVector&>(u_s));
+            MathLib::LinAlg::axpby(u_p, 1/_process_data.pressure,-1/_process_data.pressure, u_s);
+            MathLib::LinAlg::copy(
+                u_p, const_cast<GlobalVector&>(
+                         _coupled_solutions->coupled_xs[_mechanics_process0_id]
+                             .get()));
             INFO("u_p is scaled back for non-linear iteration");
         }
     }
