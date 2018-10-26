@@ -339,44 +339,45 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 #endif
     INFO("Integral of crack: %g", _process_data.crack_volume);
 
-    if (_process_data.propagating_crack)
+    if (!_process_data.propagating_crack)
     {
-        _process_data.pressure_nm1 = _process_data.pressure_n;
-        _process_data.pressure_n = _process_data.pressure;
-        _process_data.crack_volume_nm1 = _process_data.crack_volume_n;
-        _process_data.crack_volume_n = _process_data.crack_volume;
-
-        double const epsilon = std::numeric_limits<double>::epsilon();
-        double const p_n = _process_data.pressure_n;
-        double const p_nm1 = _process_data.pressure_nm1;
-        double const cvol_n = _process_data.crack_volume_n * p_n;
-        double const cvol_nm1 = _process_data.crack_volume_nm1 * p_nm1;
-        double const vol = _process_data.injected_volume;
-
-        if (_process_data.pressure < epsilon ||
-            std::fabs((cvol_n - cvol_nm1)) < epsilon ||
-            _process_data.nl_itr == 1 || _process_data.nl_itr == 2 ||
-            _process_data.secant_method == 0)
-        {
-            _process_data.pressure =
-                _process_data.injected_volume / _process_data.crack_volume;
-            INFO("Secant method not used");
-        }
-        else
-        {
-            _process_data.pressure =
-                p_n - (cvol_n - vol) * (p_n - p_nm1) / (cvol_n - cvol_nm1);
-        }
-
-        _process_data.pressure_error =
-            std::fabs(_process_data.pressure_n - _process_data.pressure) /
-            _process_data.pressure;
-        INFO("Internal pressure: %g and Pressure error: %.4e",
-             _process_data.pressure, _process_data.pressure_error);
-        auto& u = *_coupled_solutions->coupled_xs[0];
-        MathLib::LinAlg::scale(const_cast<GlobalVector&>(u),
-                               _process_data.pressure);
+        return;
     }
+
+    _process_data.pressure_nm1 = _process_data.pressure_n;
+    _process_data.pressure_n = _process_data.pressure;
+    _process_data.crack_volume_nm1 = _process_data.crack_volume_n;
+    _process_data.crack_volume_n = _process_data.crack_volume;
+
+    double const epsilon = std::numeric_limits<double>::epsilon();
+    double const p_n = _process_data.pressure_n;
+    double const p_nm1 = _process_data.pressure_nm1;
+    double const cvol_n = _process_data.crack_volume_n * p_n;
+    double const cvol_nm1 = _process_data.crack_volume_nm1 * p_nm1;
+    double const vol = _process_data.injected_volume;
+
+    if (_process_data.pressure < epsilon ||
+        std::fabs((cvol_n - cvol_nm1)) < epsilon || _process_data.nl_itr == 1 ||
+        _process_data.nl_itr == 2 || _process_data.secant_method == 0)
+    {
+        _process_data.pressure =
+            _process_data.injected_volume / _process_data.crack_volume;
+        INFO("Secant method not used");
+    }
+    else
+    {
+        _process_data.pressure =
+            p_n - (cvol_n - vol) * (p_n - p_nm1) / (cvol_n - cvol_nm1);
+    }
+
+    _process_data.pressure_error =
+        std::fabs(_process_data.pressure_n - _process_data.pressure) /
+        _process_data.pressure;
+    INFO("Internal pressure: %g and Pressure error: %.4e",
+         _process_data.pressure, _process_data.pressure_error);
+    auto& u = *_coupled_solutions->coupled_xs[0];
+    MathLib::LinAlg::scale(const_cast<GlobalVector&>(u),
+                           _process_data.pressure);
 }
 
 template <int DisplacementDim>
