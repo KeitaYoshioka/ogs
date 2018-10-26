@@ -469,9 +469,10 @@ void PhaseFieldInSituProcess<DisplacementDim>::updateConstraints(
     MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);
     MathLib::LinAlg::copy(*_x_previous_timestep, upper);
 
-    GlobalIndexType x_size = _x_previous_timestep->size();
+    GlobalIndexType x_begin = _x_previous_timestep->getRangeBegin();
+    GlobalIndexType x_end = _x_previous_timestep->getRangeEnd();
 
-    for (GlobalIndexType i = 0; i < x_size; i++)
+    for (GlobalIndexType i = x_begin; i < x_end; i++)
         if ((*_x_previous_timestep)[i] > _process_data.pf_irrv)
             upper.set(i, 1.0);
 }
