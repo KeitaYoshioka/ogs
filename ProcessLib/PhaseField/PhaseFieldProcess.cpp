@@ -357,19 +357,38 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
     _process_data.nl_itr++;
 
-    if (_process_data.pressure < epsilon ||
-        std::fabs((cvol_n - cvol_nm1)) < epsilon || _process_data.nl_itr == 1 ||
-        _process_data.nl_itr == 2 || _process_data.secant_method == 0)
-    {
-        _process_data.pressure =
-            _process_data.injected_volume / _process_data.crack_volume;
-        INFO("Secant method not used");
-    }
-    else
-    {
-        _process_data.pressure =
-            p_n - (cvol_n - vol) * (p_n - p_nm1) / (cvol_n - cvol_nm1);
-    }
+    auto update_pressure = [&](double const default_pressure) {
+        if (_process_data.secant_method == 0)
+        {
+            return default_pressure;
+        }
+
+        if (_process_data.nl_itr <= 2)
+        {
+            INFO(
+                "Generating initial guesses for the secant method. "
+                "Iteration %d",
+                _process_data.nl_itr);
+            return default_pressure;
+        }
+
+        if (_process_data.pressure < epsilon)
+        {
+            INFO("Secant method not used for non-positive pressure");
+            return default_pressure;
+        }
+
+        //
+        // Secant method
+        //
+        if (std::fabs((cvol_n - cvol_nm1)) < epsilon)
+        {
+            return default_pressure;
+        }
+        return p_n - (cvol_n - vol) * (p_n - p_nm1) / (cvol_n - cvol_nm1);
+    };
+
+    update_pressure(_process_data.injected_volume / _process_data.crack_volume);
 
     _process_data.pressure_error =
         std::fabs(_process_data.pressure_n - _process_data.pressure) /
