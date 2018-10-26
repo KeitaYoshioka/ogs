@@ -315,8 +315,6 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
         return;
     }
 
-    _process_data.nl_itr++;
-
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
 
@@ -339,6 +337,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 #endif
     INFO("Integral of crack: %g", _process_data.crack_volume);
 
+    DBUG("PostNonLinearSolver update pressure.");
     if (!_process_data.propagating_crack)
     {
         return;
@@ -355,6 +354,8 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
     double const cvol_n = _process_data.crack_volume_n * p_n;
     double const cvol_nm1 = _process_data.crack_volume_nm1 * p_nm1;
     double const vol = _process_data.injected_volume;
+
+    _process_data.nl_itr++;
 
     if (_process_data.pressure < epsilon ||
         std::fabs((cvol_n - cvol_nm1)) < epsilon || _process_data.nl_itr == 1 ||
