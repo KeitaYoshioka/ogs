@@ -388,7 +388,8 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
         return p_n - (cvol_n - vol) * (p_n - p_nm1) / (cvol_n - cvol_nm1);
     };
 
-    update_pressure(_process_data.injected_volume / _process_data.crack_volume);
+    _process_data.pressure = update_pressure(_process_data.injected_volume /
+                                             _process_data.crack_volume);
 
     _process_data.pressure_error =
         std::fabs(_process_data.pressure_n - _process_data.pressure) /
