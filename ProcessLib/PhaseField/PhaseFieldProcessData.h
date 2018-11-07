@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <Eigen/Eigen>
-
 #include <memory>
 #include <utility>
+
+#include <Eigen/Eigen>
 
 namespace MaterialLib
 {
@@ -34,10 +34,8 @@ struct PhaseFieldProcessData
 {
     PhaseFieldProcessData(
         MeshLib::PropertyVector<int> const* const material_ids_,
-        std::map<int,
-                 std::unique_ptr<
-                     MaterialLib::Solids::MechanicsBase<DisplacementDim>>>&&
-            solid_materials_,
+        std::map<int, std::unique_ptr<MaterialLib::Solids::MechanicsBase<
+                          DisplacementDim>>>&& solid_materials_,
         Parameter<double> const& residual_stiffness_,
         Parameter<double> const& crack_resistance_,
         Parameter<double> const& crack_length_scale_,
@@ -45,9 +43,11 @@ struct PhaseFieldProcessData
         Parameter<double> const& solid_density_,
         Parameter<double>& history_field_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        bool const propagating_crack_, int const split_method_, int const secant_method_, bool const crack_pressure_,
+        bool const propagating_crack_, int const split_method_,
+        int const secant_method_, bool const crack_pressure_,
         double const pf_irrv_, int const at_param_)
-        : material{std::move(material_)},
+        : material_ids(material_ids_),
+          solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
           crack_resistance(crack_resistance_),
           crack_length_scale(crack_length_scale_),

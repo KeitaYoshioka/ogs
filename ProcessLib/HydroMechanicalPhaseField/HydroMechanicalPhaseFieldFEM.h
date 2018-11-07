@@ -9,11 +9,10 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
-
-#include "MaterialLib/SolidModels/PhaseFieldExtension.h"
+#include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
+#include "MeshLib/Elements/Element.h"
+#include "MeshLib/Mesh.h"
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
@@ -23,18 +22,6 @@
 
 #include "HydroMechanicalPhaseFieldProcessData.h"
 #include "LocalAssemblerInterface.h"
-
-#include "GeoLib/Polyline.h"
-#include "GeoLib/Surface.h"
-
-#include "MeshGeoToolsLib/BoundaryElementsSearcher.h"
-#include "MeshGeoToolsLib/HeuristicSearchLength.h"
-#include "MeshGeoToolsLib/MeshNodeSearcher.h"
-#include "MeshLib/Elements/Element.h"
-#include "MeshLib/Mesh.h"
-#include "MeshLib/MeshSearch/NodeSearch.h"
-#include "MeshLib/Node.h"
-
 namespace ProcessLib
 {
 namespace HydroMechanicalPhaseField
@@ -78,34 +65,42 @@ struct IntegrationPointData final
         MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value>;
 
     template <typename DisplacementVectorType>
-    void updateConstitutiveRelation(double const t,
-                                    SpatialPosition const& x_position,
+    void updateConstitutiveRelation(double const t, SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
                                     double const degradation, int split)
     {
         if (split == 0)
         {
-            static_cast<
-                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim> const&>(
-                solid_material)
-                .calculateIsotropicDegradedStress(
-                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                    sigma_compressive, C_tensile, C_compressive, sigma_eff,
-                    degradation, elastic_energy);
+            auto const& mp =
+                static_cast<MaterialLib::Solids::LinearElasticIsotropic<
+                    DisplacementDim> const&>(solid_material)
+                    .getMaterialProperties();
+            auto const bulk_modulus = mp.bulk_modulus(t, x);
+            auto const mu = mp.mu(t, x);
+
+            MaterialLib::Solids::calculateIsotropicDegradedStressFree<
+                DisplacementDim>(degradation, bulk_modulus, mu, eps,
+                                 strain_energy_tensile, sigma_tensile,
+                                 sigma_compressive, C_tensile, sigma_eff);
+            C_compressive = BMatricesType::KelvinMatrixType::Zero(
+                kelvin_vector_size, kelvin_vector_size);
+            elastic_energy = degradation * strain_energy_tensile;
         }
         else if (split == 1)
         {
-            static_cast<
-                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim> const&>(
-                solid_material)
-                .calculateDegradedStress(
-                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                    sigma_compressive, C_tensile, C_compressive, sigma_eff,
-                    degradation, elastic_energy);
+            static_cast<MaterialLib::Solids::PhaseFieldExtension<
+                DisplacementDim> const&>(solid_material)
+                .calculateDegradedStress(t, x, eps, strain_energy_tensile,
+                                         sigma_tensile, sigma_compressive,
+                                         C_tensile, C_compressive, sigma_eff,
+                                         degradation, elastic_energy);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    static constexpr int kelvin_vector_size =
+        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
 };
 
 /// Used by for extrapolation of the integration point values. It is ordered
