@@ -229,17 +229,22 @@ std::unique_ptr<Process> createPhaseFieldProcess(
     else
         secant_method = 0;
 
-    PhaseFieldProcessData<DisplacementDim> process_data{std::move(material),
-        materialIDs(mesh),   std::move(solid_constitutive_relations),
-        residual_stiffness,  crack_resistance,
-        crack_length_scale,  kinetic_coefficient,
-        solid_density,       history_field,
-        specific_body_force, propagating_crack,
-                                                        split_method,
-                                                        secant_method,
-                                                        crack_pressure,
-                                                        pf_irrv,
-                                                        at_param};
+    PhaseFieldProcessData<DisplacementDim> process_data{
+        materialIDs(mesh),
+        std::move(solid_constitutive_relations),
+        residual_stiffness,
+        crack_resistance,
+        crack_length_scale,
+        kinetic_coefficient,
+        solid_density,
+        history_field,
+        specific_body_force,
+        propagating_crack,
+        split_method,
+        secant_method,
+        crack_pressure,
+        pf_irrv,
+        at_param};
 
     SecondaryVariableCollection secondary_variables;
 

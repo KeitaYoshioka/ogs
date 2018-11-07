@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include <Eigen/Eigen>
-
 #include <memory>
 #include <utility>
+
+#include <Eigen/Eigen>
 
 namespace MaterialLib
 {

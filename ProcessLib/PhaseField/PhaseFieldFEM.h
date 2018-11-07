@@ -48,16 +48,18 @@ struct IntegrationPointData final
 
     typename BMatricesType::KelvinVectorType eps, eps_prev;
 
-    typename BMatricesType::KelvinVectorType sigma_tensile, sigma_compressive,
-        sigma;
-    double strain_energy_tensile, elastic_energy;
 
     MaterialLib::Solids::MechanicsBase<DisplacementDim> const& solid_material;
     std::unique_ptr<typename MaterialLib::Solids::MechanicsBase<
         DisplacementDim>::MaterialStateVariables>
         material_state_variables;
 
-    typename BMatricesType::KelvinMatrixType C_tensile, C_compressive;
+    typename BMatricesType::KelvinMatrixType C_compressive;
+
+    typename BMatricesType::KelvinVectorType sigma, sigma_tensile;
+    typename BMatricesType::KelvinMatrixType C_tensile;
+    double strain_energy_tensile;
+    double elastic_energy;
     double integration_weight;
     double history_variable, history_variable_prev;
 
@@ -84,29 +86,22 @@ struct IntegrationPointData final
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
 
-        std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
-                 strain_energy_tensile, elastic_energy) =
-            MaterialLib::Solids::Phasefield::calculateDegradedStress<
-                DisplacementDim>(degradation, bulk_modulus, mu, eps);
         if (split == 0)
         {
-            static_cast<
-                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim> const&>(
-                solid_material)
-                .calculateIsotropicDegradedStress(
-                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                    sigma_compressive, C_tensile, C_compressive, sigma,
-                    degradation, elastic_energy);
+            C_compressive = BMatricesType::KelvinMatrixType::Zero(
+                kelvin_vector_size, kelvin_vector_size);
+
+            std::tie(sigma, sigma_tensile, C_tensile, strain_energy_tensile,
+                     elastic_energy) = MaterialLib::Solids::Phasefield::
+                calculateIsotropicDegradedStress<DisplacementDim>(
+                    degradation, bulk_modulus, mu, eps);
         }
         else if (split == 1)
         {
-            static_cast<
-                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim> const&>(
-                solid_material)
-                .calculateDegradedStress(
-                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                    sigma_compressive, C_tensile, C_compressive, sigma,
-                    degradation, elastic_energy);
+            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::calculateDegradedStress<
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -211,7 +206,6 @@ public:
             ip_data.C_compressive.setZero(kelvin_vector_size,
                                           kelvin_vector_size);
             ip_data.sigma_tensile.setZero(kelvin_vector_size);
-            ip_data.sigma_compressive.setZero(kelvin_vector_size);
             ip_data.history_variable =
                 _process_data.history_field(0, x_position)[0];
             ip_data.history_variable_prev =
