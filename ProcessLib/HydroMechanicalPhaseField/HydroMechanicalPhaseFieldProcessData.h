@@ -14,8 +14,6 @@
 #include <memory>
 #include <utility>
 
-#include "MeshLib/PropertyVector.h"
-
 namespace MaterialLib
 {
 namespace Solids
@@ -35,8 +33,9 @@ template <int DisplacementDim>
 struct HydroMechanicalPhaseFieldProcessData
 {
     HydroMechanicalPhaseFieldProcessData(
-        std::unique_ptr<MaterialLib::Solids::MechanicsBase<DisplacementDim>>&&
-            material_,
+        MeshLib::PropertyVector<int> const* const material_ids_,
+        std::map<int, std::unique_ptr<MaterialLib::Solids::MechanicsBase<
+                          DisplacementDim>>>&& solid_materials_,
         Parameter<double> const& residual_stiffness_,
         Parameter<double> const& crack_resistance_,
         Parameter<double> const& crack_length_scale_,
@@ -50,7 +49,8 @@ struct HydroMechanicalPhaseFieldProcessData
         Parameter<double> const& biot_modulus_,
         Parameter<double> const& drained_modulus_,
         Parameter<double> const& porosity_)
-        : material{std::move(material_)},
+        : material_ids(material_ids_),
+          solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
           crack_resistance(crack_resistance_),
           crack_length_scale(crack_length_scale_),
@@ -83,8 +83,11 @@ struct HydroMechanicalPhaseFieldProcessData
     //! Assignments are not needed.
     void operator=(HydroMechanicalPhaseFieldProcessData&&) = delete;
 
-    std::unique_ptr<MaterialLib::Solids::MechanicsBase<DisplacementDim>>
-        material;
+    MeshLib::PropertyVector<int> const* const material_ids;
+
+    std::map<int, std::unique_ptr<
+                      MaterialLib::Solids::MechanicsBase<DisplacementDim>>>
+        solid_materials;
     Parameter<double> const& residual_stiffness;
     Parameter<double> const& crack_resistance;
     Parameter<double> const& crack_length_scale;
