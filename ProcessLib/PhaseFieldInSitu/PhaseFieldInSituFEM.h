@@ -12,7 +12,9 @@
 #include <memory>
 #include <vector>
 
-#include "MaterialLib/SolidModels/PhaseFieldExtension.h"
+#include "MaterialLib/SolidModels/LinearElasticIsotropic.h"
+#include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
+#include "MaterialLib/SolidModels/SelectSolidConstitutiveRelation.h"
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
@@ -32,7 +34,8 @@ template <typename BMatricesType, typename ShapeMatrixType, int DisplacementDim>
 struct IntegrationPointData final
 {
     explicit IntegrationPointData(
-        MaterialLib::Solids::MechanicsBase<DisplacementDim>& solid_material)
+        MaterialLib::Solids::MechanicsBase<DisplacementDim> const&
+            solid_material)
         : solid_material(solid_material),
           material_state_variables(
               solid_material.createMaterialStateVariables())
@@ -44,16 +47,17 @@ struct IntegrationPointData final
 
     typename BMatricesType::KelvinVectorType eps, eps_prev;
 
-    typename BMatricesType::KelvinVectorType sigma_tensile, sigma_compressive,
-        sigma;
-    double strain_energy_tensile, elastic_energy;
-
-    MaterialLib::Solids::MechanicsBase<DisplacementDim>& solid_material;
+    MaterialLib::Solids::MechanicsBase<DisplacementDim> const& solid_material;
     std::unique_ptr<typename MaterialLib::Solids::MechanicsBase<
         DisplacementDim>::MaterialStateVariables>
         material_state_variables;
 
-    typename BMatricesType::KelvinMatrixType C_tensile, C_compressive;
+    typename BMatricesType::KelvinMatrixType C_compressive;
+
+    typename BMatricesType::KelvinVectorType sigma, sigma_tensile;
+    typename BMatricesType::KelvinMatrixType C_tensile;
+    double strain_energy_tensile;
+    double elastic_energy;
     double integration_weight;
     double history_variable, history_variable_prev;
 
@@ -65,38 +69,42 @@ struct IntegrationPointData final
         material_state_variables->pushBackState();
     }
 
-    using Invariants = MathLib::KelvinVector::Invariants<
-        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value>;
-
     template <typename DisplacementVectorType>
-    void updateConstitutiveRelation(double const t,
-                                    SpatialPosition const& x_position,
+    void updateConstitutiveRelation(double const t, SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
-                                    double const degradation, int split)
+                                    double const degradation, int const split)
     {
+        auto linear_elastic_mp =
+            static_cast<MaterialLib::Solids::LinearElasticIsotropic<
+                DisplacementDim> const&>(solid_material)
+                .getMaterialProperties();
+
+        auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
+        auto const mu = linear_elastic_mp.mu(t, x);
+
         if (split == 0)
         {
-            static_cast<
-                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
-                solid_material)
-                .calculateIsotropicDegradedStress(
-                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                    sigma_compressive, C_tensile, C_compressive, sigma,
-                    degradation, elastic_energy);
+            C_compressive = BMatricesType::KelvinMatrixType::Zero(
+                kelvin_vector_size, kelvin_vector_size);
+
+            std::tie(sigma, sigma_tensile, C_tensile, strain_energy_tensile,
+                     elastic_energy) = MaterialLib::Solids::Phasefield::
+                calculateIsotropicDegradedStress<DisplacementDim>(
+                    degradation, bulk_modulus, mu, eps);
         }
         else if (split == 1)
         {
-            static_cast<
-                MaterialLib::Solids::PhaseFieldExtension<DisplacementDim>&>(
-                solid_material)
-                .calculateDegradedStress(
-                    t, x_position, eps, strain_energy_tensile, sigma_tensile,
-                    sigma_compressive, C_tensile, C_compressive, sigma,
-                    degradation, elastic_energy);
+            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::calculateDegradedStress<
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    static constexpr int kelvin_vector_size =
+        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
 };
 
 /// Used by for extrapolation of the integration point values. It is ordered
@@ -151,6 +159,19 @@ public:
         _ip_data.reserve(n_integration_points);
         _secondary_data.N.resize(n_integration_points);
 
+        auto& solid_material =
+            MaterialLib::Solids::selectSolidConstitutiveRelation(
+                _process_data.solid_materials,
+                _process_data.material_ids,
+                e.getID());
+        if (!dynamic_cast<MaterialLib::Solids::LinearElasticIsotropic<
+                DisplacementDim> const*>(&solid_material))
+        {
+            OGS_FATAL(
+                "For phasefield process only linear elastic solid material "
+                "support is implemented.");
+        }
+
         auto const shape_matrices =
             initShapeMatrices<ShapeFunction, ShapeMatricesType,
                               IntegrationMethod, DisplacementDim>(
@@ -161,8 +182,7 @@ public:
 
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
-            // displacement (subscript u)
-            _ip_data.emplace_back(*_process_data.material);
+            _ip_data.emplace_back(solid_material);
             auto& ip_data = _ip_data[ip];
             ip_data.integration_weight =
                 _integration_method.getWeightedPoint(ip).getWeight() *
@@ -177,7 +197,6 @@ public:
             ip_data.C_compressive.setZero(kelvin_vector_size,
                                           kelvin_vector_size);
             ip_data.sigma_tensile.setZero(kelvin_vector_size);
-            ip_data.sigma_compressive.setZero(kelvin_vector_size);
             ip_data.sigma.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
