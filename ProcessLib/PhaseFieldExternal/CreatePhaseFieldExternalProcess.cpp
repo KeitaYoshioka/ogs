@@ -7,22 +7,24 @@
  *
  */
 
-#include "CreateHydroMechanicalPhaseFieldProcess.h"
+#include "CreatePhaseFieldExternalProcess.h"
+
+#include <cassert>
 
 #include "MaterialLib/SolidModels/CreateConstitutiveRelation.h"
 #include "MaterialLib/SolidModels/MechanicsBase.h"
 #include "ProcessLib/Output/CreateSecondaryVariables.h"
 #include "ProcessLib/Utils/ProcessUtils.h"
 
-#include "HydroMechanicalPhaseFieldProcess.h"
-#include "HydroMechanicalPhaseFieldProcessData.h"
+#include "PhaseFieldExternalProcess.h"
+#include "PhaseFieldExternalProcessData.h"
 
 namespace ProcessLib
 {
-namespace HydroMechanicalPhaseField
+namespace PhaseFieldExternal
 {
 template <int DisplacementDim>
-std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
+std::unique_ptr<Process> createPhaseFieldExternalProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -31,8 +33,8 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     BaseLib::ConfigTree const& config)
 {
     //! \ogs_file_param{prj__processes__process__type}
-    config.checkConfigParameter("type", "HYDRO_MECHANICAL_PHASE_FIELD");
-    DBUG("Create HydroMechanicalPhaseFieldProcess.");
+    config.checkConfigParameter("type", "PHASE_FIELD_EXTERNAL");
+    DBUG("Create PhaseFieldExternalProcess.");
 
     INFO(
         "Solve the coupling with the staggered scheme,"
@@ -40,49 +42,27 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
 
     // Process variable.
 
-    //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables}
+    //! \ogs_file_param{prj__processes__process__PHASE_FIELD_EXTERNAL__process_variables}
     auto const pv_config = config.getConfigSubtree("process_variables");
     std::vector<std::vector<std::reference_wrapper<ProcessVariable>>>
         process_variables;
-    int hydro_process_id = 0;
-    int mechanics_related_process_id = 1;
-    int phase_field_process_id = 2;
-
-    auto process_variable_p = findProcessVariables(
-        variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables__pressure}
-         "pressure"});
-    process_variables.push_back(std::move(process_variable_p));
-    ProcessVariable* variable_p =
-        &process_variables[process_variables.size() - 1][0].get();
+    int mechanics_related_process_id = 0;
+    int phase_field_process_id = 1;
 
     auto process_variable_u = findProcessVariables(
         variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables__displacement}
+        {//! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__process_variables__displacement}
          "displacement"});
     process_variables.push_back(std::move(process_variable_u));
     ProcessVariable* variable_u =
         &process_variables[process_variables.size() - 1][0].get();
-
     auto process_variable_ph = findProcessVariables(
         variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__process_variables__phasefield}
+        {//! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__process_variables__phasefield}
          "phasefield"});
     process_variables.push_back(std::move(process_variable_ph));
     ProcessVariable* variable_ph =
         &process_variables[process_variables.size() - 1][0].get();
-
-    DBUG("Associate pressure with process variable \'%s\'.",
-         variable_p->getName().c_str());
-    if (variable_p->getNumberOfComponents() != 1)
-    {
-        OGS_FATAL(
-            "Pressure process variable '%s' is not a scalar variable but "
-            "has "
-            "%d components.",
-            variable_p->getName().c_str(),
-            variable_p->getNumberOfComponents());
-    }
 
     DBUG("Associate displacement with process variable \'%s\'.",
          variable_u->getName().c_str());
@@ -113,42 +93,79 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
             parameters, config);
 
     auto const phasefield_parameters_config =
-        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters}
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD_EXTERNAL__phasefield_parameters}
         config.getConfigSubtree("phasefield_parameters");
 
     // Residual stiffness
     auto& residual_stiffness = findParameter<double>(
         phasefield_parameters_config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters__residual_stiffness}
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__phasefield_parameters__residual_stiffness}
         "residual_stiffness", parameters, 1);
     DBUG("Use \'%s\' as residual stiffness.", residual_stiffness.name.c_str());
 
     // Crack resistance
     auto& crack_resistance = findParameter<double>(
         phasefield_parameters_config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters__crack_resistance}
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__phasefield_parameters__crack_resistance}
         "crack_resistance", parameters, 1);
     DBUG("Use \'%s\' as crack resistance.", crack_resistance.name.c_str());
 
     // Crack length scale
     auto& crack_length_scale = findParameter<double>(
         phasefield_parameters_config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters__crack_length_scale}
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__phasefield_parameters__crack_length_scale}
         "crack_length_scale", parameters, 1);
     DBUG("Use \'%s\' as crack length scale.", crack_length_scale.name.c_str());
 
     // Solid density
     auto& solid_density = findParameter<double>(
         config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__reference_solid_density}
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__reference_solid_density}
         "solid_density", parameters, 1);
     DBUG("Use \'%s\' as solid density parameter.", solid_density.name.c_str());
+
+    // Linear thermal expansion coefficient
+    auto& linear_thermal_expansion_coefficient = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__reference__linear_thermal_expansion_coefficient}
+        "linear_thermal_expansion_coefficient", parameters, 1);
+    DBUG("Use \'%s\' as linear thermal expansion coefficient.",
+         linear_thermal_expansion_coefficient.name.c_str());
+
+    // Pressure provided by external tool
+    auto& pressure_ext = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__reference__pressure_ext}
+        "pressure_ext", parameters, 1);
+    DBUG("Use \'%s\' as pressure provided by extneral tool.",
+         pressure_ext.name.c_str());
+
+    // Temperature provided by external tool
+    auto& temperature_ext = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__reference__temperature_ext}
+        "temperature_ext", parameters, 1);
+    DBUG("Use \'%s\' as temperature provided by extneral tool.",
+         temperature_ext.name.c_str());
+
+    // Biot's coefficient
+    auto& biot_coefficient = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__biot_coefficient}
+        "biot_coefficient", parameters, 1);
+    DBUG("Use \'%s\' as Biot coefficient parameter.",
+         biot_coefficient.name.c_str());
+
+    // Reference temperature
+    const double reference_temperature =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD_EXTERNAL__reference_temperature}
+        config.getConfigParameter<double>("reference_temperature");
 
     // Specific body force
     Eigen::Matrix<double, DisplacementDim, 1> specific_body_force;
     {
         std::vector<double> const b =
-            //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__specific_body_force}
+            //! \ogs_file_param{prj__processes__process__PHASE_FIELD_EXTERNAL__specific_body_force}
             config.getConfigParameter<std::vector<double>>(
                 "specific_body_force");
         if (specific_body_force.size() != DisplacementDim)
@@ -161,57 +178,6 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         std::copy_n(b.data(), b.size(), specific_body_force.data());
     }
 
-    // Intrinsic permeability
-    auto& intrinsic_permeability = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__intrinsic_permeability}
-        "intrinsic_permeability", parameters, 1);
-
-    DBUG("Use \'%s\' as intrinsic permeability parameter.",
-         intrinsic_permeability.name.c_str());
-
-    // Fluid viscosity
-    auto& fluid_viscosity = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_viscosity}
-        "fluid_viscosity", parameters, 1);
-    DBUG("Use \'%s\' as fluid viscosity parameter.",
-         fluid_viscosity.name.c_str());
-
-    // Fluid density
-    auto& fluid_density = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_density}
-        "fluid_density", parameters, 1);
-    DBUG("Use \'%s\' as fluid density parameter.", fluid_density.name.c_str());
-
-    // Biot coefficient
-    auto& biot_coefficient = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_coefficient}
-        "biot_coefficient", parameters, 1);
-    DBUG("Use \'%s\' as Biot coefficient parameter.",
-         biot_coefficient.name.c_str());
-
-    // Biot's modulus
-    auto& biot_modulus = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_modulus}
-        "biot_modulus", parameters, 1);
-
-    // drained modulus
-    auto& drained_modulus = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__drained_modulus}
-        "drained_modulus", parameters, 1);
-
-    // Porosity
-    auto& porosity = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__porosity}
-        "porosity", parameters, 1);
-    DBUG("Use \'%s\' as porosity parameter.", porosity.name.c_str());
-
     auto pf_irrv_read =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
         config.getConfigParameterOptional<double>("pf_irrv");
@@ -221,26 +187,6 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         pf_irrv = *pf_irrv_read;
     else
         pf_irrv = 0.05;
-
-    auto li_disc_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__li_disc}
-        config.getConfigParameterOptional<double>("li_disc");
-
-    double li_disc;
-    if (li_disc_read)
-        li_disc = *li_disc_read;
-    else
-        li_disc = 60;
-
-    auto cut_off_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__cut_off}
-        config.getConfigParameterOptional<double>("cut_off");
-
-    double cut_off;
-    if (cut_off_read)
-        cut_off = *cut_off_read;
-    else
-        cut_off = 60;
 
     auto at_num =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__at_num}
@@ -252,53 +198,38 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         at_param = 2;
 
-    auto split =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
-        config.getConfigParameterOptional<int>("split_method");
-
-    int split_method;
-    if (split && (*split == 1))
-        split_method = 1;
-    else
-        split_method = 0;
-
-    HydroMechanicalPhaseFieldProcessData<DisplacementDim> process_data{
+    PhaseFieldExternalProcessData<DisplacementDim> process_data{
         materialIDs(mesh),
         std::move(solid_constitutive_relations),
         residual_stiffness,
         crack_resistance,
         crack_length_scale,
         solid_density,
-        specific_body_force,
-        split_method,
-        pf_irrv,
-        li_disc,
-        cut_off,
-        at_param,
-        intrinsic_permeability,
-        fluid_viscosity,
-        fluid_density,
+        linear_thermal_expansion_coefficient,
+        pressure_ext,
+        temperature_ext,
         biot_coefficient,
-        biot_modulus,
-        drained_modulus,
-        porosity};
+        reference_temperature,
+        specific_body_force,
+        pf_irrv,
+        at_param};
 
     SecondaryVariableCollection secondary_variables;
 
     NumLib::NamedFunctionCaller named_function_caller(
-        {"pressure_displacement_phasefield"});
+        {"temperature_phasefield_displacement"});
 
     ProcessLib::createSecondaryVariables(config, secondary_variables,
                                          named_function_caller);
 
-    return std::make_unique<HydroMechanicalPhaseFieldProcess<DisplacementDim>>(
+    return std::make_unique<PhaseFieldExternalProcess<DisplacementDim>>(
         mesh, std::move(jacobian_assembler), parameters, integration_order,
         std::move(process_variables), std::move(process_data),
         std::move(secondary_variables), std::move(named_function_caller),
-        mechanics_related_process_id, phase_field_process_id, hydro_process_id);
+        mechanics_related_process_id, phase_field_process_id);
 }
 
-template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<2>(
+template std::unique_ptr<Process> createPhaseFieldExternalProcess<2>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -306,7 +237,7 @@ template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<2>(
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
-template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<3>(
+template std::unique_ptr<Process> createPhaseFieldExternalProcess<3>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -314,5 +245,5 @@ template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<3>(
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
-}  // namespace HydroMechanicalPhaseField
+}  // namespace PhaseFieldExternal
 }  // namespace ProcessLib

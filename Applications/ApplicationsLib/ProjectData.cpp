@@ -72,6 +72,9 @@
 #ifdef OGS_BUILD_PROCESS_HYDROMECHANICALPHASEFIELD
 #include "ProcessLib/HydroMechanicalPhaseField/CreateHydroMechanicalPhaseFieldProcess.h"
 #endif
+#ifdef OGS_BUILD_PROCESS_PHASEFIELDEXTERNAL
+#include "ProcessLib/PhaseFieldExternal//CreatePhaseFieldExternalProcess.h"
+#endif
 #ifdef OGS_BUILD_PROCESS_LIE
 #include "ProcessLib/LIE/HydroMechanics/CreateHydroMechanicsProcess.h"
 #include "ProcessLib/LIE/SmallDeformation/CreateSmallDeformationProcess.h"
@@ -644,6 +647,29 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 case 3:
                     process =
                         ProcessLib::HydroMechanicalPhaseField::createHydroMechanicalPhaseFieldProcess<
+                            3>(*_mesh_vec[0], std::move(jacobian_assembler),
+                               _process_variables, _parameters,
+                               integration_order, process_config);
+                    break;
+            }
+        }
+        else
+#endif
+#ifdef OGS_BUILD_PROCESS_PHASEFIELDEXTERNAL
+            if (type == "PHASE_FIELD_EXTERNAL")
+        {
+            switch (_mesh_vec[0]->getDimension())
+            {
+                case 2:
+                    process =
+                        ProcessLib::PhaseFieldExternal::createPhaseFieldExternalProcess<
+                            2>(*_mesh_vec[0], std::move(jacobian_assembler),
+                               _process_variables, _parameters,
+                               integration_order, process_config);
+                    break;
+                case 3:
+                    process =
+                        ProcessLib::PhaseFieldExternal::createPhaseFieldExternalProcess<
                             3>(*_mesh_vec[0], std::move(jacobian_assembler),
                                _process_variables, _parameters,
                                integration_order, process_config);
