@@ -80,6 +80,8 @@ private:
                                             const double t,
                                             int const process_id) override;
 
+    void updateConstraints(GlobalVector& lower, GlobalVector& upper) override;
+
     // To be replaced.
     NumLib::LocalToGlobalIndexMap& getDOFTableByProcessID(
         const int process_id) const;
@@ -87,8 +89,7 @@ private:
 private:
     PhaseFieldExternalProcessData<DisplacementDim> _process_data;
 
-    std::vector<
-        std::unique_ptr<PhaseFieldExternalLocalAssemblerInterface>>
+    std::vector<std::unique_ptr<PhaseFieldExternalLocalAssemblerInterface>>
         _local_assemblers;
 
     std::unique_ptr<NumLib::LocalToGlobalIndexMap>
@@ -104,6 +105,8 @@ private:
     /// ID of phase field process.
     int const _phase_field_process_id;
 
+    /// Previous time step solution used for the constraints.
+    std::unique_ptr<GlobalVector> _x_previous_timestep;
 };
 
 extern template class PhaseFieldExternalProcess<2>;
