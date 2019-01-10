@@ -54,10 +54,9 @@ struct IntegrationPointData final
         DisplacementDim>::MaterialStateVariables>
         material_state_variables;
 
-    typename BMatricesType::KelvinMatrixType C_compressive;
-
+    typename BMatricesType::KelvinMatrixType C_tensile, C_compressive;
     typename BMatricesType::KelvinVectorType sigma, sigma_tensile;
-    typename BMatricesType::KelvinMatrixType C_tensile;
+
     double strain_energy_tensile;
     double elastic_energy;
     double integration_weight;
