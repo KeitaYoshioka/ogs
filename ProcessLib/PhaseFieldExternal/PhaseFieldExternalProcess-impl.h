@@ -245,6 +245,8 @@ void PhaseFieldExternalProcess<DisplacementDim>::preTimestepConcreteProcess(
 
     _process_data.dt = dt;
     _process_data.t = t;
+    _x_previous_timestep =
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
 
     if (process_id != _mechanics_related_process_id)
     {
@@ -286,6 +288,22 @@ void PhaseFieldExternalProcess<
     GlobalExecutor::executeMemberOnDereferenced(
         &LocalAssemblerInterface::postNonLinearSolver, _local_assemblers,
         getDOFTable(process_id), x, t, use_monolithic_scheme);
+}
+
+template <int DisplacementDim>
+void PhaseFieldExternalProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
+                                                           GlobalVector& upper)
+{
+    lower.setZero();
+    MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);
+    MathLib::LinAlg::copy(*_x_previous_timestep, upper);
+
+    GlobalIndexType x_begin = _x_previous_timestep->getRangeBegin();
+    GlobalIndexType x_end = _x_previous_timestep->getRangeEnd();
+
+    for (GlobalIndexType i = x_begin; i < x_end; i++)
+        if ((*_x_previous_timestep)[i] > _process_data.pf_irrv)
+            upper.set(i, 1.0);
 }
 
 }  // namespace PhaseFieldExternal
