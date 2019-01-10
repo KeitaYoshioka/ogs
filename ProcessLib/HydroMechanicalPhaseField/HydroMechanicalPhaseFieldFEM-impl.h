@@ -746,6 +746,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             _process_data.crack_length_scale(t, x_position)[0] *
             _process_data.li_disc;
 
+        double CutOff = _process_data.cum_grad_d_CutOff;
+
         double deviation = 1.0;
         double cod_start = 0.0, cod_end = 0.0;
         double search_dir = 1.0;
@@ -768,15 +770,23 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         Eigen::Vector3d delta_l = ref_ele_grad_d.normalized() * li_inc;
         double dist = delta_l.norm();
 
+/*        if (_element.getID() == 1921)
+            DBUG("something");
+*/
         // integral in positive direction
         pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
         current_ele = &_element;
         current_ele_grad_d = ref_ele_grad_d;
+        int count_i = 0;
         while (elem_d < 1.0 && deviation >= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
             findHostElement(*current_ele, pnt_end, neighbor_ele, probe_offset);
+            if (current_ele->getID() == neighbor_ele->getID())
+                count_i++;
+            else
+                count_i = 1;
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -827,12 +837,16 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         deviation = -1.0;
         search_dir = -1.0;
 
+        count_i = 0;
         while (elem_d < 1.0 && deviation <= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
             findHostElement(*current_ele, pnt_end, neighbor_ele, probe_offset);
-
+            if (current_ele->getID() == neighbor_ele->getID())
+                count_i++;
+            else
+                count_i = 1;
             // check the normal vector
             auto old_norm = current_norm;
             auto old_ele_grad_d = current_ele_grad_d;
@@ -869,7 +883,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
         }
-        if (width < 0.0 /*cumul_ele_grad_d.norm() > 0.1*/)
+        if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
     }
