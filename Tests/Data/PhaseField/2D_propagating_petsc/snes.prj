@@ -293,8 +293,7 @@
                 <error_tolerance>1e-16</error_tolerance>
             </eigen>
             <petsc>
-                <prefix>pf</prefix>
-                <parameters>-pf_ksp_type cg -pf_pc_type bjacobi -pf_ksp_atol 1e-8 -pf_ksp_rtol 1e-10 </parameters>
+                <parameters>-ksp_type cg -pc_type bjacobi -ksp_atol 1e-6 -ksp_rtol 1e-8 -snes_type vinewtonssls -snes_linesearch_type l2 -snes_atol 1.e-6 -snes_rtol 1.e-6 -snes_max_it 200 -snes_monitor</parameters>
             </petsc>
         </linear_solver>
         <linear_solver>
@@ -306,8 +305,7 @@
                 <error_tolerance>1e-16</error_tolerance>
             </eigen>-->
             <petsc>
-                <prefix>u</prefix>
-                <parameters>-u_ksp_type cg -u_pc_type bjacobi -u_ksp_atol 1e-8 -u_ksp_rtol 1e-10 -snes_type vinewtonssls</parameters>
+                <parameters>-ksp_type cg -pc_type bjacobi -ksp_atol 1e-6 -ksp_rtol 1e-8 </parameters>
             </petsc>
         </linear_solver>
     </linear_solvers>
