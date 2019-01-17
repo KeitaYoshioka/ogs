@@ -52,8 +52,7 @@ static std::unique_ptr<ProcessData> makeProcessData(
     {
         return std::make_unique<ProcessData>(
             std::move(timestepper), Tag::Newton, *nonlinear_solver_petsc,
-            std::move(conv_crit), std::move(time_disc), process,
-            std::move(process_output));
+            std::move(conv_crit), std::move(time_disc), process);
     }
 #endif  // USE_PETSC
 
