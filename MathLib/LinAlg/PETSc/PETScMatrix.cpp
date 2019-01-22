@@ -104,9 +104,9 @@ void PETScMatrix::setRowsColumnsZero(std::vector<PetscInt> const& row_pos)
     MatSetOption(_A, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
 
     if (nrows > 0)
-        MatZeroRows(_A, nrows, &row_pos[0], one, PETSC_NULL, PETSC_NULL);
+        MatZeroRowsColumns(_A, nrows, &row_pos[0], one, PETSC_NULL, PETSC_NULL);
     else
-        MatZeroRows(_A, 0, PETSC_NULL, one, PETSC_NULL, PETSC_NULL);
+        MatZeroRowsColumns(_A, 0, PETSC_NULL, one, PETSC_NULL, PETSC_NULL);
 }
 
 void PETScMatrix::viewer(const std::string& file_name,
