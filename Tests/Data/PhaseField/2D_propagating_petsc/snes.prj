@@ -66,11 +66,6 @@
                 <time_discretization>
                     <type>BackwardEuler</type>
                 </time_discretization>
-                <output>
-                    <variables>
-                        <variable>displacement</variable>
-                    </variables>
-                </output>
                 <time_stepping>
                     <type>FixedTimeStepping</type>
                     <t_initial>0</t_initial>
@@ -93,11 +88,6 @@
                 <time_discretization>
                     <type>BackwardEuler</type>
                 </time_discretization>
-                <output>
-                    <variables>
-                        <variable>phasefield</variable>
-                    </variables>
-                </output>
                 <time_stepping>
                     <type>FixedTimeStepping</type>
                     <t_initial>0</t_initial>
@@ -114,6 +104,10 @@
         <output>
             <type>VTK</type>
             <prefix>2D_PropagatingCrack_AT1_ell0p05</prefix>
+            <variables>
+                <variable>displacement</variable>
+                <variable>phasefield</variable>
+            </variables>
             <timesteps>
                 <pair>
                     <repeat>100</repeat>
