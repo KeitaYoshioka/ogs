@@ -71,6 +71,15 @@ bool PETScNonlinearSolver::solve(
     auto& J = NumLib::GlobalMatrixProvider::provider.getMatrix(
         system->getMatrixSpecifications(process_id), _jacobian_id);
 
+    BaseLib::RunTime timer_dirichlet;
+    double time_dirichlet = 0.0;
+
+    timer_dirichlet.start();
+    system->computeKnownSolutions(x);
+    system->applyKnownSolutions(x);
+    time_dirichlet += timer_dirichlet.elapsed();
+    INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet);
+
     // temporary r and J for petsc operations. These are copies of r and J
     // after the assembly.
     auto& petsc_r = NumLib::GlobalVectorProvider::provider.getVector(
@@ -91,6 +100,9 @@ bool PETScNonlinearSolver::solve(
 
         // TODO Maybe need to overwrite the ogs x with petsc_x.
         /*
+
+        // TODO (naumov) context->sys->preIteration(iteration, x);
+
         DBUG("BEFORE ASSEMBLY")
         DBUG("The ogs-x vector.")
         VecView(context->x->getRawVector(), PETSC_VIEWER_STDOUT_WORLD);
@@ -138,6 +150,8 @@ bool PETScNonlinearSolver::solve(
         DBUG("PETScNonlinearSolver: jacobian callback called.")
         // Assume the system is already assembled.
         auto context = static_cast<::detail::PetscContext*>(petsc_context);
+        // don't call getJacobian, because it makes a copy of the system's J and
+        // overwrites the context->J
         // context->system->getJacobian(*context->J);
 
         /*
