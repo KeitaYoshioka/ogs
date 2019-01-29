@@ -726,7 +726,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double width = 0.0;
     double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
-    if (0.0 < elem_d && elem_d < 1.0)
+    if (0.0 < elem_d && elem_d < 0.99)
     {
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
         indices_of_processes.reserve(dof_tables.size());
@@ -770,15 +770,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         Eigen::Vector3d delta_l = ref_ele_grad_d.normalized() * li_inc;
         double dist = delta_l.norm();
 
-/*        if (_element.getID() == 1921)
-            DBUG("something");
-*/
+        /*        if (_element.getID() == 1921)
+                    DBUG("something");
+        */
         // integral in positive direction
         pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
         current_ele = &_element;
         current_ele_grad_d = ref_ele_grad_d;
         int count_i = 0;
-        while (elem_d < 1.0 && deviation >= 0.0)
+        while (elem_d < 0.99 && deviation >= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
@@ -838,7 +838,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         search_dir = -1.0;
 
         count_i = 0;
-        while (elem_d < 1.0 && deviation <= 0.0)
+        while (elem_d < 0.99 && deviation <= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
