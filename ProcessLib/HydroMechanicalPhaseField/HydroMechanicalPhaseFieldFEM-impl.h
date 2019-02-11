@@ -512,74 +512,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             ele_grad_d[i];
 }
 
-template <typename ShapeFunction, typename IntegrationMethod,
-          int DisplacementDim>
-void HydroMechanicalPhaseFieldLocalAssembler<
-    ShapeFunction, IntegrationMethod,
-    DisplacementDim>::findNeighborElement(MeshLib::Element const& current_ele,
-                                          GeoLib::LineSegment& LIntegral,
-                                          MeshLib::Element const*& neighbor_ele,
-                                          Eigen::Vector3d& intersectionMidPoint,
-                                          std::size_t last_visited)
-{
-    int num_edge = current_ele.getNumberOfEdges();
-    //    neighbor_ele = &current_ele;
-    std::vector<int> possible_neighbor;
-    //    std::vector<GeoLib::Point> int_point;
-    GeoLib::Point intersection_point;
-    Eigen::Vector3d int_point1, int_point2;
-    for (int i = 0; i < num_edge; i++)
-    {
-        auto edge_ele = current_ele.getEdge(i);
-        auto n0 = *edge_ele->getNode(0);
-        auto n1 = *edge_ele->getNode(1);
-        GeoLib::Point point_0(n0[0], n0[1], n0[2]);
-        GeoLib::Point point_1(n1[0], n1[1], n1[2]);
-        GeoLib::LineSegment seg0(&point_0, &point_1);
-
-        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersection_point) &&
-            last_visited != current_ele.getNeighbor(i)->getID())
-        {
-            if (current_ele.getID() == 3636)
-            {
-                possible_neighbor.push_back(i);
-                neighbor_ele = current_ele.getNeighbor(i);
-            }
-            else
-            {
-                neighbor_ele = current_ele.getNeighbor(i);
-                break;
-            }
-        }
-    }
-    if (possible_neighbor.size() > 1)
-        INFO("check");
-
-    int_point1 =
-        Eigen::Map<Eigen::Vector3d const>(intersection_point.getCoords(), 3);
-
-    num_edge = neighbor_ele->getNumberOfEdges();
-    for (int i = 0; i < num_edge; i++)
-    {
-        auto edge_ele = neighbor_ele->getEdge(i);
-        auto n0 = *edge_ele->getNode(0);
-        auto n1 = *edge_ele->getNode(1);
-        GeoLib::Point point_0(n0[0], n0[1], n0[2]);
-        GeoLib::Point point_1(n1[0], n1[1], n1[2]);
-        GeoLib::LineSegment seg0(&point_0, &point_1);
-
-        if (GeoLib::lineSegmentIntersect(seg0, LIntegral, intersection_point) &&
-            current_ele.getID() != neighbor_ele->getNeighbor(i)->getID())
-        {
-            INFO("check %d", neighbor_ele->getNeighbor(i)->getID());
-            break;
-        }
-    }
-    int_point2 =
-        Eigen::Map<Eigen::Vector3d const>(intersection_point.getCoords(), 3);
-
-    intersectionMidPoint = 0.5 * (int_point1 + int_point2);
-}
 
 bool isPointAtCorner(Eigen::Vector3d pnt_end, GeoLib::Point p0,
                      GeoLib::Point p1)
@@ -593,6 +525,7 @@ bool isPointAtCorner(Eigen::Vector3d pnt_end, GeoLib::Point p0,
     else
         return false;
 }
+
 
 bool isPointOnEdge(Eigen::Vector3d pnt_end, GeoLib::Point p0, GeoLib::Point p1)
 {
