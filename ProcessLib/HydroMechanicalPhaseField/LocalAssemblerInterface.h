@@ -57,15 +57,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
             dof_tables,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
 
-    virtual void findNeighborElement(MeshLib::Element const& current_ele,
-                                     GeoLib::LineSegment& LIntegral,
-                                     MeshLib::Element const*& neighbor_ele,
-                                     Eigen::Vector3d& intersectionMidPoint,
-                                     std::size_t last_visited) = 0;
 
-/*    virtual void findHostElement(MeshLib::Element const& current_ele,
-                                     Eigen::Vector3d pnt_end,
-                                     MeshLib::Element const*& neighbor_ele) = 0; */
     /*    virtual void computeEnergy(
             std::size_t mesh_item_id,
             std::vector<

@@ -264,15 +264,8 @@ public:
         double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
         MeshLib::Mesh const& mesh) override;
 
-    void findNeighborElement(MeshLib::Element const& current_ele,
-                             GeoLib::LineSegment& LIntegral,
-                             MeshLib::Element const*& neighbor_ele,
-                             Eigen::Vector3d& intersectionMidPoint,
-                             std::size_t last_visited) override;
 
-/*    void findHostElement(MeshLib::Element const& current_ele,
-                         Eigen::Vector3d pnt_end,
-                         MeshLib::Element const*& neighbor_ele) override;*/
+
 
     /*    void computeEnergy(
             std::size_t mesh_item_id,
