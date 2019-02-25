@@ -32,10 +32,9 @@ std::tuple<MathLib::KelvinVector::KelvinVectorType<
                DisplacementDim> /* C_tensile */,
            MathLib::KelvinVector::KelvinMatrixType<
                DisplacementDim> /* C_compressive */,
-           double /* strain_energy_tensile */,
-           double /* elastic_energy */
+           double /* strain_energy_tensile */, double /* elastic_energy */
            >
-calculateDegradedStress(
+calculateDegradedStressAmor(
     double const degradation,
     double const bulk_modulus,
     double const mu,
@@ -75,19 +74,24 @@ calculateDegradedStress(
                                C_compressive, strain_energy_tensile,
                                elastic_energy);
     }
-    double const strain_energy_tensile = mu * epsd_curr.transpose() * epsd_curr;
-    KelvinVector const sigma_tensile = 2 * mu * epsd_curr;
-    KelvinVector const sigma_compressive =
-        bulk_modulus * eps_curr_trace * Invariants::identity2;
-    C_tensile.noalias() = 2 * mu * P_dev * KelvinMatrix::Identity();
-    C_compressive.template topLeftCorner<3, 3>().setConstant(bulk_modulus);
-    double const elastic_energy =
-        bulk_modulus / 2 * eps_curr_trace * eps_curr_trace +
-        mu * epsd_curr.transpose() * epsd_curr;
-    KelvinVector const sigma_real =
-        degradation * sigma_tensile + sigma_compressive;
-    return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
-                           strain_energy_tensile, elastic_energy);
+    else
+    {
+        double const strain_energy_tensile =
+            mu * epsd_curr.transpose() * epsd_curr;
+        KelvinVector const sigma_tensile = 2 * mu * epsd_curr;
+        KelvinVector const sigma_compressive =
+            bulk_modulus * eps_curr_trace * Invariants::identity2;
+        C_tensile.noalias() = 2 * mu * P_dev * KelvinMatrix::Identity();
+        C_compressive.template topLeftCorner<3, 3>().setConstant(bulk_modulus);
+        double const elastic_energy =
+            bulk_modulus / 2 * eps_curr_trace * eps_curr_trace +
+            mu * epsd_curr.transpose() * epsd_curr;
+        KelvinVector const sigma_real =
+            degradation * sigma_tensile + sigma_compressive;
+        return std::make_tuple(sigma_real, sigma_tensile, C_tensile,
+                               C_compressive, strain_energy_tensile,
+                               elastic_energy);
+    }
 }
 
 template <int DisplacementDim>
