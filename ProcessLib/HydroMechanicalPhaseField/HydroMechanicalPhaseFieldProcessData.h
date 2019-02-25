@@ -49,7 +49,9 @@ struct HydroMechanicalPhaseFieldProcessData
         Parameter<double> const& biot_coefficient_,
         Parameter<double> const& biot_modulus_,
         Parameter<double> const& drained_modulus_,
-        Parameter<double> const& porosity_)
+        Parameter<double> const& porosity_,
+        Eigen::Vector3d const& source_location_,
+        double const source_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
@@ -68,7 +70,9 @@ struct HydroMechanicalPhaseFieldProcessData
           biot_coefficient(biot_coefficient_),
           biot_modulus(biot_modulus_),
           drained_modulus(drained_modulus_),
-          porosity(porosity_)
+          porosity(porosity_),
+          source_location(source_location_),
+          source(source_)
     {
     }
 
@@ -113,6 +117,8 @@ struct HydroMechanicalPhaseFieldProcessData
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* width_prev = nullptr;
     MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
+    Eigen::Vector3d const source_location;
+    double const source = 0.0;
     double poroelastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;

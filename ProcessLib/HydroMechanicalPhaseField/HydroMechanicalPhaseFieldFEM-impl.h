@@ -240,10 +240,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DisplacementDim>::value>;
 
         double const d_ip = N.dot(d);
-        auto& pressure = _ip_data[ip].pressure;
-        auto& pressure_prev = _ip_data[ip].pressure_prev;
 
-        pressure = N.dot(p);
         double const perm =
             _process_data.intrinsic_permeability(t, x_position)[0];
         double const mu = _process_data.fluid_viscosity(t, x_position)[0];
@@ -265,22 +262,20 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                     local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
                 }
                 */
-        double const modulus_rm =
-            alpha * alpha / kappa - m_inv * (1 - d_ip * d_ip);
-        // TODO
-        //       double const source =
-        double const dp_dt = (pressure - pressure_prev) / dt;
+        //        double const modulus_rm =
+        //            alpha * alpha / kappa - m_inv * (1 - d_ip * d_ip);
 
-        double const dv_dt =
-            (Invariants::trace(eps) - Invariants::trace(eps_prev)) / dt;
+        //       double const source =
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
+        //        mass.noalias() = 0.0 *  N.transpose() * N * w;
         mass.noalias() += (m_inv + d_ip * d_ip * alpha * alpha / kappa) *
                           N.transpose() * N * w;
-        // TODO fix here
-        local_rhs.noalias() -=
-            (modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w * 0.0;
+
+        //        local_rhs.noalias() -=
+        //            (modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w
+        //            * 0.0;
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -512,7 +507,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             ele_grad_d[i];
 }
 
-
 bool isPointAtCorner(Eigen::Vector3d pnt_end, GeoLib::Point p0,
                      GeoLib::Point p1)
 {
@@ -525,7 +519,6 @@ bool isPointAtCorner(Eigen::Vector3d pnt_end, GeoLib::Point p0,
     else
         return false;
 }
-
 
 bool isPointOnEdge(Eigen::Vector3d pnt_end, GeoLib::Point p0, GeoLib::Point p1)
 {
