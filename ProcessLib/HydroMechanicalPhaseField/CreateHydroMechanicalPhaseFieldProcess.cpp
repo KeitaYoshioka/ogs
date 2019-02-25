@@ -212,6 +212,39 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "porosity", parameters, 1);
     DBUG("Use \'%s\' as porosity parameter.", porosity.name.c_str());
 
+    // Source
+    //    Eigen::Vector3d source_location =
+    //            //!
+    //            \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__source_location}
+    //            config.getConfigParameter<Eigen::Vector3d>("source_location");
+
+    Eigen::Vector3d const source_location = [&]() {
+        auto const v =
+            //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__source_location}
+            config.getConfigParameter<std::vector<double>>("source_location");
+        if (v.size() != DisplacementDim)
+        {
+            OGS_FATAL(
+                "The size of the source location vector does not match the "
+                "displacement dimension. Vector size is %d, displacement "
+                "dimension is %d",
+                v.size(), DisplacementDim);
+        }
+        Eigen::Vector3d vec3 = Eigen::Vector3d::Zero();
+        std::copy_n(v.data(), DisplacementDim, vec3.data());
+        return vec3;
+    }();
+
+    auto source_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__source}
+        config.getConfigParameterOptional<double>("source");
+
+    double source;
+    if (source_read)
+        source = *source_read;
+    else
+        source = 0.0;
+
     auto pf_irrv_read =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
         config.getConfigParameterOptional<double>("pf_irrv");
@@ -281,7 +314,9 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         biot_coefficient,
         biot_modulus,
         drained_modulus,
-        porosity};
+        porosity,
+        source_location,
+        source};
 
     SecondaryVariableCollection secondary_variables;
 
