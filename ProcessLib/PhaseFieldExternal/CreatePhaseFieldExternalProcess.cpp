@@ -198,6 +198,16 @@ std::unique_ptr<Process> createPhaseFieldExternalProcess(
     else
         at_param = 2;
 
+    auto split =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
+        config.getConfigParameterOptional<int>("split_method");
+
+    int split_method;
+    if (split && (*split == 1))
+        split_method = 1;
+    else
+        split_method = 0;
+
     PhaseFieldExternalProcessData<DisplacementDim> process_data{
         materialIDs(mesh),
         std::move(solid_constitutive_relations),
@@ -211,6 +221,7 @@ std::unique_ptr<Process> createPhaseFieldExternalProcess(
         biot_coefficient,
         reference_temperature,
         specific_body_force,
+        split_method,
         pf_irrv,
         at_param};
 

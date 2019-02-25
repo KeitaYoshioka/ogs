@@ -138,7 +138,8 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const C_eff = degradation * C_tensile + C_compressive;
         eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u, alpha,
-                                                delta_T, degradation);
+                                                delta_T, degradation,
+                                                _process_data.split_method);
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                         displacement_size>

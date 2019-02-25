@@ -59,6 +59,7 @@ struct IntegrationPointData final
     double elastic_energy;
     double integration_weight;
     double pressure, pressure_prev;
+    double reg_flow;
 
     void pushBackState()
     {
@@ -95,7 +96,7 @@ struct IntegrationPointData final
         {
             std::tie(sigma_eff, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
-                MaterialLib::Solids::Phasefield::calculateDegradedStress<
+                MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
                     DisplacementDim>(degradation, bulk_modulus, mu, eps);
         }
     }
@@ -178,7 +179,8 @@ public:
 
         SpatialPosition x_position;
         x_position.setElementID(_element.getID());
-
+        double distance_from_source;
+        Eigen::Vector3d coordinates;
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
             _ip_data.emplace_back(solid_material);
@@ -201,12 +203,31 @@ public:
             ip_data.elastic_energy = 0.0;
             ip_data.pressure = 0.0;
             ip_data.pressure_prev = 0.0;
-
+            _secondary_data.N[ip] = shape_matrices[ip].N;
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;
 
-            _secondary_data.N[ip] = shape_matrices[ip].N;
+            coordinates = getSingleIntegrationPointCoordinates(ip);
+            distance_from_source =
+                (_process_data.source_location - coordinates).norm();
+            ip_data.reg_flow = 0.0;
         }
+    }
+
+    Eigen::Vector3d getSingleIntegrationPointCoordinates(
+        int integration_point) const
+    {
+        auto const& N = _secondary_data.N[integration_point];
+
+        Eigen::Vector3d xyz = Eigen::Vector3d::Zero();  // Resulting coordinates
+        auto* nodes = _element.getNodes();
+        for (int i = 0; i < N.size(); ++i)
+        {
+            Eigen::Map<Eigen::Vector3d const> node_coordinates{
+                nodes[i]->getCoords(), 3};
+            xyz += node_coordinates * N[i];
+        }
+        return xyz;
     }
 
     void assemble(double const /*t*/, std::vector<double> const& /*local_x*/,
@@ -263,9 +284,6 @@ public:
             dof_tables,
         double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
         MeshLib::Mesh const& mesh) override;
-
-
-
 
     /*    void computeEnergy(
             std::size_t mesh_item_id,
