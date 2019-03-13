@@ -206,6 +206,8 @@ std::unique_ptr<Process> createPhaseFieldProcess(
     int at_param;
     if (at_num && (*at_num == 1))
         at_param = 1;
+    else if (at_num && (*at_num == 3))
+        at_param = 3;
     else
         at_param = 2;
 
