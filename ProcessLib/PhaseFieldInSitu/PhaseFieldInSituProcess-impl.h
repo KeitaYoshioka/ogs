@@ -416,6 +416,8 @@ void PhaseFieldInSituProcess<DisplacementDim>::
  /*           _process_data.crack_volume0 =
                 _process_data.crack_volume0 / _process_data.unity_pressure; */
             _process_data.pressure_old = _process_data.pressure;
+            // p = (V_inj - V_fs)/V_fp
+            // V_fs: stress only, V_fp: pressure only
             _process_data.pressure =
                 (_process_data.injected_volume - _process_data.crack_volume1) /
                 _process_data.crack_volume0;

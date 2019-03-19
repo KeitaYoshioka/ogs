@@ -199,9 +199,10 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
     int at_param;
     if (at_num && (*at_num == 1))
         at_param = 1;
+    else if (at_num && (*at_num == 3))
+        at_param = 3;
     else
         at_param = 2;
-
     auto split =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
         config.getConfigParameterOptional<int>("split_method");
