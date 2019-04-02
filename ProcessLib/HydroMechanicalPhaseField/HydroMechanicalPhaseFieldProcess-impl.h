@@ -258,7 +258,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
     else if (_coupled_solutions->process_id == _phase_field_process_id)
     {
         DBUG(
-            "Assemble the Jacobian equations of z"
+            "Assemble the Jacobian equations of "
             "phase field in "
             "HydroMechanicalPhaseFieldProcess for "
             "the staggered scheme.");
@@ -355,7 +355,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    if (process_id == _phase_field_process_id)
+/*    if (process_id == _phase_field_process_id)
     {
         DBUG("Fracture width computation before hydro process.");
         GlobalExecutor::executeMemberOnDereferenced(
@@ -366,7 +366,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                 computeFractureWidth,
             _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
-    }
+    }*/
 }
 
 template <int DisplacementDim>
