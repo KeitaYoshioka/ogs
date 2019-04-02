@@ -59,7 +59,7 @@ struct IntegrationPointData final
     double elastic_energy;
     double integration_weight;
     double pressure, pressure_prev;
-    double reg_flow;
+    double reg_source;
 
     void pushBackState()
     {
@@ -210,7 +210,15 @@ public:
             coordinates = getSingleIntegrationPointCoordinates(ip);
             distance_from_source =
                 (_process_data.source_location - coordinates).norm();
-            ip_data.reg_flow = 0.0;
+            double const ls =
+                _process_data.crack_length_scale(0.0, x_position)[0];
+            static constexpr double pi = boost::math::constants::pi<double>();
+            if (DisplacementDim == 2)
+                ip_data.reg_source = _process_data.source*std::exp(-distance_from_source / ls) /
+                                   (2 * pi * std::pow(ls, 2));
+            else if (DisplacementDim == 3)
+                ip_data.reg_source = _process_data.source*std::exp(-distance_from_source / ls) /
+                                   (4 * pi * std::pow(ls, 3));
         }
     }
 
