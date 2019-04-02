@@ -97,7 +97,7 @@ struct IntegrationPointData final
         {
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
-                MaterialLib::Solids::Phasefield::calculateDegradedStress<
+                MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
                     DisplacementDim>(degradation, bulk_modulus, mu, eps);
         }
     }

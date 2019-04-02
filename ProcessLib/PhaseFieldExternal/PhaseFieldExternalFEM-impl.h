@@ -88,7 +88,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& N = _ip_data[ip].N;
-        ele_d += N * d;
+        ele_d += N.dot(d);
     }
 
     ele_d = ele_d / n_integration_points;
