@@ -90,7 +90,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& N = _ip_data[ip].N;
-        ele_d += N * d;
+        ele_d += N.dot(d);
     }
     ele_d = ele_d / n_integration_points;
 
@@ -198,7 +198,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& N = _ip_data[ip].N;
-        ele_d += N * d;
+        ele_d += N.dot(d);
     }
     ele_d = ele_d / n_integration_points;
 
@@ -212,7 +212,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
-
         // for propagating crack, u is rescaled.
         if (_process_data.propagating_crack)
         {
@@ -220,7 +219,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             double degradation;
             // KKL
             if (_process_data.at_param == 3)
-                degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
+                degradation =
+                    (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
             // ATn
             else
                 degradation = ele_d * ele_d * (1 - k) + k;

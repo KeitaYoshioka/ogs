@@ -357,6 +357,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
     _process_data.nl_itr++;
 
     auto update_pressure = [&](double const default_pressure) {
+
         if (_process_data.secant_method == 0)
         {
             return default_pressure;
