@@ -212,14 +212,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     typename ShapeMatricesType::NodalMatrixType laplace =
         ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
 
-    /*    typename ShapeMatricesType::NodalMatrixType fixed_stress =
-            ShapeMatricesType::NodalMatrixType::Zero(pressure_size,
-       pressure_size);
-
-        typename ShapeMatricesType::NodalMatrixType source =
-            ShapeMatricesType::NodalMatrixType::Zero(pressure_size,
-       pressure_size);
-    */
     double const& dt = _process_data.dt;
 
     SpatialPosition x_position;
@@ -232,12 +224,19 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
     double ele_d = 0.0;
+    double ele_source = 0.0;
+    double ele_grad_d_norm = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& N = _ip_data[ip].N;
+        auto const& dNdx = _ip_data[ip].dNdx;
         ele_d += N.dot(d);
+        ele_grad_d_norm += (dNdx * d).norm();
+        ele_source += _ip_data[ip].reg_source;
     }
     ele_d = ele_d / n_integration_points;
+    ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
+    ele_source = ele_source / n_integration_points;
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -249,7 +248,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
         auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
 
-        auto const& reg_source = _ip_data[ip].reg_source;
+        //        auto const& reg_source = _ip_data[ip].reg_source;
 
         auto const alpha = _process_data.biot_coefficient(t, x_position)[0];
         auto const m_inv = 1 / _process_data.biot_modulus(t, x_position)[0];
@@ -263,20 +262,27 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             _process_data.intrinsic_permeability(t, x_position)[0];
         double const mu = _process_data.fluid_viscosity(t, x_position)[0];
 
-        laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
+        double const grad_d_norm = (dNdx * d).norm();
 
+        double const dv_dt = (vol_strain - vol_strain_prev) / dt;
+        double const dp_dt = (pressure - pressure_prev) / dt;
+        double const modulus_rm =
+            alpha * alpha / kappa * ele_d * ele_d + m_inv * (1 - ele_d * ele_d);
+
+        local_rhs.noalias() +=
+            (-modulus_rm * dp_dt + ele_d * ele_d * alpha * dv_dt) * N * w;
 
         mass.noalias() += (m_inv + ele_d * ele_d * alpha * alpha / kappa) *
                           N.transpose() * N * w;
 
+        local_rhs.noalias() += ele_source * ele_grad_d_norm * N * w;
 
-        double const grad_d_norm = (dNdx * d).norm();
-        double const dw_dt = (width - width_prev) / dt;
-
-        local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
-        local_rhs.noalias() += reg_source * grad_d_norm * N * w;
-        if (ele_d > 0.0 && ele_d < 1.0)
+        laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
+        if (ele_d > 0.0 && ele_d < 0.99)
         {
+            double const dw_dt = (width - width_prev) / dt;
+
+            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
             auto norm_gamma = (dNdx * d).normalized();
 
             decltype(dNdx) const dNdx_gamma =
@@ -287,13 +293,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                   dNdx_gamma * grad_d_norm) *
                                  w;
         }
-
-        double const dv_dt = (vol_strain - vol_strain_prev) / dt;
-        double const dp_dt = (pressure - pressure_prev) / dt;
-        double const modulus_rm = alpha * alpha / kappa * ele_d * ele_d +
-                                  m_inv * (1 - ele_d * ele_d);
-        local_rhs.noalias() +=
-            (modulus_rm * dp_dt + ele_d * ele_d * alpha * dv_dt) * N * w;
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -374,7 +373,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         double const p_ip = N.dot(p);
 
-        double const degradation = ele_d  * ele_d  * (1 - k) + k;
+        double const degradation = ele_d * ele_d * (1 - k) + k;
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
                                                                      N);
@@ -678,6 +677,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double width = 0.0;
     double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
+    double temporal=0.0;
     if (0.0 < elem_d && elem_d < 0.99)
     {
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
@@ -740,6 +740,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             else
                 count_i = 1;
 
+            if (count_i > _process_data.li_disc)
+            {
+                DBUG("count exceeded");
+                exit;
+            }
+            if (mesh_item_id == 2652)
+                DBUG("here");
+
             // check the normal vector
             auto old_norm = current_norm;
             auto old_ele_grad_d = current_ele_grad_d;
@@ -760,9 +768,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
             cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
             width += 0.5 * dist * (cod_start + cod_end);
-            cumul_ele_grad_d =
-                cumul_ele_grad_d +
-                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
 
             // for next element search
             current_ele = neighbor_ele;
@@ -775,6 +780,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+
+            cumul_ele_grad_d =
+                cumul_ele_grad_d +
+                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
+            //                cumul_ele_grad_d + 0.5 * dist *
+            //                                       (old_ele_grad_d.normalized()
+            //                                       +
+            //                                        current_ele_grad_d.normalized());
         }
 
         // integral in negative direction
@@ -799,6 +812,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 count_i++;
             else
                 count_i = 1;
+            if (count_i > _process_data.li_disc)
+            {
+                DBUG("count exceeded");
+                exit;
+            }
             // check the normal vector
             auto old_norm = current_norm;
             auto old_ele_grad_d = current_ele_grad_d;
@@ -819,9 +837,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
             cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
             width += 0.5 * dist * (cod_start + cod_end);
-            cumul_ele_grad_d =
-                cumul_ele_grad_d +
-                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
 
             // for next element search
             current_ele = neighbor_ele;
@@ -831,13 +846,23 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 search_dir = -1.0 * search_dir;
                 ref_ele_grad_d = -1.0 * ref_ele_grad_d;
             }
+
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+
+            cumul_ele_grad_d =
+                cumul_ele_grad_d +
+                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
+            //                cumul_ele_grad_d + 0.5 * dist *
+            //                                       (old_ele_grad_d.normalized()
+            //                                       +
+            //                                        current_ele_grad_d.normalized());
         }
         if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
+        temporal = deviation;
     }
 
     (*_process_data.width)[_element.getID()] = width;

@@ -36,7 +36,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
 
     INFO(
         "Solve the coupling with the staggered scheme,"
-        "which is the only option for TM-Phasefield in the current code");
+        "which is the only option for Hydromechanical Phasefield in the current code");
 
     // Process variable.
 
