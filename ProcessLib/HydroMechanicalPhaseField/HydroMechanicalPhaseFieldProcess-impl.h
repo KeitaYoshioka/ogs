@@ -182,20 +182,20 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         1);
 
     _process_data.ele_u_dot_grad_d = MeshLib::getOrCreateMeshProperty<double>(
-        const_cast<MeshLib::Mesh&>(mesh), "u_dot_grad_d", MeshLib::MeshItemType::Cell,
-        1);
+        const_cast<MeshLib::Mesh&>(mesh), "u_dot_grad_d",
+        MeshLib::MeshItemType::Cell, 1);
 
     _process_data.width = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "width", MeshLib::MeshItemType::Cell,
         1);
 
     _process_data.width_prev = MeshLib::getOrCreateMeshProperty<double>(
-        const_cast<MeshLib::Mesh&>(mesh), "width_prev", MeshLib::MeshItemType::Cell,
-        1);
+        const_cast<MeshLib::Mesh&>(mesh), "width_prev",
+        MeshLib::MeshItemType::Cell, 1);
 
     _process_data.cum_grad_d = MeshLib::getOrCreateMeshProperty<double>(
-        const_cast<MeshLib::Mesh&>(mesh), "cum_grad_d", MeshLib::MeshItemType::Cell,
-        1);
+        const_cast<MeshLib::Mesh&>(mesh), "cum_grad_d",
+        MeshLib::MeshItemType::Cell, 1);
 
     _process_data.ele_grad_d = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "grad_damage",
@@ -296,10 +296,7 @@ void HydroMechanicalPhaseFieldProcess<
     _x_previous_timestep =
         MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
 
-    if (process_id != _mechanics_related_process_id)
-    {
-        return;
-    }
+    if(process_id != _mechanics_related_process_id) { return; }
     GlobalExecutor::executeMemberOnDereferenced(
         &HydroMechanicalPhaseFieldLocalAssemblerInterface::preTimestep,
         _local_assemblers, getDOFTable(process_id), x, t, dt);
@@ -355,9 +352,10 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    if (process_id == _phase_field_process_id)
+    if (process_id == _mechanics_related_process_id ||
+        process_id == _phase_field_process_id)
     {
-        DBUG("Fracture width computation before hydro process.");
+        INFO("Fracture width computation");
         GlobalExecutor::executeMemberOnDereferenced(
             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                 computeFractureNormal,
