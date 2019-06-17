@@ -14,6 +14,8 @@
 #include <memory>
 #include <utility>
 
+#include "ParameterLib/Parameter.h"
+
 namespace MaterialLib
 {
 namespace Solids
@@ -24,9 +26,6 @@ struct MechanicsBase;
 }  // namespace MaterialLib
 namespace ProcessLib
 {
-template <typename T>
-struct Parameter;
-
 namespace HydroMechanicalPhaseField
 {
 template <int DisplacementDim>
@@ -36,22 +35,21 @@ struct HydroMechanicalPhaseFieldProcessData
         MeshLib::PropertyVector<int> const* const material_ids_,
         std::map<int, std::unique_ptr<MaterialLib::Solids::MechanicsBase<
                           DisplacementDim>>>&& solid_materials_,
-        Parameter<double> const& residual_stiffness_,
-        Parameter<double> const& crack_resistance_,
-        Parameter<double> const& crack_length_scale_,
-        Parameter<double> const& solid_density_,
+        ParameterLib::Parameter<double> const& residual_stiffness_,
+        ParameterLib::Parameter<double> const& crack_resistance_,
+        ParameterLib::Parameter<double> const& crack_length_scale_,
+        ParameterLib::Parameter<double> const& solid_density_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         int split_method_, double const pf_irrv_, double const li_disc_,
         double const cum_grad_d_CutOff_, int const at_param_,
-        Parameter<double> const& intrinsic_permeability_,
-        Parameter<double> const& fluid_viscosity_,
-        Parameter<double> const& fluid_density_,
-        Parameter<double> const& biot_coefficient_,
-        Parameter<double> const& biot_modulus_,
-        Parameter<double> const& drained_modulus_,
-        Parameter<double> const& porosity_,
-        Eigen::Vector3d const& source_location_,
-        double const source_)
+        ParameterLib::Parameter<double> const& intrinsic_permeability_,
+        ParameterLib::Parameter<double> const& fluid_viscosity_,
+        ParameterLib::Parameter<double> const& fluid_density_,
+        ParameterLib::Parameter<double> const& biot_coefficient_,
+        ParameterLib::Parameter<double> const& biot_modulus_,
+        ParameterLib::Parameter<double> const& drained_modulus_,
+        ParameterLib::Parameter<double> const& porosity_,
+        Eigen::Vector3d const& source_location_, double const source_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
@@ -94,23 +92,23 @@ struct HydroMechanicalPhaseFieldProcessData
     std::map<int, std::unique_ptr<
                       MaterialLib::Solids::MechanicsBase<DisplacementDim>>>
         solid_materials;
-    Parameter<double> const& residual_stiffness;
-    Parameter<double> const& crack_resistance;
-    Parameter<double> const& crack_length_scale;
-    Parameter<double> const& solid_density;
+    ParameterLib::Parameter<double> const& residual_stiffness;
+    ParameterLib::Parameter<double> const& crack_resistance;
+    ParameterLib::Parameter<double> const& crack_length_scale;
+    ParameterLib::Parameter<double> const& solid_density;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     int split_method = 0;
     double const pf_irrv = 0.05;
     double const li_disc = 60;
     double cum_grad_d_CutOff = 0.5;
     int const at_param = 2;
-    Parameter<double> const& intrinsic_permeability;
-    Parameter<double> const& fluid_viscosity;
-    Parameter<double> const& fluid_density;
-    Parameter<double> const& biot_coefficient;
-    Parameter<double> const& biot_modulus;
-    Parameter<double> const& drained_modulus;
-    Parameter<double> const& porosity;
+    ParameterLib::Parameter<double> const& intrinsic_permeability;
+    ParameterLib::Parameter<double> const& fluid_viscosity;
+    ParameterLib::Parameter<double> const& fluid_density;
+    ParameterLib::Parameter<double> const& biot_coefficient;
+    ParameterLib::Parameter<double> const& biot_modulus;
+    ParameterLib::Parameter<double> const& drained_modulus;
+    ParameterLib::Parameter<double> const& porosity;
     MeshLib::PropertyVector<double>* ele_grad_d = nullptr;
     MeshLib::PropertyVector<double>* ele_d = nullptr;
     MeshLib::PropertyVector<double>* ele_u_dot_grad_d = nullptr;

@@ -20,10 +20,14 @@ namespace MeshLib
 {
 class Mesh;
 }
+namespace ParameterLib
+{
+struct CoordinateSystem;
+struct ParameterBase;
+}  // namespace ParameterLib
 namespace ProcessLib
 {
 class AbstractJacobianAssembler;
-struct ParameterBase;
 class Process;
 class ProcessVariable;
 }  // namespace ProcessLib
@@ -37,7 +41,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
@@ -46,7 +50,7 @@ createHydroMechanicalPhaseFieldProcess<2>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
@@ -55,7 +59,7 @@ createHydroMechanicalPhaseFieldProcess<3>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 

@@ -11,6 +11,7 @@
 
 #include "MaterialLib/SolidModels/CreateConstitutiveRelation.h"
 #include "MaterialLib/SolidModels/MechanicsBase.h"
+#include "ParameterLib/Utils.h"
 #include "ProcessLib/Output/CreateSecondaryVariables.h"
 #include "ProcessLib/Utils/ProcessUtils.h"
 
@@ -26,7 +27,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config)
 {
@@ -117,28 +118,28 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         config.getConfigSubtree("phasefield_parameters");
 
     // Residual stiffness
-    auto& residual_stiffness = findParameter<double>(
+    auto& residual_stiffness = ParameterLib::findParameter<double>(
         phasefield_parameters_config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters__residual_stiffness}
         "residual_stiffness", parameters, 1);
     DBUG("Use \'%s\' as residual stiffness.", residual_stiffness.name.c_str());
 
     // Crack resistance
-    auto& crack_resistance = findParameter<double>(
+    auto& crack_resistance = ParameterLib::findParameter<double>(
         phasefield_parameters_config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters__crack_resistance}
         "crack_resistance", parameters, 1);
     DBUG("Use \'%s\' as crack resistance.", crack_resistance.name.c_str());
 
     // Crack length scale
-    auto& crack_length_scale = findParameter<double>(
+    auto& crack_length_scale = ParameterLib::findParameter<double>(
         phasefield_parameters_config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__phasefield_parameters__crack_length_scale}
         "crack_length_scale", parameters, 1);
     DBUG("Use \'%s\' as crack length scale.", crack_length_scale.name.c_str());
 
     // Solid density
-    auto& solid_density = findParameter<double>(
+    auto& solid_density = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__reference_solid_density}
         "solid_density", parameters, 1);
@@ -162,7 +163,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     }
 
     // Intrinsic permeability
-    auto& intrinsic_permeability = findParameter<double>(
+    auto& intrinsic_permeability = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__intrinsic_permeability}
         "intrinsic_permeability", parameters, 1);
@@ -171,7 +172,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
          intrinsic_permeability.name.c_str());
 
     // Fluid viscosity
-    auto& fluid_viscosity = findParameter<double>(
+    auto& fluid_viscosity = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_viscosity}
         "fluid_viscosity", parameters, 1);
@@ -179,14 +180,14 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
          fluid_viscosity.name.c_str());
 
     // Fluid density
-    auto& fluid_density = findParameter<double>(
+    auto& fluid_density = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_density}
         "fluid_density", parameters, 1);
     DBUG("Use \'%s\' as fluid density parameter.", fluid_density.name.c_str());
 
     // Biot coefficient
-    auto& biot_coefficient = findParameter<double>(
+    auto& biot_coefficient = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_coefficient}
         "biot_coefficient", parameters, 1);
@@ -194,19 +195,19 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
          biot_coefficient.name.c_str());
 
     // Biot's modulus
-    auto& biot_modulus = findParameter<double>(
+    auto& biot_modulus = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_modulus}
         "biot_modulus", parameters, 1);
 
     // drained modulus
-    auto& drained_modulus = findParameter<double>(
+    auto& drained_modulus = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__drained_modulus}
         "drained_modulus", parameters, 1);
 
     // Porosity
-    auto& porosity = findParameter<double>(
+    auto& porosity = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__porosity}
         "porosity", parameters, 1);
@@ -337,7 +338,7 @@ template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<2>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
@@ -345,7 +346,7 @@ template std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess<3>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
