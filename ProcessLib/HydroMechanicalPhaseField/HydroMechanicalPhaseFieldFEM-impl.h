@@ -743,7 +743,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             if (count_i > _process_data.li_disc)
             {
                 DBUG("count exceeded");
-                exit;
+                break;
             }
             if (mesh_item_id == 2652)
                 DBUG("here");
@@ -815,7 +815,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             if (count_i > _process_data.li_disc)
             {
                 DBUG("count exceeded");
-                exit;
+                break;
             }
             // check the normal vector
             auto old_norm = current_norm;
