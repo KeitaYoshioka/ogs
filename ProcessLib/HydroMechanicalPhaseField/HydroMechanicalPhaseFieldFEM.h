@@ -18,9 +18,9 @@
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
+#include "ParameterLib/SpatialPosition.h"
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
 #include "ProcessLib/Deformation/LinearBMatrix.h"
-#include "ProcessLib/Parameter/SpatialPosition.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
 #include "HydroMechanicalPhaseFieldProcessData.h"
@@ -69,7 +69,8 @@ struct IntegrationPointData final
     }
 
     template <typename DisplacementVectorType>
-    void updateConstitutiveRelation(double const t, SpatialPosition const& x,
+    void updateConstitutiveRelation(double const t,
+                                    ParameterLib::SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
                                     double const degradation, int const split)
@@ -177,7 +178,7 @@ public:
                               IntegrationMethod, DisplacementDim>(
                 e, is_axially_symmetric, _integration_method);
 
-        SpatialPosition x_position;
+        ParameterLib::SpatialPosition x_position;
         x_position.setElementID(_element.getID());
         double distance_from_source;
         Eigen::Vector3d coordinates;
