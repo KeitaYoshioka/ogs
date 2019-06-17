@@ -638,18 +638,20 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
             switch (_mesh_vec[0]->getDimension())
             {
                 case 2:
-                    process =
-                        ProcessLib::HydroMechanicalPhaseField::createHydroMechanicalPhaseFieldProcess<
-                            2>(*_mesh_vec[0], std::move(jacobian_assembler),
-                               _process_variables, _parameters,
-                               integration_order, process_config);
+                    process = ProcessLib::HydroMechanicalPhaseField::
+                        createHydroMechanicalPhaseFieldProcess<2>(
+                            *_mesh_vec[0], std::move(jacobian_assembler),
+                            _process_variables, _parameters,
+                            _local_coordinate_system, integration_order,
+                            process_config);
                     break;
                 case 3:
-                    process =
-                        ProcessLib::HydroMechanicalPhaseField::createHydroMechanicalPhaseFieldProcess<
-                            3>(*_mesh_vec[0], std::move(jacobian_assembler),
-                               _process_variables, _parameters,
-                               integration_order, process_config);
+                    process = ProcessLib::HydroMechanicalPhaseField::
+                        createHydroMechanicalPhaseFieldProcess<3>(
+                            *_mesh_vec[0], std::move(jacobian_assembler),
+                            _process_variables, _parameters,
+                            _local_coordinate_system, integration_order,
+                            process_config);
                     break;
             }
         }
