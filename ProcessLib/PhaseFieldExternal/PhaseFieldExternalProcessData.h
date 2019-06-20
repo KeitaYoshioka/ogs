@@ -36,18 +36,18 @@ struct PhaseFieldExternalProcessData
         MeshLib::PropertyVector<int> const* const material_ids_,
         std::map<int, std::unique_ptr<MaterialLib::Solids::MechanicsBase<
                           DisplacementDim>>>&& solid_materials_,
-        Parameter<double> const& residual_stiffness_,
-        Parameter<double> const& crack_resistance_,
-        Parameter<double> const& crack_length_scale_,
-        Parameter<double> const& solid_density_,
-        Parameter<double> const& linear_thermal_expansion_coefficient_,
-        Parameter<double> const& pressure_ext_,
-        Parameter<double> const& temperature_ext_,
-        Parameter<double> const& biot_coefficient_,
+        ParameterLib::Parameter<double> const& residual_stiffness_,
+        ParameterLib::Parameter<double> const& crack_resistance_,
+        ParameterLib::Parameter<double> const& crack_length_scale_,
+        ParameterLib::Parameter<double> const& solid_density_,
+        ParameterLib::Parameter<double> const&
+            linear_thermal_expansion_coefficient_,
+        ParameterLib::Parameter<double> const& pressure_ext_,
+        ParameterLib::Parameter<double> const& temperature_ext_,
+        ParameterLib::Parameter<double> const& biot_coefficient_,
         double const reference_temperature_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-            int const split_method_,
-        double const pf_irrv_, int const at_param_)
+        int const split_method_, double const pf_irrv_, int const at_param_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
@@ -85,21 +85,21 @@ struct PhaseFieldExternalProcessData
     std::map<int, std::unique_ptr<
                       MaterialLib::Solids::MechanicsBase<DisplacementDim>>>
         solid_materials;
-    Parameter<double> const& residual_stiffness;
-    Parameter<double> const& crack_resistance;
-    Parameter<double> const& crack_length_scale;
-    Parameter<double> const& solid_density;
-    Parameter<double> const& linear_thermal_expansion_coefficient;
-    Parameter<double> const& pressure_ext;
-    Parameter<double> const& temperature_ext;
-    Parameter<double> const& biot_coefficient;
+    ParameterLib::Parameter<double> const& residual_stiffness;
+    ParameterLib::Parameter<double> const& crack_resistance;
+    ParameterLib::Parameter<double> const& crack_length_scale;
+    ParameterLib::Parameter<double> const& solid_density;
+    ParameterLib::Parameter<double> const& linear_thermal_expansion_coefficient;
+    ParameterLib::Parameter<double> const& pressure_ext;
+    ParameterLib::Parameter<double> const& temperature_ext;
+    ParameterLib::Parameter<double> const& biot_coefficient;
     double const reference_temperature;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     double dt;
     double t;
+    int split_method = 0;
     double pf_irrv = 0.05;
     int at_param = 2;
-    int split_method = 0;
 };
 
 }  // namespace PhaseFieldExternal

@@ -28,9 +28,10 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
-    unsigned const integration_order,
-    BaseLib::ConfigTree const& config)
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
+    boost::optional<ParameterLib::CoordinateSystem> const&
+        local_coordinate_system,
+    unsigned const integration_order, BaseLib::ConfigTree const& config)
 {
     //! \ogs_file_param{prj__processes__process__type}
     config.checkConfigParameter("type", "PHASE_FIELD_INSITU");
@@ -113,35 +114,35 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
 
     auto solid_constitutive_relations =
         MaterialLib::Solids::createConstitutiveRelations<DisplacementDim>(
-            parameters, config);
+            parameters, local_coordinate_system, config);
 
     auto const phasefield_parameters_config =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD_INSITU__phasefield_parameters}
         config.getConfigSubtree("phasefield_parameters");
 
     // Residual stiffness
-    auto& residual_stiffness = findParameter<double>(
+    auto& residual_stiffness = ParameterLib::findParameter<double>(
         phasefield_parameters_config,
         //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_INSITU__phasefield_parameters__residual_stiffness}
         "residual_stiffness", parameters, 1);
     DBUG("Use \'%s\' as residual stiffness.", residual_stiffness.name.c_str());
 
     // Crack resistance
-    auto& crack_resistance = findParameter<double>(
+    auto& crack_resistance = ParameterLib::findParameter<double>(
         phasefield_parameters_config,
         //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_INSITU__phasefield_parameters__crack_resistance}
         "crack_resistance", parameters, 1);
     DBUG("Use \'%s\' as crack resistance.", crack_resistance.name.c_str());
 
     // Crack length scale
-    auto& crack_length_scale = findParameter<double>(
+    auto& crack_length_scale = ParameterLib::findParameter<double>(
         phasefield_parameters_config,
         //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_INSITU__phasefield_parameters__crack_length_scale}
         "crack_length_scale", parameters, 1);
     DBUG("Use \'%s\' as crack length scale.", crack_length_scale.name.c_str());
 
     // Solid density
-    auto& solid_density = findParameter<double>(
+    auto& solid_density = ParameterLib::findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_INSITU__reference_solid_density}
         "solid_density", parameters, 1);
@@ -246,7 +247,9 @@ template std::unique_ptr<Process> createPhaseFieldInSituProcess<2>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
+    boost::optional<ParameterLib::CoordinateSystem> const&
+        local_coordinate_system,
     unsigned const integration_order,
     BaseLib::ConfigTree const& config);
 
@@ -254,9 +257,10 @@ template std::unique_ptr<Process> createPhaseFieldInSituProcess<3>(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
-    std::vector<std::unique_ptr<ParameterBase>> const& parameters,
-    unsigned const integration_order,
-    BaseLib::ConfigTree const& config);
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
+    boost::optional<ParameterLib::CoordinateSystem> const&
+        local_coordinate_system,
+    unsigned const integration_order, BaseLib::ConfigTree const& config);
 
 }  // namespace PhaseFieldInSitu
 }  // namespace ProcessLib

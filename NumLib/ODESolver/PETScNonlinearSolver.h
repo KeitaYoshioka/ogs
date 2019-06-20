@@ -42,8 +42,8 @@ public:
 
     void assemble(GlobalVector const& x) const override;
 
-    bool solve(GlobalVector& x,
-               std::function<void(unsigned, GlobalVector const&)> const&
+    NonlinearSolverStatus solve(GlobalVector& x,
+               std::function<void(int, GlobalVector const&)> const&
                /*postIterationCallback*/, int process_id) override;
 
 private:

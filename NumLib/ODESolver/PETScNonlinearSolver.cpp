@@ -51,9 +51,9 @@ void PETScNonlinearSolver::assemble(GlobalVector const& x) const
     _equation_system->assemble(x);
 }
 
-bool PETScNonlinearSolver::solve(
+NonlinearSolverStatus PETScNonlinearSolver::solve(
     GlobalVector& x,
-    std::function<void(unsigned, GlobalVector const&)> const&
+    std::function<void(int, GlobalVector const&)> const&
     /*postIterationCallback*/,
     int const process_id)
 {
@@ -216,7 +216,7 @@ bool PETScNonlinearSolver::solve(
     NumLib::GlobalVectorProvider::provider.releaseVector(xl);
     NumLib::GlobalVectorProvider::provider.releaseVector(xu);
 
-    return reason >= 0;
+    return {reason >= 0, iterations};
 }
 
 }  // namespace NumLib

@@ -36,10 +36,10 @@ struct PhaseFieldInSituProcessData
         MeshLib::PropertyVector<int> const* const material_ids_,
         std::map<int, std::unique_ptr<MaterialLib::Solids::MechanicsBase<
                           DisplacementDim>>>&& solid_materials_,
-        Parameter<double> const& residual_stiffness_,
-        Parameter<double> const& crack_resistance_,
-        Parameter<double> const& crack_length_scale_,
-        Parameter<double> const& solid_density_,
+        ParameterLib::Parameter<double> const& residual_stiffness_,
+        ParameterLib::Parameter<double> const& crack_resistance_,
+        ParameterLib::Parameter<double> const& crack_length_scale_,
+        ParameterLib::Parameter<double> const& solid_density_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         bool const propagating_crack_, int const split_method_,
         bool const crack_pressure_, double const pf_irrv_, int const at_param_)
@@ -74,10 +74,10 @@ struct PhaseFieldInSituProcessData
     std::map<int, std::unique_ptr<
                       MaterialLib::Solids::MechanicsBase<DisplacementDim>>>
         solid_materials;
-    Parameter<double> const& residual_stiffness;
-    Parameter<double> const& crack_resistance;
-    Parameter<double> const& crack_length_scale;
-    Parameter<double> const& solid_density;
+    ParameterLib::Parameter<double> const& residual_stiffness;
+    ParameterLib::Parameter<double> const& crack_resistance;
+    ParameterLib::Parameter<double> const& crack_length_scale;
+    ParameterLib::Parameter<double> const& solid_density;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     double dt = 0.0;
     double t = 0.0;
