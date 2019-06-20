@@ -677,7 +677,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double width = 0.0;
     double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
-    double temporal=0.0;
+    double temporal = 0.0;
     if (0.0 < elem_d && elem_d < 0.99)
     {
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
@@ -730,6 +730,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         current_ele = &_element;
         current_ele_grad_d = ref_ele_grad_d;
         int count_i = 0;
+        int count_frac_elem = 0;
         while (elem_d < 0.99 && deviation >= 0.0)
         {
             // find the host element at the end of integral
@@ -745,8 +746,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
-            if (mesh_item_id == 2652)
-                DBUG("here");
+//            if (mesh_item_id == 2652 && count_i == 1)
+//                DBUG("here");
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -762,6 +763,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             if (current_ele_grad_d.norm() == 0.0)
             {
                 current_norm = old_norm;
+                count_frac_elem++;
+                if (count_i == 1)
+                    count_frac_elem++;
+                if (count_frac_elem > 10)
+                    break;
             }
 
             // line integral
@@ -803,6 +809,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         search_dir = -1.0;
 
         count_i = 0;
+        count_frac_elem = 0;
         while (elem_d < 0.99 && deviation <= 0.0)
         {
             // find the host element at the end of integral
@@ -817,6 +824,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
+
+//            if (mesh_item_id == 2652 && count_i == 1)
+//                DBUG("here");
+
             // check the normal vector
             auto old_norm = current_norm;
             auto old_ele_grad_d = current_ele_grad_d;
@@ -831,6 +842,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             if (current_ele_grad_d.norm() == 0.0)
             {
                 current_norm = old_norm;
+                if (count_i == 1)
+                    count_frac_elem++;
+                if (count_frac_elem > 10)
+                    break;
             }
 
             // line integral
@@ -859,7 +874,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             //                                       +
             //                                        current_ele_grad_d.normalized());
         }
-        if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff)
+        if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
+            count_frac_elem > 10)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
         temporal = deviation;
