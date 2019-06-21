@@ -39,6 +39,7 @@ namespace HydroMechanicalPhaseField
 {
 template <int DisplacementDim>
 std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -50,6 +51,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
 
 extern template std::unique_ptr<Process>
 createHydroMechanicalPhaseFieldProcess<2>(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -61,6 +63,7 @@ createHydroMechanicalPhaseFieldProcess<2>(
 
 extern template std::unique_ptr<Process>
 createHydroMechanicalPhaseFieldProcess<3>(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,

@@ -26,6 +26,7 @@ namespace HydroMechanicalPhaseField
 template <int DisplacementDim>
 HydroMechanicalPhaseFieldProcess<DisplacementDim>::
     HydroMechanicalPhaseFieldProcess(
+        std::string name,
         MeshLib::Mesh& mesh,
         std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&&
             jacobian_assembler,
@@ -40,7 +41,7 @@ HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         int const mechanics_related_process_id,
         int const phase_field_process_id,
         int const hydro_process_id)
-    : Process(mesh, std::move(jacobian_assembler), parameters,
+    : Process(std::move(name), mesh, std::move(jacobian_assembler), parameters,
               integration_order, std::move(process_variables),
               std::move(secondary_variables), std::move(named_function_caller),
               false),
@@ -356,20 +357,20 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-//    if (process_id == _mechanics_related_process_id ||
-//        process_id == _phase_field_process_id)
-        if (process_id == _phase_field_process_id)
-        {
-            INFO("Fracture width computation");
-            GlobalExecutor::executeMemberOnDereferenced(
-                &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                    computeFractureNormal,
-                _local_assemblers, dof_tables, _coupled_solutions);
-            GlobalExecutor::executeMemberOnDereferenced(
-                &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                    computeFractureWidth,
-                _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
-        }
+    //    if (process_id == _mechanics_related_process_id ||
+    //        process_id == _phase_field_process_id)
+    if (process_id == _phase_field_process_id)
+    {
+        INFO("Fracture width computation");
+        GlobalExecutor::executeMemberOnDereferenced(
+            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                computeFractureNormal,
+            _local_assemblers, dof_tables, _coupled_solutions);
+        GlobalExecutor::executeMemberOnDereferenced(
+            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                computeFractureWidth,
+            _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
+    }
 }
 
 template <int DisplacementDim>
