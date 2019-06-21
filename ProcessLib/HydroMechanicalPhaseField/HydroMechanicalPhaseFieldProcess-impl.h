@@ -297,7 +297,10 @@ void HydroMechanicalPhaseFieldProcess<
     _x_previous_timestep =
         MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
 
-    if(process_id != _mechanics_related_process_id) { return; }
+    if (process_id != _mechanics_related_process_id)
+    {
+        return;
+    }
     GlobalExecutor::executeMemberOnDereferenced(
         &HydroMechanicalPhaseFieldLocalAssemblerInterface::preTimestep,
         _local_assemblers, getDOFTable(process_id), x, t, dt);
@@ -353,19 +356,20 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    if (process_id == _mechanics_related_process_id ||
-        process_id == _phase_field_process_id)
-    {
-        INFO("Fracture width computation");
-        GlobalExecutor::executeMemberOnDereferenced(
-            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                computeFractureNormal,
-            _local_assemblers, dof_tables, _coupled_solutions);
-        GlobalExecutor::executeMemberOnDereferenced(
-            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                computeFractureWidth,
-            _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
-    }
+//    if (process_id == _mechanics_related_process_id ||
+//        process_id == _phase_field_process_id)
+        if (process_id == _phase_field_process_id)
+        {
+            INFO("Fracture width computation");
+            GlobalExecutor::executeMemberOnDereferenced(
+                &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                    computeFractureNormal,
+                _local_assemblers, dof_tables, _coupled_solutions);
+            GlobalExecutor::executeMemberOnDereferenced(
+                &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                    computeFractureWidth,
+                _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
+        }
 }
 
 template <int DisplacementDim>
