@@ -26,6 +26,7 @@ namespace PhaseFieldInSitu
 {
 template <int DisplacementDim>
 PhaseFieldInSituProcess<DisplacementDim>::PhaseFieldInSituProcess(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
@@ -38,7 +39,7 @@ PhaseFieldInSituProcess<DisplacementDim>::PhaseFieldInSituProcess(
     int const mechanics_process0_id,
     int const mechanics_process1_id,
     int const phase_field_process_id)
-    : Process(mesh, std::move(jacobian_assembler), parameters,
+    : Process(std::move(name), mesh, std::move(jacobian_assembler), parameters,
               integration_order, std::move(process_variables),
               std::move(secondary_variables), std::move(named_function_caller),
               false),
@@ -380,8 +381,8 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             _use_monolithic_scheme, _coupled_solutions, _mechanics_process0_id);
 #ifdef USE_PETSC
         double const crack_volume = _process_data.crack_volume0;
-        MPI_Allreduce(&crack_volume, &_process_data.crack_volume0, 1, MPI_DOUBLE,
-                      MPI_SUM, PETSC_COMM_WORLD);
+        MPI_Allreduce(&crack_volume, &_process_data.crack_volume0, 1,
+                      MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
 #endif
         INFO("Integral of crack with u_p: %g", _process_data.crack_volume0);
     }
@@ -406,15 +407,16 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             _use_monolithic_scheme, _coupled_solutions, _mechanics_process1_id);
 #ifdef USE_PETSC
         double const crack_volume = _process_data.crack_volume1;
-        MPI_Allreduce(&crack_volume, &_process_data.crack_volume1, 1, MPI_DOUBLE,
-                      MPI_SUM, PETSC_COMM_WORLD);
+        MPI_Allreduce(&crack_volume, &_process_data.crack_volume1, 1,
+                      MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
 #endif
         INFO("Integral of crack with u_s: %g", _process_data.crack_volume1);
 
         if (_process_data.propagating_crack)
         {
- /*           _process_data.crack_volume0 =
-                _process_data.crack_volume0 / _process_data.unity_pressure; */
+            /*           _process_data.crack_volume0 =
+                           _process_data.crack_volume0 /
+               _process_data.unity_pressure; */
             _process_data.pressure_old = _process_data.pressure;
             // p = (V_inj - V_fs)/V_fp
             // V_fs: stress only, V_fp: pressure only
@@ -449,10 +451,9 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             GlobalVector u_s{
                 _coupled_solutions->coupled_xs[_mechanics_process1_id]};
 
-
-
             // u_p = 1/p * u_p - 1/p * u_s
-            MathLib::LinAlg::axpby(u_p, 1/_process_data.pressure,-1/_process_data.pressure, u_s);
+            MathLib::LinAlg::axpby(u_p, 1 / _process_data.pressure,
+                                   -1 / _process_data.pressure, u_s);
             MathLib::LinAlg::copy(
                 u_p, const_cast<GlobalVector&>(
                          _coupled_solutions->coupled_xs[_mechanics_process0_id]

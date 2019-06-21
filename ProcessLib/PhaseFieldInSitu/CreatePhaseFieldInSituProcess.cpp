@@ -25,7 +25,7 @@ namespace PhaseFieldInSitu
 {
 template <int DisplacementDim>
 std::unique_ptr<Process> createPhaseFieldInSituProcess(
-    MeshLib::Mesh& mesh,
+    std::string name, MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
@@ -237,13 +237,15 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
                                          named_function_caller);
 
     return std::make_unique<PhaseFieldInSituProcess<DisplacementDim>>(
-        mesh, std::move(jacobian_assembler), parameters, integration_order,
-        std::move(process_variables), std::move(process_data),
-        std::move(secondary_variables), std::move(named_function_caller),
-        mechanics_process0_id, mechanics_process1_id, phase_field_process_id);
+        std::move(name), mesh, std::move(jacobian_assembler), parameters,
+        integration_order, std::move(process_variables),
+        std::move(process_data), std::move(secondary_variables),
+        std::move(named_function_caller), mechanics_process0_id,
+        mechanics_process1_id, phase_field_process_id);
 }
 
 template std::unique_ptr<Process> createPhaseFieldInSituProcess<2>(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -254,7 +256,7 @@ template std::unique_ptr<Process> createPhaseFieldInSituProcess<2>(
     BaseLib::ConfigTree const& config);
 
 template std::unique_ptr<Process> createPhaseFieldInSituProcess<3>(
-    MeshLib::Mesh& mesh,
+    std::string name, MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,

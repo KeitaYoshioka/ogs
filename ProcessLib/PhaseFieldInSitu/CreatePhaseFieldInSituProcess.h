@@ -9,9 +9,9 @@
 
 #pragma once
 
+#include <boost/optional.hpp>
 #include <memory>
 #include <vector>
-#include<boost/optional.hpp>
 #include "ParameterLib/Utils.h"
 
 namespace BaseLib
@@ -26,19 +26,20 @@ namespace ParameterLib
 {
 struct CoordinateSystem;
 struct ParameterBase;
-}
+}  // namespace ParameterLib
 namespace ProcessLib
 {
 class AbstractJacobianAssembler;
 class Process;
 class ProcessVariable;
-}
+}  // namespace ProcessLib
 namespace ProcessLib
 {
 namespace PhaseFieldInSitu
 {
 template <int DisplacementDim>
 std::unique_ptr<Process> createPhaseFieldInSituProcess(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -49,6 +50,7 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
     BaseLib::ConfigTree const& config);
 
 extern template std::unique_ptr<Process> createPhaseFieldInSituProcess<2>(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -59,6 +61,7 @@ extern template std::unique_ptr<Process> createPhaseFieldInSituProcess<2>(
     BaseLib::ConfigTree const& config);
 
 extern template std::unique_ptr<Process> createPhaseFieldInSituProcess<3>(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,

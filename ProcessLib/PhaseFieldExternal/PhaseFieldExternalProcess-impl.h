@@ -25,6 +25,7 @@ namespace PhaseFieldExternal
 {
 template <int DisplacementDim>
 PhaseFieldExternalProcess<DisplacementDim>::PhaseFieldExternalProcess(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
@@ -36,7 +37,7 @@ PhaseFieldExternalProcess<DisplacementDim>::PhaseFieldExternalProcess(
     NumLib::NamedFunctionCaller&& named_function_caller,
     int const mechanics_related_process_id,
     int const phase_field_process_id)
-    : Process(mesh, std::move(jacobian_assembler), parameters,
+    : Process(std::move(name), mesh, std::move(jacobian_assembler), parameters,
               integration_order, std::move(process_variables),
               std::move(secondary_variables), std::move(named_function_caller),
               false),
@@ -291,8 +292,8 @@ void PhaseFieldExternalProcess<
 }
 
 template <int DisplacementDim>
-void PhaseFieldExternalProcess<DisplacementDim>::updateConstraints(GlobalVector& lower,
-                                                           GlobalVector& upper)
+void PhaseFieldExternalProcess<DisplacementDim>::updateConstraints(
+    GlobalVector& lower, GlobalVector& upper)
 {
     lower.setZero();
     MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);

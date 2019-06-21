@@ -25,10 +25,12 @@ class PhaseFieldInSituProcess final : public Process
 {
 public:
     PhaseFieldInSituProcess(
+        std::string name,
         MeshLib::Mesh& mesh,
         std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&&
             jacobian_assembler,
-        std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
+        std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const&
+            parameters,
         unsigned const integration_order,
         std::vector<std::vector<std::reference_wrapper<ProcessVariable>>>&&
             process_variables,
@@ -89,8 +91,7 @@ private:
 private:
     PhaseFieldInSituProcessData<DisplacementDim> _process_data;
 
-    std::vector<
-        std::unique_ptr<PhaseFieldInSituLocalAssemblerInterface>>
+    std::vector<std::unique_ptr<PhaseFieldInSituLocalAssemblerInterface>>
         _local_assemblers;
 
     std::unique_ptr<NumLib::LocalToGlobalIndexMap>
@@ -113,7 +114,6 @@ private:
 
     /// ID of phase field process.
     int const _phase_field_process_id;
-
 };
 
 extern template class PhaseFieldInSituProcess<2>;

@@ -25,7 +25,7 @@ namespace PhaseFieldExternal
 {
 template <int DisplacementDim>
 std::unique_ptr<Process> createPhaseFieldExternalProcess(
-    MeshLib::Mesh& mesh,
+    std::string name, MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
@@ -126,7 +126,8 @@ std::unique_ptr<Process> createPhaseFieldExternalProcess(
     DBUG("Use \'%s\' as solid density parameter.", solid_density.name.c_str());
 
     // Linear thermal expansion coefficient
-    auto& linear_thermal_expansion_coefficient = ParameterLib::findParameter<double>(
+    auto& linear_thermal_expansion_coefficient = ParameterLib::findParameter<
+        double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__PHASE_FIELD_EXTERNAL__reference__linear_thermal_expansion_coefficient}
         "linear_thermal_expansion_coefficient", parameters, 1);
@@ -235,13 +236,15 @@ std::unique_ptr<Process> createPhaseFieldExternalProcess(
                                          named_function_caller);
 
     return std::make_unique<PhaseFieldExternalProcess<DisplacementDim>>(
-        mesh, std::move(jacobian_assembler), parameters, integration_order,
-        std::move(process_variables), std::move(process_data),
-        std::move(secondary_variables), std::move(named_function_caller),
-        mechanics_related_process_id, phase_field_process_id);
+        std::move(name), mesh, std::move(jacobian_assembler), parameters,
+        integration_order, std::move(process_variables),
+        std::move(process_data), std::move(secondary_variables),
+        std::move(named_function_caller), mechanics_related_process_id,
+        phase_field_process_id);
 }
 
 template std::unique_ptr<Process> createPhaseFieldExternalProcess<2>(
+    std::string name,
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -252,7 +255,7 @@ template std::unique_ptr<Process> createPhaseFieldExternalProcess<2>(
     BaseLib::ConfigTree const& config);
 
 template std::unique_ptr<Process> createPhaseFieldExternalProcess<3>(
-    MeshLib::Mesh& mesh,
+    std::string name, MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,

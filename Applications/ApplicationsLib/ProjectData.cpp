@@ -665,7 +665,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 case 2:
                     process = ProcessLib::PhaseFieldExternal::
                         createPhaseFieldExternalProcess<2>(
-                            *_mesh_vec[0], std::move(jacobian_assembler),
+                            name, *_mesh_vec[0], std::move(jacobian_assembler),
                             _process_variables, _parameters,
                             _local_coordinate_system, integration_order,
                             process_config);
@@ -673,7 +673,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 case 3:
                     process = ProcessLib::PhaseFieldExternal::
                         createPhaseFieldExternalProcess<3>(
-                            *_mesh_vec[0], std::move(jacobian_assembler),
+                            name, *_mesh_vec[0], std::move(jacobian_assembler),
                             _process_variables, _parameters,
                             _local_coordinate_system, integration_order,
                             process_config);
@@ -736,7 +736,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 case 2:
                     process = ProcessLib::PhaseFieldInSitu::
                         createPhaseFieldInSituProcess<2>(
-                            *_mesh_vec[0], std::move(jacobian_assembler),
+                            name, *_mesh_vec[0], std::move(jacobian_assembler),
                             _process_variables, _parameters,
                             _local_coordinate_system, integration_order,
                             process_config);
@@ -744,7 +744,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 case 3:
                     process = ProcessLib::PhaseFieldInSitu::
                         createPhaseFieldInSituProcess<3>(
-                            *_mesh_vec[0], std::move(jacobian_assembler),
+                            name, *_mesh_vec[0], std::move(jacobian_assembler),
                             _process_variables, _parameters,
                             _local_coordinate_system, integration_order,
                             process_config);
