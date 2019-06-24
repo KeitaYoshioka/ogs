@@ -40,8 +40,9 @@ struct HydroMechanicalPhaseFieldProcessData
         ParameterLib::Parameter<double> const& crack_length_scale_,
         ParameterLib::Parameter<double> const& solid_density_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        int split_method_, double const pf_irrv_, double const li_disc_,
-        double const cum_grad_d_CutOff_, int const at_param_,
+        int split_method_, double const reg_param_, double const pf_irrv_,
+        double const li_disc_, double const cum_grad_d_CutOff_,
+        int const at_param_,
         ParameterLib::Parameter<double> const& intrinsic_permeability_,
         ParameterLib::Parameter<double> const& fluid_viscosity_,
         ParameterLib::Parameter<double> const& fluid_density_,
@@ -58,6 +59,7 @@ struct HydroMechanicalPhaseFieldProcessData
           solid_density(solid_density_),
           specific_body_force(specific_body_force_),
           split_method(split_method_),
+          reg_param(reg_param_),
           pf_irrv(pf_irrv_),
           li_disc(li_disc_),
           cum_grad_d_CutOff(cum_grad_d_CutOff_),
@@ -98,6 +100,7 @@ struct HydroMechanicalPhaseFieldProcessData
     ParameterLib::Parameter<double> const& solid_density;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     int split_method = 0;
+    double reg_param = 0.01;
     double const pf_irrv = 0.05;
     double const li_disc = 60;
     double cum_grad_d_CutOff = 0.5;

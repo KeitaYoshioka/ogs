@@ -165,10 +165,6 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
         std::copy_n(b.data(), b.size(), specific_body_force.data());
     }
 
-    auto pf_irrv_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD_INSITU__pf_irrv}
-        config.getConfigParameterOptional<double>("pf_irrv");
-
     auto const crack_scheme =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD_INSITU__hydro_crack_scheme}
         config.getConfigParameterOptional<std::string>("hydro_crack_scheme");
@@ -187,6 +183,19 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
         (crack_scheme &&
          ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
 
+    auto reg_param_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__reg_param}
+        config.getConfigParameterOptional<double>("reg_param");
+
+    double reg_param;
+    if (reg_param_read)
+        reg_param = *reg_param_read;
+    else
+        reg_param = 0.01;
+
+    auto pf_irrv_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD_INSITU__pf_irrv}
+        config.getConfigParameterOptional<double>("pf_irrv");
     double pf_irrv;
     if (pf_irrv_read)
         pf_irrv = *pf_irrv_read;
@@ -225,6 +234,7 @@ std::unique_ptr<Process> createPhaseFieldInSituProcess(
         propagating_crack,
         split_method,
         crack_pressure,
+        reg_param,
         pf_irrv,
         at_param};
 

@@ -79,6 +79,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         local_b_data, displacement_size);
 
     double const& dt = _process_data.dt;
+    double const& reg_param = _process_data.reg_param;
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -137,9 +138,9 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto const C_eff = degradation * C_tensile + C_compressive;
         eps.noalias() = B * u;
-        _ip_data[ip].updateConstitutiveRelation(t, x_position, dt, u, alpha,
-                                                delta_T, degradation,
-                                                _process_data.split_method);
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, alpha, delta_T, degradation,
+            _process_data.split_method, reg_param);
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                         displacement_size>

@@ -18,9 +18,9 @@
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
+#include "ParameterLib/SpatialPosition.h"
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
 #include "ProcessLib/Deformation/LinearBMatrix.h"
-#include "ParameterLib/SpatialPosition.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
 #include "LocalAssemblerInterface.h"
@@ -70,13 +70,12 @@ struct IntegrationPointData final
         MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value>;
 
     template <typename DisplacementVectorType>
-    void updateConstitutiveRelation(double const t, ParameterLib::SpatialPosition const& x,
-                                    double const /*dt*/,
-                                    DisplacementVectorType const& /*u*/,
-                                    double const /*alpha*/, double const /*delta_T*/,
-                                    double const degradation, int split)
+    void updateConstitutiveRelation(
+        double const t, ParameterLib::SpatialPosition const& x,
+        double const /*dt*/, DisplacementVectorType const& /*u*/,
+        double const /*alpha*/, double const /*delta_T*/,
+        double const degradation, int split, double const reg_param)
     {
-
         auto linear_elastic_mp =
             static_cast<MaterialLib::Solids::LinearElasticIsotropic<
                 DisplacementDim> const&>(solid_material)
@@ -90,10 +89,11 @@ struct IntegrationPointData final
             C_compressive = BMatricesType::KelvinMatrixType::Zero(
                 kelvin_vector_size, kelvin_vector_size);
 
-            std::tie(sigma_eff, sigma_eff_tensile, C_tensile, strain_energy_tensile,
-                     elastic_energy) = MaterialLib::Solids::Phasefield::
-                calculateIsotropicDegradedStress<DisplacementDim>(
-                    degradation, bulk_modulus, mu, eps);
+            std::tie(sigma_eff, sigma_eff_tensile, C_tensile,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::
+                    calculateIsotropicDegradedStress<DisplacementDim>(
+                        degradation, bulk_modulus, mu, eps);
         }
         else if (split == 1)
         {
@@ -101,6 +101,14 @@ struct IntegrationPointData final
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
                     DisplacementDim>(degradation, bulk_modulus, mu, eps);
+        }
+        else if (split == 2)
+        {
+            std::tie(sigma_eff, sigma_eff_tensile, C_tensile, C_compressive,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::
+                    calculateDegradedStressAmor_reg<DisplacementDim>(
+                        degradation, bulk_modulus, mu, eps, reg_param);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

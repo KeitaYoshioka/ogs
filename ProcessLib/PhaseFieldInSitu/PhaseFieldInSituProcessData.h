@@ -42,7 +42,8 @@ struct PhaseFieldInSituProcessData
         ParameterLib::Parameter<double> const& solid_density_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         bool const propagating_crack_, int const split_method_,
-        bool const crack_pressure_, double const pf_irrv_, int const at_param_)
+        bool const crack_pressure_, double const reg_param_,
+        double const pf_irrv_, int const at_param_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
@@ -52,6 +53,7 @@ struct PhaseFieldInSituProcessData
           specific_body_force(specific_body_force_),
           propagating_crack(propagating_crack_),
           crack_pressure(crack_pressure_),
+          reg_param(reg_param_),
           pf_irrv(pf_irrv_),
           at_param(at_param_),
           split_method(split_method_)
@@ -93,6 +95,7 @@ struct PhaseFieldInSituProcessData
     double pressure_work = 0.0;
     bool propagating_crack = false;
     bool crack_pressure = false;
+    double reg_param = 0.01;
     double pf_irrv = 0.05;
     int at_param = 2;
     int split_method = 0;

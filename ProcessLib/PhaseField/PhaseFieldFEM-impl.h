@@ -77,6 +77,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
+    double const& reg_param = _process_data.reg_param;
 
     auto local_pressure = 0.0;
     if (_process_data.crack_pressure)
@@ -124,7 +125,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             degradation = ele_d * ele_d * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method);
+            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
 
         auto& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -182,6 +183,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
+    double const& reg_param = _process_data.reg_param;
 
     auto local_pressure = 0.0;
     if (_process_data.crack_pressure)
@@ -236,7 +238,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             auto& eps = _ip_data[ip].eps;
             eps.noalias() = B * u;
             _ip_data[ip].updateConstitutiveRelation(
-                t, x_position, dt, u, degradation, _process_data.split_method);
+                t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
         }
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;

@@ -189,6 +189,16 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         (crack_scheme &&
          ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
 
+    auto reg_param_read =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__reg_param}
+        config.getConfigParameterOptional<double>("reg_param");
+
+    double reg_param;
+    if (reg_param_read)
+        reg_param = *reg_param_read;
+    else
+        reg_param = 0.01;
+
     auto pf_irrv_read =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
         config.getConfigParameterOptional<double>("pf_irrv");
@@ -245,6 +255,7 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         split_method,
         secant_method,
         crack_pressure,
+        reg_param,
         pf_irrv,
         at_param};
 

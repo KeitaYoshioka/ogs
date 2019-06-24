@@ -94,6 +94,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         local_b_data, displacement_size);
 
     double const& dt = _process_data.dt;
+    double const& reg_param = _process_data.reg_param;
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -130,7 +131,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const p_ip = N.dot(p);
         double const degradation = ele_d * ele_d * (1 - k) + k;
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method);
+            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
 
         auto const& sigma_eff = _ip_data[ip].sigma_eff;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -348,6 +349,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
     double const& dt = _process_data.dt;
+    double const& reg_param = _process_data.reg_param;
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
     double ele_d = 0.0;
@@ -386,7 +388,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method);
+            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 

@@ -47,7 +47,7 @@ struct PhaseFieldExternalProcessData
         ParameterLib::Parameter<double> const& biot_coefficient_,
         double const reference_temperature_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
-        int const split_method_, double const pf_irrv_, int const at_param_)
+        int const split_method_,double const reg_param_, double const pf_irrv_, int const at_param_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
           residual_stiffness(residual_stiffness_),
@@ -62,6 +62,7 @@ struct PhaseFieldExternalProcessData
           reference_temperature(reference_temperature_),
           specific_body_force(specific_body_force_),
           split_method(split_method_),
+          reg_param(reg_param_),
           pf_irrv(pf_irrv_),
           at_param(at_param_)
     {
@@ -98,6 +99,7 @@ struct PhaseFieldExternalProcessData
     double dt;
     double t;
     int split_method = 0;
+    double reg_param = 0.01;
     double pf_irrv = 0.05;
     int at_param = 2;
 };
