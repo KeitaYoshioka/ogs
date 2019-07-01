@@ -228,6 +228,10 @@ std::unique_ptr<Process> createPhaseFieldProcess(
     int split_method;
     if (split && (*split == 1))
         split_method = 1;
+    else if (split && (*split == 2))
+        split_method = 2;
+    else if (split && (*split == 3))
+        split_method = 3;
     else
         split_method = 0;
 
