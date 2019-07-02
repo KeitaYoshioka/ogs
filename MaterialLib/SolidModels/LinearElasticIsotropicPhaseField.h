@@ -51,13 +51,11 @@ inline double Macaulay_neg(double v)
 // compressive
 inline double Macaulay_pos_reg(double v, double reg_param)
 {
-        return v * Heaviside(v);
-//    return v * Heaviside_reg(v, reg_param);
+    return v * Heaviside_reg(v, reg_param);
 }
 inline double Macaulay_neg_reg(double v, double reg_param)
 {
-        return v * (1 - Heaviside(v));
-//    return v * (1 - Heaviside_reg(v, reg_param));
+    return v * (1 - Heaviside_reg(v, reg_param));
 }
 
 inline double evaluateHPos(int const i, int const j,
