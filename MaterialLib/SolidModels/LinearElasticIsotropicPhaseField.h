@@ -33,7 +33,7 @@ inline double Heaviside(double v)
 // Regularized Heaviside step function
 inline double Heaviside_reg(double v, double reg_param)
 {
-        if (v < 0)
+        if (v <= 0)
                 return 0.0;
         else {
            return 1.0;
