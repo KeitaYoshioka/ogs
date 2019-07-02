@@ -33,7 +33,7 @@ inline double Heaviside(double v)
 // Regularized Heaviside step function
 inline double Heaviside_reg(double v, double reg_param)
 {
-    return 1/ (1 + std::exp(-(v+10*reg_param) / reg_param));
+    return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
 }
 
 // Macaulay brackets: positive for tensile and negative for compressive
@@ -311,13 +311,13 @@ calculateDegradedStressAmor_reg(
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
 
     double const strain_energy_tensile =
-        bulk_modulus / 2 * Macaulay_pos_reg(eps_curr_trace, reg_param) *
-            Macaulay_pos_reg(eps_curr_trace, reg_param) +
+        bulk_modulus / 2 *
+            boost::math::pow<2>(Macaulay_pos_reg(eps_curr_trace, reg_param)) +
         mu * epsd_curr.transpose() * epsd_curr;
 
     double const strain_energy_compressive =
-        bulk_modulus / 2 * Macaulay_neg_reg(eps_curr_trace, reg_param) *
-        Macaulay_neg_reg(eps_curr_trace, reg_param);
+        bulk_modulus / 2 *
+        boost::math::pow<2>(Macaulay_neg_reg(eps_curr_trace, reg_param));
 
     KelvinVector const sigma_tensile =
         bulk_modulus * Macaulay_pos_reg(eps_curr_trace, reg_param) *
