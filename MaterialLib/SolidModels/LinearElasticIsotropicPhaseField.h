@@ -33,7 +33,8 @@ inline double Heaviside(double v)
 // Regularized Heaviside step function
 inline double Heaviside_reg(double v, double reg_param)
 {
-    return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
+        return (v < 0) ? 0.0 : 1.0;
+//    return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
 }
 
 // Macaulay brackets: positive for tensile and negative for compressive
