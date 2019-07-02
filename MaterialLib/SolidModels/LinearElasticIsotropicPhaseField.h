@@ -34,8 +34,9 @@ inline double Heaviside(double v)
 inline double Heaviside_reg(double v, double reg_param)
 {
     if (v < 0)
-        return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
-    else
+        return 1 / (1 + std::exp(-v / reg_param));
+    else if (v==0)
+        return 0.99;
     {
         return 1.0;
     }
