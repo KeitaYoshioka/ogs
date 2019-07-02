@@ -33,12 +33,13 @@ inline double Heaviside(double v)
 // Regularized Heaviside step function
 inline double Heaviside_reg(double v, double reg_param)
 {
-        if (v <= 0)
-                return 0.0;
-        else {
-           return 1.0;
-        }
-//    return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
+    if (v < 0)
+        return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
+    else
+    {
+        return 1.0;
+    }
+    //    return 1 / (1 + std::exp(-(v + 10 * reg_param) / reg_param));
 }
 
 // Macaulay brackets: positive for tensile and negative for compressive
@@ -334,7 +335,7 @@ calculateDegradedStressAmor_reg(
         Invariants::identity2;
 
     C_tensile.template topLeftCorner<3, 3>().setConstant(
-        bulk_modulus * Heaviside_reg(eps_curr_trace,reg_param));
+        bulk_modulus * Heaviside_reg(eps_curr_trace, reg_param));
     C_tensile.noalias() += 2 * mu * P_dev * KelvinMatrix::Identity();
 
     C_compressive.template topLeftCorner<3, 3>().setConstant(
