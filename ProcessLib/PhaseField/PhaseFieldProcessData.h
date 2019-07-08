@@ -59,7 +59,7 @@ struct PhaseFieldProcessData
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
-    double reg_param = 0.01;
+    double reg_param = -0.01;
     double pf_irrv = 0.05;
     int at_param = 2;
     int split_method = 0;

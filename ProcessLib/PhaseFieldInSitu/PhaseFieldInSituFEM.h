@@ -84,6 +84,7 @@ struct IntegrationPointData final
 
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
+        auto const lambda = linear_elastic_mp.lambda(t, x);
 
         if (split == 0)
         {
@@ -100,15 +101,15 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps);
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps,
+                                     reg_param);
         }
         else if (split == 2)
         {
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
-                MaterialLib::Solids::Phasefield::calculateDegradedStressAmor_reg<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps,
-                                     reg_param);
+                MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

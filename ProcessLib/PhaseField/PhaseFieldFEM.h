@@ -101,22 +101,14 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps);
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps, reg_param);
         }
         else if (split == 2)
         {
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
-                MaterialLib::Solids::Phasefield::
-                    calculateDegradedStressAmor_reg<DisplacementDim>(
-                        degradation, bulk_modulus, mu, eps, reg_param);
-        }
-        else if (split == 3)
-        {
-            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
-                     strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
-                    DisplacementDim>(degradation, lambda, mu, eps);
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
