@@ -173,7 +173,7 @@ calculateDegradedStressMiehe(
     };
 
     auto m_neg = [&](double const v) {
-        return reg_param >= 0.0 ? Macaulay_neg(v)
+        return reg_param < 0.0 ? Macaulay_neg(v)
                                 : Macaulay_neg_reg(v, reg_param);
     };
 
@@ -279,7 +279,7 @@ calculateDegradedStressAmor(
     };
 
     auto m_neg = [&](double const v) {
-        return reg_param >= 0.0 ? Macaulay_neg(v)
+        return reg_param < 0.0 ? Macaulay_neg(v)
                                 : Macaulay_neg_reg(v, reg_param);
     };
 
