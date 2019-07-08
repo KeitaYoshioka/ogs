@@ -84,6 +84,7 @@ struct IntegrationPointData final
 
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
+        auto const lambda = linear_elastic_mp.lambda(t,x);
 
         if (split == 0)
         {
@@ -115,7 +116,7 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps);
+                    DisplacementDim>(degradation, lambda, mu, eps);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

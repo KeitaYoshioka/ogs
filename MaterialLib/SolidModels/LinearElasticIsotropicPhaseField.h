@@ -116,7 +116,7 @@ std::tuple<MathLib::KelvinVector::KelvinVectorType<
            >
 calculateDegradedStressMiehe(
     double const degradation,
-    double const bulk_modulus,
+    double const lambda,
     double const mu,
     MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& eps)
 {
@@ -129,9 +129,6 @@ calculateDegradedStressMiehe(
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     auto const& identity2 = Invariants::identity2;
 
-    // Hydrostatic part for the stress and the tangent.
-    double const eps_curr_trace = Invariants::trace(eps);
-
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
 
@@ -141,10 +138,6 @@ calculateDegradedStressMiehe(
     Eigen::EigenSolver<decltype(eps_tensor)> eigen_solver(eps_tensor);
     Eigen::Matrix<double, 3, 1> const principal_strain =
         eigen_solver.eigenvalues().real();
-    //    auto const eigen_vectors = eigen_solver.eigenvectors().real();
-    //        auto eigen_vectors =
-    //        eigen_solver.eigenvectors().real().col().normalized();
-    //        eigen_vectors.col(0).normalize();
     double const sum_strain = principal_strain.sum();
 
     std::array<KelvinVector, 3> M_kelvin;
@@ -160,7 +153,7 @@ calculateDegradedStressMiehe(
         auto macaulay_squared = [&macaulay](double x) {
             return boost::math::pow<2>(macaulay(x));
         };
-        return bulk_modulus / 2 * macaulay_squared(sum_strain) +
+        return lambda / 2 * macaulay_squared(sum_strain) +
                mu * principal_strain.unaryExpr(macaulay_squared).sum();
     };
 
@@ -171,9 +164,9 @@ calculateDegradedStressMiehe(
         strain_energy_computation(Macaulay_neg);
 
     auto stress_computation = [&](auto&& macaulay) {
-        KelvinVector stress = bulk_modulus * macaulay(sum_strain) * identity2;
-        for (int i = 0; i < DisplacementDim; i++)
-            stress += mu * principal_strain[i] * M_kelvin[i];
+        KelvinVector stress = lambda * macaulay(sum_strain) * identity2;
+        for (int i = 0; i < 3; i++)
+            stress += 2 * mu * macaulay(principal_strain[i]) * M_kelvin[i];
         return stress;
     };
 
@@ -181,26 +174,30 @@ calculateDegradedStressMiehe(
 
     KelvinVector const sigma_compressive = stress_computation(Macaulay_neg);
 
-    C_tensile.template topLeftCorner<3, 3>().setConstant(bulk_modulus *
+    C_tensile.template topLeftCorner<3, 3>().setConstant(lambda *
                                                          Heaviside(sum_strain));
-    for (int i = 0; i < DisplacementDim; i++)
+    for (int i = 0; i < 3; i++)
     {
         C_tensile.noalias() += 2 * mu * Heaviside(principal_strain[i]) *
                                M_kelvin[i] * M_kelvin[i].transpose();
-        for (int j = 0; j < DisplacementDim; j++)
+        for (int j = 0; j < 3; j++)
+        {
+            auto H = evaluateHPos(i, j, principal_strain);
+            auto ModotM = aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
             C_tensile.noalias() +=
                 mu * evaluateHPos(i, j, principal_strain) *
                 aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
+        }
     }
 
     C_compressive.template topLeftCorner<3, 3>().setConstant(
-        bulk_modulus * (1 - Heaviside(eps_curr_trace)));
-    for (int i = 0; i < DisplacementDim; i++)
+        lambda * (1 - Heaviside(sum_strain)));
+    for (int i = 0; i < 3; i++)
     {
         C_compressive.noalias() += 2 * mu *
                                    (1 - Heaviside(principal_strain[i])) *
                                    M_kelvin[i] * M_kelvin[i].transpose();
-        for (int j = 0; j < DisplacementDim; j++)
+        for (int j = 0; j < 3; j++)
             C_compressive.noalias() +=
                 mu * evaluateHNeg(i, j, principal_strain) *
                 aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);

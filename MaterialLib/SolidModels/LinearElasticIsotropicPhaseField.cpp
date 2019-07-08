@@ -47,7 +47,7 @@ MathLib::KelvinVector::KelvinMatrixType<3> aOdotB<3>(
         (A(3) * B(5) + A(5) * B(3)) / 4. +
         (A(0) * B(4) + A(4) * B(0)) / (2. * std::sqrt(2.));
 
-    result(4, 4) = (A(1) * B(2) + A(2) * A(1) + A(4) * B(4)) / 2.;
+    result(4, 4) = (A(1) * B(2) + B(2) * A(1) + A(4) * B(4)) / 2.;
     result(4, 5) = result(5, 4) =
         (A(4) * B(5) + A(5) * B(4)) / 4. +
         (A(2) * B(3) + A(3) * B(2)) / (2. * std::sqrt(2.));
