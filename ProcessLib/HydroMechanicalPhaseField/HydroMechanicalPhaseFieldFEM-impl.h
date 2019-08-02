@@ -131,7 +131,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const p_ip = N.dot(p);
         double const degradation = ele_d * ele_d * (1 - k) + k;
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
 
         auto const& sigma_eff = _ip_data[ip].sigma_eff;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -748,8 +749,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
-//            if (mesh_item_id == 2652 && count_i == 1)
-//                DBUG("here");
+            //            if (mesh_item_id == 2652 && count_i == 1)
+            //                DBUG("here");
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -827,8 +828,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 break;
             }
 
-//            if (mesh_item_id == 2652 && count_i == 1)
-//                DBUG("here");
+            //            if (mesh_item_id == 2652 && count_i == 1)
+            //                DBUG("here");
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -877,7 +878,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             //                                        current_ele_grad_d.normalized());
         }
         if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
-            count_frac_elem > 10)
+            count_frac_elem > 1)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
         temporal = deviation;
