@@ -24,7 +24,6 @@ MathLib::KelvinVector::KelvinMatrixType<DisplacementDim> aOdotB(
     MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& A,
     MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& B);
 
-// Heaviside step function
 inline double Heaviside(double const v)
 {
     return (v < 0) ? 0.0 : 1.0;
@@ -43,28 +42,28 @@ inline double Heaviside_reg(double const v, double const reg_param)
         return 1.0;
 }
 
-// Macaulay brackets: positive for tensile and negative for compressive
-inline double Macaulay_pos(double const v)
+
+// Macaulay brackets: strain is positive for tensile and negative for compressive
+inline double Macaulay_tens(double const v)
 {
     return v * Heaviside(v);
 }
-inline double Macaulay_neg(double v)
+inline double Macaulay_comp(double v)
 {
     return v * (1 - Heaviside(v));
 }
 
-// Regularized Macaulay bracket: positive for tensile and negative for
-// compressive
-inline double Macaulay_pos_reg(double v, double reg_param)
+// Regularized Macaulay bracket: strain is negative for tensile and positive for compressive
+inline double Macaulay_tens_reg(double v, double reg_param)
 {
     return v * Heaviside_reg(v, reg_param);
 }
-inline double Macaulay_neg_reg(double v, double reg_param)
+inline double Macaulay_comp_reg(double v, double reg_param)
 {
     return v * (1 - Heaviside_reg(v, reg_param));
 }
 
-inline double evaluateHPos(int const i, int const j,
+inline double evaluateHTens(int const i, int const j,
                            Eigen::Matrix<double, 3, 1> const& principal_strain)
 {
     if (i == j)
@@ -77,12 +76,12 @@ inline double evaluateHPos(int const i, int const j,
         return 2 * Heaviside(principal_strain[i]);
     }
     return 2 *
-           (Macaulay_pos(principal_strain[i]) -
-            Macaulay_pos(principal_strain[j])) /
+           (Macaulay_tens(principal_strain[i]) -
+            Macaulay_tens(principal_strain[j])) /
            (principal_strain[i] - principal_strain[j]);
 }
 
-inline double evaluateHNeg(int const i, int const j,
+inline double evaluateHComp(int const i, int const j,
                            Eigen::Matrix<double, 3, 1> const& principal_strain)
 {
     if (i == j)
@@ -95,8 +94,8 @@ inline double evaluateHNeg(int const i, int const j,
         return 2 * (1 - Heaviside(principal_strain[i]));
     }
     return 2 *
-           (Macaulay_neg(principal_strain[i]) -
-            Macaulay_neg(principal_strain[j])) /
+           (Macaulay_comp(principal_strain[i]) -
+            Macaulay_comp(principal_strain[j])) /
            (principal_strain[i] - principal_strain[j]);
 }
 
@@ -130,6 +129,7 @@ calculateDegradedStressMiehe(
 
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
+
 
     // non-const for Eigen solver.
     auto eps_tensor = MathLib::KelvinVector::kelvinVectorToTensor(eps);
@@ -167,23 +167,23 @@ calculateDegradedStressMiehe(
         return reg_param < 0.0 ? Heaviside(v) : Heaviside_reg(v, reg_param);
     };
 
-    auto m_pos = [&](double const v) {
-        return reg_param < 0.0 ? Macaulay_pos(v)
-                               : Macaulay_pos_reg(v, reg_param);
+    auto m_tens = [&](double const v) {
+        return reg_param < 0.0 ? Macaulay_tens(v)
+                               : Macaulay_tens_reg(v, reg_param);
     };
 
-    auto m_neg = [&](double const v) {
-        return reg_param < 0.0 ? Macaulay_neg(v)
-                                : Macaulay_neg_reg(v, reg_param);
+    auto m_comp = [&](double const v) {
+        return reg_param < 0.0 ? Macaulay_comp(v)
+                               : Macaulay_comp_reg(v, reg_param);
     };
 
-    double const strain_energy_tensile = strain_energy_computation(m_pos);
+    double const strain_energy_tensile = strain_energy_computation(m_tens);
 
-    double const strain_energy_compressive = strain_energy_computation(m_neg);
+    double const strain_energy_compressive = strain_energy_computation(m_comp);
 
-    KelvinVector const sigma_tensile = stress_computation(m_pos);
+    KelvinVector const sigma_tensile = stress_computation(m_tens);
 
-    KelvinVector const sigma_compressive = stress_computation(m_neg);
+    KelvinVector const sigma_compressive = stress_computation(m_comp);
 
     C_tensile.template topLeftCorner<3, 3>().setConstant(lambda *
                                                          hs(sum_strain));
@@ -194,7 +194,7 @@ calculateDegradedStressMiehe(
         for (int j = 0; j < 3; j++)
         {
             C_tensile.noalias() +=
-                mu * evaluateHPos(i, j, principal_strain) *
+                mu * evaluateHTens(i, j, principal_strain) *
                 aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
         }
     }
@@ -207,7 +207,7 @@ calculateDegradedStressMiehe(
                                    M_kelvin[i] * M_kelvin[i].transpose();
         for (int j = 0; j < 3; j++)
             C_compressive.noalias() +=
-                mu * evaluateHNeg(i, j, principal_strain) *
+                mu * evaluateHComp(i, j, principal_strain) *
                 aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
     }
 
@@ -273,26 +273,26 @@ calculateDegradedStressAmor(
         return reg_param < 0.0 ? Heaviside(v) : Heaviside_reg(v, reg_param);
     };
 
-    auto m_pos = [&](double const v) {
-        return reg_param < 0.0 ? Macaulay_pos(v)
-                               : Macaulay_pos_reg(v, reg_param);
+    auto m_tens = [&](double const v) {
+        return reg_param < 0.0 ? Macaulay_tens(v)
+                               : Macaulay_tens_reg(v, reg_param);
     };
 
-    auto m_neg = [&](double const v) {
-        return reg_param < 0.0 ? Macaulay_neg(v)
-                                : Macaulay_neg_reg(v, reg_param);
+    auto m_comp = [&](double const v) {
+        return reg_param < 0.0 ? Macaulay_comp(v)
+                               : Macaulay_comp_reg(v, reg_param);
     };
 
-    double const strain_energy_tensile = strain_energy_computation_vol(m_pos) +
+    double const strain_energy_tensile = strain_energy_computation_vol(m_tens) +
                                          mu * epsd_curr.transpose() * epsd_curr;
 
     double const strain_energy_compressive =
-        strain_energy_computation_vol(m_neg);
+        strain_energy_computation_vol(m_comp);
 
     KelvinVector const sigma_tensile =
-        stress_computation_vol(m_pos) + 2 * mu * epsd_curr;
+        stress_computation_vol(m_tens) + 2 * mu * epsd_curr;
 
-    KelvinVector const sigma_compressive = stress_computation_vol(m_neg);
+    KelvinVector const sigma_compressive = stress_computation_vol(m_comp);
 
     C_tensile.template topLeftCorner<3, 3>().setConstant(bulk_modulus *
                                                          hs(eps_curr_trace));
@@ -300,74 +300,6 @@ calculateDegradedStressAmor(
 
     C_compressive.template topLeftCorner<3, 3>().setConstant(
         bulk_modulus * (1 - hs(eps_curr_trace)));
-
-    double const elastic_energy =
-        degradation * strain_energy_tensile + strain_energy_compressive;
-
-    KelvinVector const sigma_real =
-        degradation * sigma_tensile + sigma_compressive;
-
-    return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
-                           strain_energy_tensile, elastic_energy);
-}
-
-template <int DisplacementDim>
-std::tuple<MathLib::KelvinVector::KelvinVectorType<
-               DisplacementDim> /* sigma_real */,
-           MathLib::KelvinVector::KelvinVectorType<
-               DisplacementDim> /* sigma_tensile */,
-           MathLib::KelvinVector::KelvinMatrixType<
-               DisplacementDim> /* C_tensile */,
-           MathLib::KelvinVector::KelvinMatrixType<
-               DisplacementDim> /* C_compressive */,
-           double /* strain_energy_tensile */, double /* elastic_energy */
-           >
-calculateDegradedStressAmor_reg(
-    double const degradation, double const bulk_modulus, double const mu,
-    MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& eps,
-    double const reg_param)
-{
-    static int const KelvinVectorSize =
-        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
-    using KelvinVector =
-        MathLib::KelvinVector::KelvinVectorType<DisplacementDim>;
-    using KelvinMatrix =
-        MathLib::KelvinVector::KelvinMatrixType<DisplacementDim>;
-    using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
-    // calculation of deviatoric parts
-    auto const& P_dev = Invariants::deviatoric_projection;
-    KelvinVector const epsd_curr = P_dev * eps;
-
-    // Hydrostatic part for the stress and the tangent.
-    double const eps_curr_trace = Invariants::trace(eps);
-
-    KelvinMatrix C_tensile = KelvinMatrix::Zero();
-    KelvinMatrix C_compressive = KelvinMatrix::Zero();
-
-    double const strain_energy_tensile =
-        bulk_modulus / 2 *
-            boost::math::pow<2>(Macaulay_pos_reg(eps_curr_trace, reg_param)) +
-        mu * epsd_curr.transpose() * epsd_curr;
-
-    double const strain_energy_compressive =
-        bulk_modulus / 2 *
-        boost::math::pow<2>(Macaulay_neg_reg(eps_curr_trace, reg_param));
-
-    KelvinVector const sigma_tensile =
-        bulk_modulus * Macaulay_pos_reg(eps_curr_trace, reg_param) *
-            Invariants::identity2 +
-        2 * mu * epsd_curr;
-
-    KelvinVector const sigma_compressive =
-        bulk_modulus * Macaulay_neg_reg(eps_curr_trace, reg_param) *
-        Invariants::identity2;
-
-    C_tensile.template topLeftCorner<3, 3>().setConstant(
-        bulk_modulus * Heaviside_reg(eps_curr_trace, reg_param));
-    C_tensile.noalias() += 2 * mu * P_dev * KelvinMatrix::Identity();
-
-    C_compressive.template topLeftCorner<3, 3>().setConstant(
-        bulk_modulus * (1 - Heaviside_reg(eps_curr_trace, reg_param)));
 
     double const elastic_energy =
         degradation * strain_energy_tensile + strain_energy_compressive;
