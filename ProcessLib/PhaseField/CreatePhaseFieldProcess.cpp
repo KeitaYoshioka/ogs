@@ -189,6 +189,21 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         (crack_scheme &&
          ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
 
+
+    auto const crack_vol_scheme =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__crack_vol_scheme}
+        config.getConfigParameterOptional<std::string>("crack_vol_scheme");
+    if (crack_vol_scheme &&
+        ((*crack_vol_scheme != "constant") && (*crack_scheme != "evolving")))
+    {
+        OGS_FATAL(
+            "crack_vol_scheme must be 'constant' or 'evolving' but "
+            "'%s' was given",
+            crack_vol_scheme->c_str());
+    }
+    const bool constant_crack_vol =
+        (crack_vol_scheme && (*crack_vol_scheme == "constant"));
+
     auto reg_param_read =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__reg_param}
         config.getConfigParameterOptional<double>("reg_param");
@@ -256,6 +271,7 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         history_field,
         specific_body_force,
         propagating_crack,
+        constant_crack_vol,
         split_method,
         secant_method,
         crack_pressure,

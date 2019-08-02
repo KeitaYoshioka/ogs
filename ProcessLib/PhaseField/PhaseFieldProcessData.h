@@ -54,11 +54,12 @@ struct PhaseFieldProcessData
     double pressure_error = 0.0;
     double injected_volume = 0.0;
     double crack_volume = 0.0;
-    double pressure_n = 0.0, pressure_nm1=0.0;
-    double crack_volume_n = 0.0, crack_volume_nm1=0.0;
+    double pressure_n = 0.0, pressure_nm1 = 0.0;
+    double crack_volume_n = 0.0, crack_volume_nm1 = 0.0;
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
+    bool constant_crack_vol = false;
     double reg_param = -0.01;
     double pf_irrv = 0.05;
     int at_param = 2;

@@ -244,8 +244,15 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
     const int process_id)
 {
     DBUG("PreTimestep PhaseFieldProcess %d.", process_id);
-
+    if (_process_data.constant_crack_vol)
+    {
+        if (t == dt)
+            _process_data.injected_volume = dt;
+        DBUG("Injected volume: %g, %g, %g ", _process_data.injected_volume, t, dt);
+    }
+    else
     _process_data.injected_volume = t;
+
     _x_previous_timestep =
         MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
 
@@ -335,6 +342,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
                   MPI_SUM, PETSC_COMM_WORLD);
 #endif
     INFO("Integral of crack: %g", _process_data.crack_volume);
+
 
     DBUG("PostNonLinearSolver update pressure.");
     if (!_process_data.propagating_crack)
