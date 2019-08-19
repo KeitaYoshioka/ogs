@@ -53,7 +53,7 @@ inline double Macaulay_comp(double v)
     return v * (1 - Heaviside(v));
 }
 
-// Regularized Macaulay bracket: strain is negative for tensile and positive for compressive
+// Macaulay brackets: strain is positive for tensile and negative for compressive
 inline double Macaulay_tens_reg(double v, double reg_param)
 {
     return v * Heaviside_reg(v, reg_param);

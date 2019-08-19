@@ -101,6 +101,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
+        double const d_ip = N.dot(d);
 
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
@@ -122,10 +123,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
         // ATn
         else
-            degradation = ele_d * ele_d * (1 - k) + k;
+            degradation =
+                d_ip * d_ip * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
 
         auto& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -210,36 +213,41 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
+        double const d_ip = N.dot(d);
 
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
+        auto& eps = _ip_data[ip].eps;
+        // for hydraulically propagating crack, u is rescaled.
+        //        if (_process_data.propagating_crack)
+        //        {
+        double const k = _process_data.residual_stiffness(t, x_position)[0];
+        double degradation;
+        // KKL
+        if (_process_data.at_param == 3)
+            degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
+        // ATn
+        else
+            degradation =
+                d_ip * d_ip * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
 
-        // for propagating crack, u is rescaled.
-        if (_process_data.propagating_crack)
-        {
-            double const k = _process_data.residual_stiffness(t, x_position)[0];
-            double degradation;
-            // KKL
-            if (_process_data.at_param == 3)
-                degradation =
-                    (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
-            // ATn
-            else
-                degradation = ele_d * ele_d * (1 - k) + k;
+        auto const x_coord =
+            interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
+                                                                     N);
+        auto const& B =
+            LinearBMatrix::computeBMatrix<DisplacementDim,
+                                          ShapeFunction::NPOINTS,
+                                          typename BMatricesType::BMatrixType>(
+                dNdx, N, x_coord, _is_axially_symmetric);
 
-            auto const x_coord =
-                interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(
-                    _element, N);
-            auto const& B = LinearBMatrix::computeBMatrix<
-                DisplacementDim, ShapeFunction::NPOINTS,
-                typename BMatricesType::BMatrixType>(dNdx, N, x_coord,
-                                                     _is_axially_symmetric);
+        eps.noalias() = B * u;
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
+        //        }
 
-            auto& eps = _ip_data[ip].eps;
-            eps.noalias() = B * u;
-            _ip_data[ip].updateConstitutiveRelation(
-                t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
-        }
+        if (_element.getID() == 1 && ip == 0)
+            DBUG("something");
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 
@@ -420,6 +428,10 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
 
+    double ele_elastic_energy = 0.0;
+    double ele_surface_energy = 0.0;
+    double ele_pressure_work = 0.0;
+
     int const n_integration_points = _integration_method.getNumberOfPoints();
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -446,30 +458,74 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
         }
 
-        elastic_energy += _ip_data[ip].elastic_energy * w;
+        auto& eps = _ip_data[ip].eps;
+        double const k = _process_data.residual_stiffness(t, x_position)[0];
+        double const& dt = _process_data.dt;
+        double const& reg_param = _process_data.reg_param;
+        double degradation;
+        // KKL
+        if (_process_data.at_param == 3)
+            degradation = (4 * pow(d_ip, 3) - 3 * pow(d_ip, 4)) * (1 - k) + k;
+        // ATn
+        else
+            degradation = d_ip * d_ip * (1 - k) + k;
+
+        auto const x_coord =
+            interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
+                                                                     N);
+        auto const& B =
+            LinearBMatrix::computeBMatrix<DisplacementDim,
+                                          ShapeFunction::NPOINTS,
+                                          typename BMatricesType::BMatrixType>(
+                dNdx, N, x_coord, _is_axially_symmetric);
+
+        eps.noalias() = B * u;
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
+
+        ele_elastic_energy += _ip_data[ip].elastic_energy * w;
 
         // For AT2
         if (_process_data.at_param == 2)
         {
-            surface_energy += 0.5 * gc *
-                              ((1 - d_ip) * (1 - d_ip) / ls +
-                               (dNdx * d).dot((dNdx * d)) * ls) *
-                              w;
+            ele_surface_energy += 0.5 * gc *
+                                  ((1 - d_ip) * (1 - d_ip) / ls +
+                                   (dNdx * d).dot((dNdx * d)) * ls) *
+                                  w;
         }
         // For AT1
         else
         {
-            surface_energy +=
+            ele_surface_energy +=
                 0.375 * gc *
                 ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
         }
 
         if (_process_data.crack_pressure)
         {
-            pressure_work +=
+            ele_pressure_work +=
                 pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
         }
     }
+
+#ifdef USE_PETSC
+    int const n_all_nodes = indices_of_processes[1].size();
+    int const n_regular_nodes = std::count_if(
+        begin(indices_of_processes[1]), end(indices_of_processes[1]),
+        [](GlobalIndexType const& index) { return index >= 0; });
+    if (n_all_nodes != n_regular_nodes)
+    {
+        ele_elastic_energy *=
+            static_cast<double>(n_regular_nodes) / n_all_nodes;
+        ele_surface_energy *=
+            static_cast<double>(n_regular_nodes) / n_all_nodes;
+        ele_pressure_work *= static_cast<double>(n_regular_nodes) / n_all_nodes;
+    }
+#endif  // USE_PETSC
+    elastic_energy += ele_elastic_energy;
+    surface_energy += ele_surface_energy;
+    pressure_work += ele_pressure_work;
 }
 }  // namespace PhaseField
 }  // namespace ProcessLib
