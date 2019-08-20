@@ -502,11 +502,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
         }
 
-        if (_process_data.crack_pressure)
-        {
-            ele_pressure_work +=
-                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
-        }
+//        if (_process_data.crack_pressure)
+//        {
+//            ele_pressure_work +=
+//                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
+//        }
+        ele_pressure_work += _ip_data[ip].strain_energy_tensile * w;
     }
 
 #ifdef USE_PETSC

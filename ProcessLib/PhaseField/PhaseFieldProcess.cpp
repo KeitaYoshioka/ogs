@@ -274,7 +274,6 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
     {
         DBUG("PostTimestep PhaseFieldProcess.");
 
-
         _process_data.pressure_n = 0.0;
         _process_data.pressure_nm1 = 0.0;
         _process_data.crack_volume_n = 0.0;
@@ -289,8 +288,6 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 
         ProcessLib::ProcessVariable const& pv =
             getProcessVariables(process_id)[0];
-
-
     }
 }
 
@@ -345,19 +342,22 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
 #ifdef USE_PETSC
     double const elastic_energy = _process_data.elastic_energy;
-    MPI_Allreduce(&elastic_energy, &_process_data.elastic_energy, 1,
-                  MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+    MPI_Allreduce(&elastic_energy, &_process_data.elastic_energy, 1, MPI_DOUBLE,
+                  MPI_SUM, PETSC_COMM_WORLD);
     double const surface_energy = _process_data.surface_energy;
-    MPI_Allreduce(&surface_energy, &_process_data.surface_energy, 1,
-                  MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+    MPI_Allreduce(&surface_energy, &_process_data.surface_energy, 1, MPI_DOUBLE,
+                  MPI_SUM, PETSC_COMM_WORLD);
     double const pressure_work = _process_data.pressure_work;
-    MPI_Allreduce(&pressure_work, &_process_data.pressure_work, 1,
-                  MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+    MPI_Allreduce(&pressure_work, &_process_data.pressure_work, 1, MPI_DOUBLE,
+                  MPI_SUM, PETSC_COMM_WORLD);
 #endif
 
-    INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
-         _process_data.elastic_energy, _process_data.surface_energy,
-         _process_data.pressure_work);
+    INFO(
+        "Elastic energy: %g Surface energy: %g Pressure work: %g Total energy: "
+        "%g ",
+        _process_data.elastic_energy, _process_data.surface_energy,
+        _process_data.pressure_work,
+        _process_data.elastic_energy + _process_data.surface_energy);
     DBUG("PostNonLinearSolver update pressure.");
     if (!_process_data.propagating_crack)
     {
