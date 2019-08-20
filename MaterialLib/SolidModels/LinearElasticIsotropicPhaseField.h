@@ -221,7 +221,7 @@ calculateDegradedStressMiehe(
                            strain_energy_tensile, elastic_energy);
 }
 
-/** Decompose the stiffness into tensile and compressive part following AMor et
+/** Decompose the stiffness into tensile and compressive part following Amor et
  * al.'s decomposition
  */
 template <int DisplacementDim>
