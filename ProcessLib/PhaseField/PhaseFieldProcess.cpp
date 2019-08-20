@@ -274,9 +274,6 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
     {
         DBUG("PostTimestep PhaseFieldProcess.");
 
-        _process_data.elastic_energy = 0.0;
-        _process_data.surface_energy = 0.0;
-        _process_data.pressure_work = 0.0;
 
         _process_data.pressure_n = 0.0;
         _process_data.pressure_nm1 = 0.0;
@@ -335,6 +332,11 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
                   MPI_SUM, PETSC_COMM_WORLD);
 #endif
     INFO("Integral of crack: %g", _process_data.crack_volume);
+
+    _process_data.elastic_energy = 0.0;
+    _process_data.surface_energy = 0.0;
+    _process_data.pressure_work = 0.0;
+
     GlobalExecutor::executeSelectedMemberOnDereferenced(
         &LocalAssemblerInterface::computeEnergy, _local_assemblers,
         pv.getActiveElementIDs(), dof_tables, *x[process_id], t,
