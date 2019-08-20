@@ -101,7 +101,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
-        double const d_ip = N.dot(d);
+        //        double const d_ip = N.dot(d);
 
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
@@ -123,8 +123,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
         // ATn
         else
-            degradation =
-                d_ip * d_ip * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
+            degradation = ele_d * ele_d * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
@@ -205,7 +204,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     {
         auto const& N = _ip_data[ip].N;
         ele_d += N.dot(d);
-auto const& dNdx = _ip_data[ip].dNdx;
+    }
+    ele_d = ele_d / n_integration_points;
+    for (int ip = 0; ip < n_integration_points; ip++)
+    {
+        auto const& N = _ip_data[ip].N;
+        auto const& dNdx = _ip_data[ip].dNdx;
         auto& eps = _ip_data[ip].eps;
         double const k = _process_data.residual_stiffness(t, x_position)[0];
         double degradation;
@@ -214,8 +218,7 @@ auto const& dNdx = _ip_data[ip].dNdx;
             degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
         // ATn
         else
-            degradation =
-                N.dot(d) * N.dot(d) * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
+            degradation = ele_d * ele_d * (1 - k) + k;
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
                                                                      N);
@@ -231,8 +234,8 @@ auto const& dNdx = _ip_data[ip].dNdx;
             reg_param);
         ele_strain_energy_tensile += _ip_data[ip].strain_energy_tensile;
     }
-    ele_d = ele_d / n_integration_points;
-    ele_strain_energy_tensile = ele_strain_energy_tensile/n_integration_points;
+    ele_strain_energy_tensile =
+        ele_strain_energy_tensile / n_integration_points;
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -273,7 +276,7 @@ auto const& dNdx = _ip_data[ip].dNdx;
             reg_param);
         //        }
 
-        if (_element.getID() == 1 && ip == 0)
+        if (_element.getID() == 1 && ip == 0 && t > 0.5)
             DBUG("something");
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
@@ -529,11 +532,11 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
         }
 
-//        if (_process_data.crack_pressure)
-//        {
-//            ele_pressure_work +=
-//                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
-//        }
+        //        if (_process_data.crack_pressure)
+        //        {
+        //            ele_pressure_work +=
+        //                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
+        //        }
         ele_pressure_work += _ip_data[ip].strain_energy_tensile * w;
     }
 
