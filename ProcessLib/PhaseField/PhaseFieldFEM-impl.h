@@ -101,7 +101,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
-        //        double const d_ip = N.dot(d);
+        double const d_ip = N.dot(d);
 
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
@@ -120,10 +120,10 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double degradation;
         // KKL
         if (_process_data.at_param == 3)
-            degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
+            degradation = (4 * pow(d_ip, 3) - 3 * pow(d_ip, 4)) * (1 - k) + k;
         // ATn
         else
-            degradation = ele_d * ele_d * (1 - k) + k;
+            degradation = d_ip * d_ip * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
@@ -301,12 +301,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         if (_process_data.at_param == 2)
         {
             local_Jac.noalias() +=
-                (2 * N.transpose() * N * ele_strain_energy_tensile +
+                (2 * N.transpose() * N * strain_energy_tensile +
                  gc * (N.transpose() * N / ls + dNdx.transpose() * dNdx * ls)) *
                 w;
 
             local_rhs.noalias() -=
-                (N.transpose() * N * d * 2 * ele_strain_energy_tensile +
+                (N.transpose() * N * d * 2 * strain_energy_tensile +
                  gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
                            d -
                        N.transpose() / ls) -
