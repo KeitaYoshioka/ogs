@@ -123,7 +123,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             degradation = (4 * pow(d_ip, 3) - 3 * pow(d_ip, 4)) * (1 - k) + k;
         // ATn
         else
-            degradation = ele_d * ele_d * (1 - k) + k; //d_ip * d_ip * (1 - k) + k;
+            degradation = d_ip * d_ip * (1 - k) + k; // ele_d * ele_d * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
@@ -260,7 +260,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         // ATn
         else
             degradation =
-                   ele_d * ele_d * (1 - k) + k; //d_ip * d_ip * (1 - k) + k;
+                   d_ip * d_ip * (1 - k) + k; //ele_d * ele_d * (1 - k) + k;
 
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
