@@ -271,10 +271,10 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         history_field,
         specific_body_force,
         propagating_crack,
+        crack_pressure,
         constant_crack_vol,
         split_method,
         secant_method,
-        crack_pressure,
         reg_param,
         pf_irrv,
         at_param};

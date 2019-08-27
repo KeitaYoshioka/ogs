@@ -47,6 +47,12 @@ struct PhaseFieldProcessData
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     bool propagating_crack = false;
     bool crack_pressure = false;
+    bool constant_crack_vol = false;
+    int split_method = 0;
+    int secant_method = 0;
+    double reg_param = -0.01;
+    double pf_irrv = 0.05;
+    int at_param = 2;
 
     double const unity_pressure = 1.0;
     double pressure = 0.0;
@@ -59,13 +65,7 @@ struct PhaseFieldProcessData
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
     double pressure_work = 0.0;
-    bool constant_crack_vol = false;
-    double reg_param = -0.01;
-    double pf_irrv = 0.05;
-    int at_param = 2;
-    int split_method = 0;
     int nl_itr = 0;
-    int secant_method = 0;
 };
 
 }  // namespace PhaseField
