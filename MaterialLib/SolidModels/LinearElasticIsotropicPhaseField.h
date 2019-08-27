@@ -42,8 +42,8 @@ inline double Heaviside_reg(double const v, double const reg_param)
         return 1.0;
 }
 
-
-// Macaulay brackets: strain is positive for tensile and negative for compressive
+// Macaulay brackets: strain is positive for tensile and negative for
+// compressive
 inline double Macaulay_tens(double const v)
 {
     return v * Heaviside(v);
@@ -53,7 +53,8 @@ inline double Macaulay_comp(double v)
     return v * (1 - Heaviside(v));
 }
 
-// Macaulay brackets: strain is positive for tensile and negative for compressive
+// Macaulay brackets: strain is positive for tensile and negative for
+// compressive
 inline double Macaulay_tens_reg(double v, double reg_param)
 {
     return v * Heaviside_reg(v, reg_param);
@@ -64,7 +65,7 @@ inline double Macaulay_comp_reg(double v, double reg_param)
 }
 
 inline double evaluateHTens(int const i, int const j,
-                           Eigen::Matrix<double, 3, 1> const& principal_strain)
+                            Eigen::Matrix<double, 3, 1> const& principal_strain)
 {
     if (i == j)
     {
@@ -82,7 +83,7 @@ inline double evaluateHTens(int const i, int const j,
 }
 
 inline double evaluateHComp(int const i, int const j,
-                           Eigen::Matrix<double, 3, 1> const& principal_strain)
+                            Eigen::Matrix<double, 3, 1> const& principal_strain)
 {
     if (i == j)
     {
@@ -129,7 +130,6 @@ calculateDegradedStressMiehe(
 
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
-
 
     // non-const for Eigen solver.
     auto eps_tensor = MathLib::KelvinVector::kelvinVectorToTensor(eps);
