@@ -111,6 +111,13 @@ struct IntegrationPointData final
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
                     DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
+        else if (split == 3)
+        {
+            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::calculateDegradedStressMasonry<
+                    DisplacementDim>(degradation, lambda, mu, eps);
+        }
         history_variable =
             std::max(history_variable_prev, strain_energy_tensile);
     }
