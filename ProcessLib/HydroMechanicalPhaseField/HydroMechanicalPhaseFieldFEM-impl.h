@@ -878,7 +878,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             //                                        current_ele_grad_d.normalized());
         }
         if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
-            count_frac_elem > 1)
+            count_frac_elem > 10)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
         temporal = deviation;
