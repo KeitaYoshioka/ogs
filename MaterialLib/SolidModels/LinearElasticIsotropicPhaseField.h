@@ -166,54 +166,82 @@ calculateDegradedStressMasonry(
     std::array<double, 3> alpha = {0.0, 0.0, 0.0};
     std::array<double, 3> beta = {0.0, 0.0, 0.0};
 
+    Eigen::Matrix<double, 3, 1> principal_strain_temp,
+        principal_strain_tensile_temp, principal_strain_compressive_temp;
+    std::array<double, 3> alpha_temp = {0.0, 0.0, 0.0};
+    std::array<double, 3> beta_temp = {0.0, 0.0, 0.0};
+
     double nu = lambda / (2 * (lambda + mu));
     KelvinVector sigma_tensile = KelvinVector::Zero();
     KelvinVector sigma_compressive = KelvinVector::Zero();
 
+    principal_strain_temp = principal_strain;
+
     // sort eigenvalues and eigenvectors
     std::array<std::size_t, 3> permutation = {0, 1, 2};
-    principal_strain = -1 * principal_strain;
-    BaseLib::quicksort(principal_strain.data(), 0, DisplacementDim,
+    principal_strain_temp = -1 * principal_strain_temp;
+    BaseLib::quicksort(principal_strain_temp.data(), 0, DisplacementDim,
                        permutation.data());
-    principal_strain = -1 * principal_strain;
+    principal_strain_temp = -1 * principal_strain_temp;
 
-    if (principal_strain[DisplacementDim - 1] > 0.0)
+    if (principal_strain_temp[DisplacementDim - 1] >= 0.0)
     {
-        principal_strain_tensile = principal_strain;
-        alpha = {1.0, 1.0, 1.0};
-        beta = {0.0, 0.0, 0.0};
-        INFO("split 1");
+        principal_strain_tensile_temp = principal_strain_temp;
+        alpha_temp = {1.0, 1.0, 1.0};
+        beta_temp = {0.0, 0.0, 0.0};
     }
-    else if (principal_strain[1] + nu * principal_strain[2] > 0.0)
+    else if (principal_strain_temp[1] + nu * principal_strain_temp[2] >= 0.0)
     {
-        principal_strain_tensile = {
-            principal_strain[0] + nu * principal_strain[2],
-            principal_strain[1] + nu * principal_strain[2], 0.0};
-        alpha = {1.0, 1.0, 0.0};
-        beta = {0.0, 0.0, 1.0};
-         INFO("split 2");
+        principal_strain_tensile_temp = {
+            principal_strain_temp[0] + nu * principal_strain_temp[2],
+            principal_strain_temp[1] + nu * principal_strain_temp[2], 0.0};
+        alpha_temp = {1.0, 1.0, 0.0};
+        beta_temp = {0.0, 0.0, 1.0};
+        //        INFO("not 2D")
     }
-    else if ((1 - nu) * principal_strain[0] +
-                 nu * (principal_strain[1] + principal_strain[2]) >
+    else if ((1 - nu) * principal_strain_temp[0] +
+                 nu * (principal_strain_temp[1] + principal_strain_temp[2]) >=
              0.0)
     {
-        principal_strain_tensile = {
-            principal_strain[0] +
-                nu / (1 - nu) * (principal_strain[1] + principal_strain[2]),
+        principal_strain_tensile_temp = {
+            principal_strain_temp[0] +
+                nu / (1 - nu) *
+                    (principal_strain_temp[1] + principal_strain_temp[2]),
             0.0, 0.0};
-        alpha = {1.0, 0.0, 0.0};
-        beta = {0.0, 1.0, 1.0};
-//         INFO("split 3");
+        alpha_temp = {1.0, 0.0, 0.0};
+        beta_temp = {0.0, 1.0, 1.0};
+        //                INFO("mix")
     }
     else
     {
-        principal_strain_tensile = {0.0, 0.0, 0.0};
-        alpha = {0.0, 0.0, 0.0};
-        beta = {1.0, 1.0, 1.0};
-         INFO("split 4");
+        principal_strain_tensile_temp = {0.0, 0.0, 0.0};
+        alpha_temp = {0.0, 0.0, 0.0};
+        beta_temp = {1.0, 1.0, 1.0};
+        //                INFO("comp")
     }
 
-    principal_strain_compressive = principal_strain - principal_strain_tensile;
+    if (principal_strain[0] == principal_strain[1] == principal_strain[2] == 0)
+    {
+        alpha_temp = {1.0, 1.0, 1.0};
+        beta_temp = {0.0, 0.0, 0.0};
+    }
+        // Test if we can keep sigma
+//        alpha_temp = {1.0, 1.0, 1.0};
+//        beta_temp = {0.0, 0.0, 0.0};
+        // -------------------------
+
+    principal_strain_compressive_temp =
+        principal_strain_temp - principal_strain_tensile_temp;
+
+    for (int i = 0; i < 3; i++)
+    {
+        alpha[permutation[i]] = alpha_temp[i];
+        beta[permutation[i]] = beta_temp[i];
+        principal_strain_tensile[permutation[i]] =
+            principal_strain_tensile_temp[i];
+        principal_strain_compressive[permutation[i]] =
+            principal_strain_compressive_temp[i];
+    }
 
     double const sum_strain = principal_strain.sum();
     double const sum_strain_tensile = principal_strain_tensile.sum();
@@ -224,15 +252,8 @@ calculateDegradedStressMasonry(
     for (int i = 0; i < 3; i++)
     {
         M_kelvin[i] = MathLib::KelvinVector::tensorToKelvin<DisplacementDim>(
-            eigen_solver.eigenvectors()
-                .real()
-                .col(permutation[i])
-                .normalized() *
-            eigen_solver.eigenvectors()
-                .real()
-                .col(permutation[i])
-                .normalized()
-                .transpose());
+            eigen_solver.eigenvectors().real().col(i).normalized() *
+            eigen_solver.eigenvectors().real().col(i).normalized().transpose());
     }
 
     double const strain_energy_tensile =
@@ -280,6 +301,25 @@ calculateDegradedStressMasonry(
     KelvinVector const sigma_real =
         degradation * sigma_tensile + sigma_compressive;
 
+    /*
+        double bulk_modulus = lambda + 2 /3 * mu;
+        auto const& P_dev = Invariants::deviatoric_projection;
+        KelvinVector const epsd_curr = P_dev * eps;
+        double const eps_curr_trace = Invariants::trace(eps);
+        sigma_tensile = bulk_modulus * eps_curr_trace * Invariants::identity2 +
+                        2 * mu * epsd_curr;
+        C_tensile = KelvinMatrix::Zero();
+        C_tensile.template topLeftCorner<3, 3>().setConstant(bulk_modulus);
+        C_tensile.noalias() += 2 * mu * P_dev * KelvinMatrix::Identity();
+        KelvinVector const sigma_real = degradation * sigma_tensile;
+        double const strain_energy_tensile =
+            bulk_modulus / 2 * eps_curr_trace * eps_curr_trace +
+            mu * epsd_curr.transpose() * epsd_curr;
+        double const strain_energy_compressive = 0.0;
+        double const elastic_energy =
+            degradation * strain_energy_tensile + strain_energy_compressive;
+
+    */
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);
 }
