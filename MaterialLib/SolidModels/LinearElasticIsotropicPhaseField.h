@@ -93,8 +93,9 @@ inline double evaluateHCompMiehe(
     {
         return 0.0;
     }
-    if (fabs(principal_strain[i] - principal_strain[j]) <
-        std::numeric_limits<double>::epsilon())
+    double num_zero = 1.e-14;
+
+    if (fabs(principal_strain[i] - principal_strain[j]) < num_zero)
     {
         return 2 * (1 - Heaviside(principal_strain[i]));
     }
@@ -107,23 +108,47 @@ inline double evaluateHCompMiehe(
 inline double evaluateHMasonry(
     int const i, int const j, double lambda, double mu,
     Eigen::Matrix<double, 3, 1> const& principal_strain,
-    std::array<double, 3> const& alpha)
+    Eigen::Matrix<double, 3, 1> const& principal_strain_tp,
+    std::array<std::array<double, 3>, 3> const& alpha)
 {
     if (i == j)
     {
         return 0.0;
     }
-    if (fabs(principal_strain[i] - principal_strain[j]) <
-        std::numeric_limits<double>::epsilon())
+
+    double h_ij = 0.0;
+    double Tr_a = principal_strain_tp.sum();
+    double Tr_e = principal_strain.sum();
+    double denom = fabs(principal_strain[0]);
+    double num_zero = 1.e-3;
+    double eval = fabs(principal_strain[i] - principal_strain[j]);
+    if (denom > std::numeric_limits<double>::epsilon())
+        eval = eval / denom;
+    else
+        eval = 0.0;
+
+    if (eval < num_zero)
     {
-        return 2 * mu * alpha[i];
+        for (int k = 0; k < 3; k++)
+        {
+            for (int l = 0; l < 3; l++)
+            {
+                h_ij += lambda * alpha[k][i] * (alpha[l][i] - alpha[l][j]);
+                if (k == l)
+                    h_ij += 2 * mu * alpha[k][i] * (alpha[l][i] - alpha[l][j]);
+            }
+        }
     }
-    double sum_strain = principal_strain.sum();
-    return (lambda * sum_strain * (alpha[i] - alpha[j]) +
-            2 * mu *
-                (principal_strain[i] * alpha[i] -
-                 principal_strain[j] * alpha[j])) /
-           (principal_strain[i] - principal_strain[j]);
+    else
+    {
+        for (int k = 0; k < 3; k++)
+        {
+            h_ij += (lambda * Tr_a + 2 * mu * principal_strain_tp[k]) *
+                    (alpha[k][i] - alpha[k][j]) /
+                    (principal_strain[i] - principal_strain[j]);
+        }
+    }
+    return h_ij;
 }
 
 /** Decompose the stiffness into tensile and compressive part following Masonry
@@ -158,22 +183,39 @@ calculateDegradedStressMasonry(
 
     // non-const for Eigen solver.
     auto eps_tensor = MathLib::KelvinVector::kelvinVectorToTensor(eps);
+    //    eps_tensor(0, 0) = 0.996542097023217;
+    //    eps_tensor(1, 0) = -0.0830894028174964;
+    //    eps_tensor(0, 1) = -0.0830894028174964;
+    //    eps_tensor(1, 1) = -0.996542097023217;
+    //    eps_tensor(2, 2) = -1.0;
+
     Eigen::EigenSolver<decltype(eps_tensor)> eigen_solver(eps_tensor);
     Eigen::Matrix<double, 3, 1> principal_strain =
         eigen_solver.eigenvalues().real();
     Eigen::Matrix<double, 3, 1> principal_strain_tensile,
         principal_strain_compressive;
-    std::array<double, 3> alpha = {0.0, 0.0, 0.0};
-    std::array<double, 3> beta = {0.0, 0.0, 0.0};
+    std::array<std::array<double, 3>, 3> alpha = {
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+    std::array<std::array<double, 3>, 3> beta = {
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
 
     Eigen::Matrix<double, 3, 1> principal_strain_temp,
         principal_strain_tensile_temp, principal_strain_compressive_temp;
-    std::array<double, 3> alpha_temp = {0.0, 0.0, 0.0};
-    std::array<double, 3> beta_temp = {0.0, 0.0, 0.0};
+    std::array<std::array<double, 3>, 3> alpha_temp = {
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+    std::array<std::array<double, 3>, 3> beta_temp = {
+        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
 
     double nu = lambda / (2 * (lambda + mu));
     KelvinVector sigma_tensile = KelvinVector::Zero();
     KelvinVector sigma_compressive = KelvinVector::Zero();
+
+    double num_zero = 1.e-14;  // std::numeric_limits<double>::epsilon();
+    for (int i = 0; i < 3; i++)
+    {
+        if (fabs(principal_strain[i]) < num_zero)
+            principal_strain[i] = 0.0;
+    }
 
     principal_strain_temp = principal_strain;
 
@@ -187,17 +229,18 @@ calculateDegradedStressMasonry(
     if (principal_strain_temp[DisplacementDim - 1] >= 0.0)
     {
         principal_strain_tensile_temp = principal_strain_temp;
-        alpha_temp = {1.0, 1.0, 1.0};
-        beta_temp = {0.0, 0.0, 0.0};
+        alpha_temp = {{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+        beta_temp = {{{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+        //        INFO("all tens");
     }
     else if (principal_strain_temp[1] + nu * principal_strain_temp[2] >= 0.0)
     {
         principal_strain_tensile_temp = {
             principal_strain_temp[0] + nu * principal_strain_temp[2],
             principal_strain_temp[1] + nu * principal_strain_temp[2], 0.0};
-        alpha_temp = {1.0, 1.0, 0.0};
-        beta_temp = {0.0, 0.0, 1.0};
-        //        INFO("not 2D")
+        alpha_temp = {{{1.0, 0.0, nu}, {0.0, 1.0, nu}, {0.0, 0.0, 0.0}}};
+        beta_temp = {{{0.0, 0.0, -nu}, {0.0, 0.0, -nu}, {0.0, 0.0, 1.0}}};
+        //        INFO("not UT");
     }
     else if ((1 - nu) * principal_strain_temp[0] +
                  nu * (principal_strain_temp[1] + principal_strain_temp[2]) >=
@@ -208,42 +251,61 @@ calculateDegradedStressMasonry(
                 nu / (1 - nu) *
                     (principal_strain_temp[1] + principal_strain_temp[2]),
             0.0, 0.0};
-        alpha_temp = {1.0, 0.0, 0.0};
-        beta_temp = {0.0, 1.0, 1.0};
-        //                INFO("mix")
+        alpha_temp = {{{1.0, nu / (1 - nu), nu / (1 - nu)},
+                       {0.0, 0.0, 0.0},
+                       {0.0, 0.0, 0.0}}};
+        beta_temp = {{{0.0, -nu / (1 - nu), -nu / (1 - nu)},
+                      {0.0, 1.0, 0.0},
+                      {0.0, 0.0, 1.0}}};
+        //        INFO("Uniaxial tension");
     }
     else
     {
         principal_strain_tensile_temp = {0.0, 0.0, 0.0};
-        alpha_temp = {0.0, 0.0, 0.0};
-        beta_temp = {1.0, 1.0, 1.0};
-        //                INFO("comp")
+        alpha_temp = {{{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+        beta_temp = {{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+        //        INFO("all comp");
     }
 
-    if (principal_strain[0] == principal_strain[1] == principal_strain[2] == 0)
+    if (fabs(principal_strain[0]) < num_zero and
+        fabs(principal_strain[1]) < num_zero and
+        fabs(principal_strain[2]) < num_zero)
     {
-        alpha_temp = {1.0, 1.0, 1.0};
-        beta_temp = {0.0, 0.0, 0.0};
+        alpha_temp = {{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+        beta_temp = {{{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+        //        INFO("zero strain");
     }
-        // Test if we can keep sigma
-//        alpha_temp = {1.0, 1.0, 1.0};
-//        beta_temp = {0.0, 0.0, 0.0};
-        // -------------------------
+
+    //    alpha_temp = {{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+    //    beta_temp = {{{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
 
     principal_strain_compressive_temp =
         principal_strain_temp - principal_strain_tensile_temp;
 
+    //    for (int i = 0; i < 3; i++)
+    //    {
+    //        for (int j = 0; j < 3; j++)
+    //        {
+    //            alpha[permutation[i]][j] = alpha_temp[i][j];
+    //            beta[permutation[i]][j] = beta_temp[i][j];
+    //        }
+    //        principal_strain_tensile[permutation[i]] =
+    //            principal_strain_tensile_temp[i];
+    //        principal_strain_compressive[permutation[i]] =
+    //            principal_strain_compressive_temp[i];
+    //    }
+
     for (int i = 0; i < 3; i++)
     {
-        alpha[permutation[i]] = alpha_temp[i];
-        beta[permutation[i]] = beta_temp[i];
-        principal_strain_tensile[permutation[i]] =
-            principal_strain_tensile_temp[i];
-        principal_strain_compressive[permutation[i]] =
-            principal_strain_compressive_temp[i];
+        for (int j = 0; j < 3; j++)
+        {
+            alpha[i][j] = alpha_temp[i][j];
+            beta[i][j] = beta_temp[i][j];
+        }
+        principal_strain_tensile[i] = principal_strain_tensile_temp[i];
+        principal_strain_compressive[i] = principal_strain_compressive_temp[i];
+        principal_strain[i] = principal_strain_temp[i];
     }
-
-    double const sum_strain = principal_strain.sum();
     double const sum_strain_tensile = principal_strain_tensile.sum();
     double const sum_strain_compressive = principal_strain_compressive.sum();
 
@@ -251,7 +313,8 @@ calculateDegradedStressMasonry(
 
     for (int i = 0; i < 3; i++)
     {
-        M_kelvin[i] = MathLib::KelvinVector::tensorToKelvin<DisplacementDim>(
+        M_kelvin[permutation[i]] = MathLib::KelvinVector::tensorToKelvin<
+            DisplacementDim>(
             eigen_solver.eigenvectors().real().col(i).normalized() *
             eigen_solver.eigenvectors().real().col(i).normalized().transpose());
     }
@@ -266,43 +329,65 @@ calculateDegradedStressMasonry(
 
     for (int i = 0; i < 3; i++)
     {
-        sigma_tensile += (lambda * sum_strain + 2 * mu * principal_strain[i]) *
-                         alpha[i] * M_kelvin[i];
-        sigma_compressive +=
-            (lambda * sum_strain + 2 * mu * principal_strain[i]) * beta[i] *
-            M_kelvin[i];
+        for (int k = 0; k < 3; k++)
+        {
+            sigma_tensile += (lambda * sum_strain_tensile +
+                              2 * mu * principal_strain_tensile[k]) *
+                             alpha[k][i] * M_kelvin[i];
+            sigma_compressive += (lambda * sum_strain_compressive +
+                                  2 * mu * principal_strain_compressive[k]) *
+                                 beta[k][i] * M_kelvin[i];
+        }
     }
-
+    KelvinMatrix C_temp = KelvinMatrix::Zero();
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-            C_tensile.noalias() +=
-                lambda * alpha[i] * M_kelvin[i] * M_kelvin[j].transpose() +
-                evaluateHMasonry(i, j, lambda, mu, principal_strain, alpha) *
-                    aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
-            C_compressive.noalias() +=
-                lambda * beta[i] * M_kelvin[i] * M_kelvin[j].transpose() +
-                evaluateHMasonry(i, j, lambda, mu, principal_strain, beta) *
-                    aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
-            if (i == j)
+            for (int k = 0; k < 3; k++)
             {
-                C_tensile.noalias() +=
-                    2 * mu * alpha[i] * M_kelvin[i] * M_kelvin[j].transpose();
-                C_compressive.noalias() +=
-                    2 * mu * beta[i] * M_kelvin[i] * M_kelvin[j].transpose();
+                for (int l = 0; l < 3; l++)
+                {
+                    C_tensile.noalias() += lambda * alpha[l][i] * alpha[k][j] *
+                                           M_kelvin[i] *
+                                           M_kelvin[j].transpose();
+                    C_temp.noalias() = M_kelvin[i] * M_kelvin[j].transpose();
+
+                    C_compressive.noalias() += lambda * beta[l][i] *
+                                               beta[k][j] * M_kelvin[i] *
+                                               M_kelvin[j].transpose();
+                    if (k == l)
+                    {
+                        C_tensile.noalias() += 2 * mu * alpha[l][i] *
+                                               alpha[k][j] * M_kelvin[i] *
+                                               M_kelvin[j].transpose();
+                        C_compressive.noalias() += 2 * mu * beta[l][i] *
+                                                   beta[k][j] * M_kelvin[i] *
+                                                   M_kelvin[j].transpose();
+                    }
+                }
             }
+            C_tensile.noalias() +=
+                evaluateHMasonry(i, j, lambda, mu, principal_strain,
+                                 principal_strain_tensile, alpha) *
+                aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
+            C_compressive.noalias() +=
+                evaluateHMasonry(i, j, lambda, mu, principal_strain,
+                                 principal_strain_compressive, beta) *
+                aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
         }
     }
 
+    KelvinMatrix C_eff = KelvinMatrix::Zero();
+    C_eff = C_tensile + C_compressive;
     double const elastic_energy =
         degradation * strain_energy_tensile + strain_energy_compressive;
 
     KelvinVector const sigma_real =
         degradation * sigma_tensile + sigma_compressive;
-
     /*
-        double bulk_modulus = lambda + 2 /3 * mu;
+
+        double bulk_modulus = lambda + 2 / 3 * mu;
         auto const& P_dev = Invariants::deviatoric_projection;
         KelvinVector const epsd_curr = P_dev * eps;
         double const eps_curr_trace = Invariants::trace(eps);
@@ -318,7 +403,6 @@ calculateDegradedStressMasonry(
         double const strain_energy_compressive = 0.0;
         double const elastic_energy =
             degradation * strain_energy_tensile + strain_energy_compressive;
-
     */
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);
@@ -425,16 +509,19 @@ calculateDegradedStressMiehe(
 
     C_compressive.template topLeftCorner<3, 3>().setConstant(
         lambda * (1 - hs(sum_strain)));
+    KelvinMatrix C_temp = KelvinMatrix::Zero();
     for (int i = 0; i < 3; i++)
     {
         C_compressive.noalias() += 2 * mu * (1 - hs(principal_strain[i])) *
                                    M_kelvin[i] * M_kelvin[i].transpose();
+        C_temp.noalias() = M_kelvin[i] * M_kelvin[i].transpose();
         for (int j = 0; j < 3; j++)
             C_compressive.noalias() +=
                 mu * evaluateHCompMiehe(i, j, principal_strain) *
                 aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
     }
-
+    KelvinMatrix C_eff = KelvinMatrix::Zero();
+    C_eff = C_tensile + C_compressive;
     double const elastic_energy =
         degradation * strain_energy_tensile + strain_energy_compressive;
 

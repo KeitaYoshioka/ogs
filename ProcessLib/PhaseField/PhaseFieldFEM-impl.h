@@ -268,7 +268,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
         }
 
-        double history_variable = _ip_data[ip].history_variable;
+        //double history_variable = _ip_data[ip].history_variable;
 
         // For AT2
         if (_process_data.at_param == 2)
