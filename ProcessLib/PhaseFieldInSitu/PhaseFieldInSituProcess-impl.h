@@ -205,8 +205,8 @@ void PhaseFieldInSituProcess<DisplacementDim>::initializeBoundaryConditions()
 
 template <int DisplacementDim>
 void PhaseFieldInSituProcess<DisplacementDim>::assembleConcreteProcess(
-    const double t, double const dt, GlobalVector const& x, GlobalMatrix& M,
-    GlobalMatrix& K, GlobalVector& b)
+    const double t, double const dt, GlobalVector const& x,
+    int const process_id, GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b)
 {
     DBUG("Assemble the equations for PhaseFieldInSituProcess.");
 
@@ -215,7 +215,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::assembleConcreteProcess(
     // Call global assembler for each local assembly item.
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assemble, _local_assemblers,
-        dof_table, t, dt, x, M, K, b, _coupled_solutions);
+        dof_table, t, dt, x, process_id, M, K, b, _coupled_solutions);
 }
 
 template <int DisplacementDim>
@@ -223,12 +223,13 @@ void PhaseFieldInSituProcess<DisplacementDim>::
     assembleWithJacobianConcreteProcess(
         const double t, double const dt, GlobalVector const& x,
         GlobalVector const& xdot, const double dxdot_dx, const double dx_dx,
-        GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac)
+        int const process_id, GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b,
+        GlobalMatrix& Jac)
 {
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
     // For the staggered scheme
-    if (_coupled_solutions->process_id == _mechanics_process0_id)
+    if (process_id == _mechanics_process0_id)
     {
         DBUG(
             "Assemble the Jacobian equations of "
@@ -236,7 +237,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             "PhaseFieldInSituProcess for "
             "the staggered scheme.");
     }
-    else if (_coupled_solutions->process_id == _mechanics_process1_id)
+    else if (process_id == _mechanics_process1_id)
     {
         DBUG(
             "Assemble the Jacobian equations of "
@@ -258,8 +259,8 @@ void PhaseFieldInSituProcess<DisplacementDim>::
 
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assembleWithJacobian,
-        _local_assemblers, dof_tables, t, dt, x, xdot, dxdot_dx, dx_dx, M, K, b,
-        Jac, _coupled_solutions);
+        _local_assemblers, dof_tables, t, dt, x, xdot, dxdot_dx, dx_dx,
+        process_id, M, K, b, Jac, _coupled_solutions);
 }
 
 template <int DisplacementDim>
@@ -311,7 +312,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
 {
     DBUG("PostTimestep PhaseFieldInSituProcess.");
 
-    if (_coupled_solutions->process_id == _phase_field_process_id)
+    if (process_id == _phase_field_process_id)
     {
         GlobalExecutor::executeMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::postTimestep,
@@ -355,12 +356,13 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
 }
 
 template <int DisplacementDim>
-void PhaseFieldInSituProcess<DisplacementDim>::
-    postNonLinearSolverConcreteProcess(GlobalVector const& x, const double t,
-                                       double const /*dt*/,
-                                       const int /*process_id*/)
+void PhaseFieldInSituProcess<
+    DisplacementDim>::postNonLinearSolverConcreteProcess(GlobalVector const& x,
+                                                         const double t,
+                                                         double const /*dt*/,
+                                                         const int process_id)
 {
-    if (_coupled_solutions->process_id == _mechanics_process0_id)
+    if (process_id == _mechanics_process0_id)
     {
         _process_data.crack_volume0 = 0.0;
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
@@ -384,7 +386,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::
 #endif
         INFO("Integral of crack with u_p: %g", _process_data.crack_volume0);
     }
-    else if (_coupled_solutions->process_id == _mechanics_process1_id)
+    else if (process_id == _mechanics_process1_id)
     {
         _process_data.crack_volume1 = 0.0;
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
@@ -427,17 +429,17 @@ void PhaseFieldInSituProcess<DisplacementDim>::
             INFO("Internal pressure: %g and Pressure error: %.4e",
                  _process_data.pressure, _process_data.pressure_error);
             GlobalVector u_p{
-                _coupled_solutions->coupled_xs[_mechanics_process0_id]};
+                *_coupled_solutions->coupled_xs[_mechanics_process0_id]};
             GlobalVector u_s{
-                _coupled_solutions->coupled_xs[_mechanics_process1_id]};
+                *_coupled_solutions->coupled_xs[_mechanics_process1_id]};
 
             // u_p holds the unscaled displacement
             // u_p = p*u_p + u_s
             MathLib::LinAlg::aypx(u_p, _process_data.pressure, u_s);
             MathLib::LinAlg::copy(
-                u_p, const_cast<GlobalVector&>(
-                         _coupled_solutions->coupled_xs[_mechanics_process0_id]
-                             .get()));
+                u_p,
+                const_cast<GlobalVector&>(
+                    *_coupled_solutions->coupled_xs[_mechanics_process0_id]));
         }
     }
     else
@@ -445,17 +447,17 @@ void PhaseFieldInSituProcess<DisplacementDim>::
         if (_process_data.propagating_crack)
         {
             GlobalVector u_p{
-                _coupled_solutions->coupled_xs[_mechanics_process0_id]};
+                *_coupled_solutions->coupled_xs[_mechanics_process0_id]};
             GlobalVector u_s{
-                _coupled_solutions->coupled_xs[_mechanics_process1_id]};
+                *_coupled_solutions->coupled_xs[_mechanics_process1_id]};
 
             // u_p = 1/p * u_p - 1/p * u_s
             MathLib::LinAlg::axpby(u_p, 1 / _process_data.pressure,
                                    -1 / _process_data.pressure, u_s);
             MathLib::LinAlg::copy(
-                u_p, const_cast<GlobalVector&>(
-                         _coupled_solutions->coupled_xs[_mechanics_process0_id]
-                             .get()));
+                u_p,
+                const_cast<GlobalVector&>(
+                    *_coupled_solutions->coupled_xs[_mechanics_process0_id]));
             INFO("u_p is scaled back for non-linear iteration");
         }
     }
