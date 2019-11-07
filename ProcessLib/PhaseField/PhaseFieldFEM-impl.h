@@ -404,7 +404,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     computeEnergy(std::size_t mesh_item_id,
                   std::vector<std::reference_wrapper<
                       NumLib::LocalToGlobalIndexMap>> const& dof_tables,
-                  GlobalVector const& /*x*/, double const t,
+                  GlobalVector const& /*x*/, double const t, double const dt,
                   double& elastic_energy, double& surface_energy,
                   double& pressure_work,
                   CoupledSolutionsForStaggeredScheme const* const cpl_xs)
@@ -463,7 +463,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto& eps = _ip_data[ip].eps;
         double const k = _process_data.residual_stiffness(t, x_position)[0];
-        double const& dt = _process_data.dt;
         double const& reg_param = _process_data.reg_param;
         double degradation;
         // KKL

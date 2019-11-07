@@ -292,8 +292,8 @@ public:
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
-        GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double& pressure_work,
+        GlobalVector const& x, double const t, double const dt,
+        double& elastic_energy, double& surface_energy, double& pressure_work,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(

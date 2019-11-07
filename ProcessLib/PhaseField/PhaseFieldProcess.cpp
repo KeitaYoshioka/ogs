@@ -293,7 +293,7 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 
 template <int DisplacementDim>
 void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
-    GlobalVector const& x, const double t, double const /*dt*/,
+    GlobalVector const& x, const double t, double const dt,
     const int process_id)
 {
     _process_data.crack_volume = 0.0;
@@ -336,7 +336,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
     GlobalExecutor::executeSelectedMemberOnDereferenced(
         &LocalAssemblerInterface::computeEnergy, _local_assemblers,
-        pv.getActiveElementIDs(), dof_tables, *x[process_id], t,
+        pv.getActiveElementIDs(), dof_tables, *x[process_id], t, dt,
         _process_data.elastic_energy, _process_data.surface_energy,
         _process_data.pressure_work, _coupled_solutions);
 
