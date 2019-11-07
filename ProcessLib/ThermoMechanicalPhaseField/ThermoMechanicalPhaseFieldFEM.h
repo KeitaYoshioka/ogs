@@ -90,10 +90,12 @@ struct IntegrationPointData final
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
 
+        constexpr double reg_param = 1;
         std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                  strain_energy_tensile, elastic_energy) =
             MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
-                DisplacementDim>(degradation, bulk_modulus, mu, eps_m);
+                DisplacementDim>(degradation, bulk_modulus, mu, eps_m,
+                                 reg_param);
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
