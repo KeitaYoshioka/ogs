@@ -302,7 +302,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
     {
         if (_process_data.propagating_crack)
         {
-            auto& u = _coupled_solutions->coupled_xs[0].get();
+            auto& u = *_coupled_solutions->coupled_xs[0];
             MathLib::LinAlg::scale(const_cast<GlobalVector&>(u),
                                    1 / _process_data.pressure);
         }
