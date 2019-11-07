@@ -250,7 +250,8 @@ public:
         return xyz;
     }
 
-    void assemble(double const /*t*/, std::vector<double> const& /*local_x*/,
+    void assemble(double const /*t*/, double const /*dt*/,
+                  std::vector<double> const& /*local_x*/,
                   std::vector<double>& /*local_M_data*/,
                   std::vector<double>& /*local_K_data*/,
                   std::vector<double>& /*local_rhs_data*/) override
@@ -261,7 +262,7 @@ public:
     }
 
     void assembleWithJacobianForStaggeredScheme(
-        double const t, std::vector<double> const& local_xdot,
+        double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
@@ -369,21 +370,21 @@ private:
     }
 
     void assembleWithJacobianForDeformationEquations(
-        double const t, std::vector<double> const& local_xdot,
+        double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions);
 
     void assembleWithJacobianForHydroProcessEquations(
-        double const t, std::vector<double> const& local_xdot,
+        double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions);
 
     void assembleWithJacobianForPhaseFieldEquations(
-        double const t, std::vector<double> const& local_xdot,
+        double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
