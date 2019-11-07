@@ -182,8 +182,8 @@ void PhaseFieldExternalProcess<DisplacementDim>::initializeBoundaryConditions()
 
 template <int DisplacementDim>
 void PhaseFieldExternalProcess<DisplacementDim>::assembleConcreteProcess(
-    const double t, double const dt, GlobalVector const& x, GlobalMatrix& M,
-    GlobalMatrix& K, GlobalVector& b)
+    const double t, double const dt, GlobalVector const& x,
+    int const process_id, GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b)
 {
     DBUG("Assemble the equations for PhaseFieldExternalProcess.");
 
@@ -192,7 +192,7 @@ void PhaseFieldExternalProcess<DisplacementDim>::assembleConcreteProcess(
     // Call global assembler for each local assembly item.
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assemble, _local_assemblers,
-        dof_table, t, dt, x, M, K, b, _coupled_solutions);
+        dof_table, t, dt, x, process_id, M, K, b, _coupled_solutions);
 }
 
 template <int DisplacementDim>
@@ -200,12 +200,13 @@ void PhaseFieldExternalProcess<DisplacementDim>::
     assembleWithJacobianConcreteProcess(
         const double t, double const dt, GlobalVector const& x,
         GlobalVector const& xdot, const double dxdot_dx, const double dx_dx,
-        GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac)
+        int const process_id, GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b,
+        GlobalMatrix& Jac)
 {
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
     // For the staggered scheme
-    if (_coupled_solutions->process_id == _mechanics_related_process_id)
+    if (process_id == _mechanics_related_process_id)
     {
         DBUG(
             "Assemble the Jacobian equations of "
@@ -214,7 +215,7 @@ void PhaseFieldExternalProcess<DisplacementDim>::
             "the staggered scheme.");
     }
 
-    if (_coupled_solutions->process_id == _phase_field_process_id)
+    if (process_id == _phase_field_process_id)
     {
         DBUG(
             "Assemble the Jacobian equations of"
@@ -229,8 +230,8 @@ void PhaseFieldExternalProcess<DisplacementDim>::
 
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assembleWithJacobian,
-        _local_assemblers, dof_tables, t, dt, x, xdot, dxdot_dx, dx_dx, M, K, b,
-        Jac, _coupled_solutions);
+        _local_assemblers, dof_tables, t, dt, x, xdot, dxdot_dx, dx_dx,
+        process_id, M, K, b, Jac, _coupled_solutions);
 }
 
 template <int DisplacementDim>
