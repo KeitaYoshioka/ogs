@@ -274,25 +274,6 @@ calculateDegradedStressMasonry(
     principal_strain_compressive =
         principal_strain - principal_strain_tensile;
 
-    //    for (int i = 0; i < 3; i++)
-    //    {
-    //        for (int j = 0; j < 3; j++)
-    //        {
-    //            alpha[permutation[i]][j] = alpha_temp[i][j];
-    //            beta[permutation[i]][j] = beta_temp[i][j];
-    //        }
-    //        principal_strain_tensile[permutation[i]] =
-    //            principal_strain_tensile_temp[i];
-    //        principal_strain_compressive[permutation[i]] =
-    //            principal_strain_compressive_temp[i];
-    //    }
-
-//    for (int i = 0; i < 3; i++)
-//    {
-//        principal_strain_tensile[i] = principal_strain_tensile_temp[i];
-//        principal_strain_compressive[i] = principal_strain_compressive_temp[i];
-//        principal_strain[i] = principal_strain_temp[i];
-//    }
     double const sum_strain_tensile = principal_strain_tensile.sum();
     double const sum_strain_compressive = principal_strain_compressive.sum();
 
