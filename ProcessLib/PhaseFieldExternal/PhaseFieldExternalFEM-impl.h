@@ -23,7 +23,7 @@ template <typename ShapeFunction, typename IntegrationMethod,
 void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                                       DisplacementDim>::
     assembleWithJacobianForStaggeredScheme(
-        double const t, std::vector<double> const& local_xdot,
+        double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
@@ -32,14 +32,14 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     if (local_coupled_solutions.process_id == _phase_field_process_id)
     {
         assembleWithJacobianForPhaseFieldEquations(
-            t, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
+            t, dt, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
             local_b_data, local_Jac_data, local_coupled_solutions);
         return;
     }
 
     // For the equations with deformation
     assembleWithJacobianForDeformationEquations(
-        t, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
+        t, dt, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
         local_b_data, local_Jac_data, local_coupled_solutions);
 }
 
@@ -48,9 +48,9 @@ template <typename ShapeFunction, typename IntegrationMethod,
 void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                                       DisplacementDim>::
     assembleWithJacobianForDeformationEquations(
-        double const t, std::vector<double> const& /*local_xdot*/,
-        const double /*dxdot_dx*/, const double /*dx_dx*/,
-        std::vector<double>& /*local_M_data*/,
+        double const t, double const dt,
+        std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
+        const double /*dx_dx*/, std::vector<double>& /*local_M_data*/,
         std::vector<double>& /*local_K_data*/,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
@@ -78,7 +78,6 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         typename ShapeMatricesType::template VectorType<displacement_size>>(
         local_b_data, displacement_size);
 
-    double const& dt = _process_data.dt;
     double const& reg_param = _process_data.reg_param;
 
     ParameterLib::SpatialPosition x_position;
@@ -167,9 +166,9 @@ template <typename ShapeFunction, typename IntegrationMethod,
 void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                                       DisplacementDim>::
     assembleWithJacobianForPhaseFieldEquations(
-        double const t, std::vector<double> const& /*local_xdot*/,
-        const double /*dxdot_dx*/, const double /*dx_dx*/,
-        std::vector<double>& /*local_M_data*/,
+        double const t, double const /*dt*/,
+        std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
+        const double /*dx_dx*/, std::vector<double>& /*local_M_data*/,
         std::vector<double>& /*local_K_data*/,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
