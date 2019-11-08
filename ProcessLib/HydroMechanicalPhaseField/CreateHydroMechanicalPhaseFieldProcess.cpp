@@ -217,6 +217,31 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "porosity", parameters, 1);
     DBUG("Use '%s' as porosity parameter.", porosity.name.c_str());
 
+    auto const fluid_type = FluidType::strToFluidType(
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__fluid_type}
+        config.getConfigParameter<std::string>("fluid_type"));
+    DBUG("Use 'fluid_type' as fluid type parameter.");
+    // Reference temperature
+    double const reference_temperature =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__reference_temperature}
+        config.getConfigParameter<double>(
+            "reference_temperature", std::numeric_limits<double>::quiet_NaN());
+    DBUG("Use 'reference_temperature' as reference temperature.");
+
+    // Specific gas constant
+    double const specific_gas_constant =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__specific_gas_constant}
+        config.getConfigParameter<double>(
+            "specific_gas_constant", std::numeric_limits<double>::quiet_NaN());
+    DBUG("Use 'specific_gas_constant' as specific gas constant.");
+
+    // Fluid compressibility
+    double const fluid_compressibility =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__fluid_compressibility}
+        config.getConfigParameter<double>(
+            "fluid_compressibility", std::numeric_limits<double>::quiet_NaN());
+    DBUG("Use 'fluid_compressibility' as fluid compressibility parameter.");
+
     // Source
     //    Eigen::Vector3d source_location =
     //            //!
@@ -307,6 +332,10 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     int split_method;
     if (split && (*split == 1))
         split_method = 1;
+    else if (split && (*split == 2))
+        split_method = 2;
+    else if (split && (*split == 3))
+        split_method = 3;
     else
         split_method = 0;
 
@@ -331,6 +360,10 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         biot_modulus,
         drained_modulus,
         porosity,
+        fluid_type,
+        fluid_compressibility,
+        reference_temperature,
+        specific_gas_constant,
         source_location,
         source};
 

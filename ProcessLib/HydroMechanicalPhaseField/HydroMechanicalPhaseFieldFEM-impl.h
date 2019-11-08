@@ -106,7 +106,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
-
+        double const d_ip = N.dot(d);
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
                                                                      N);
@@ -121,12 +121,12 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const k = _process_data.residual_stiffness(t, x_position)[0];
         double const alpha = _process_data.biot_coefficient(t, x_position)[0];
         double const p_ip = N.dot(p);
-        double const degradation = ele_d * ele_d * (1 - k) + k;
+        double const degradation = d_ip * d_ip * (1 - k) + k;
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
             reg_param);
 
-        auto const& sigma_eff = _ip_data[ip].sigma_eff;
+        auto const& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
         auto const& C_compressive = _ip_data[ip].C_compressive;
 
@@ -141,6 +141,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                    i, i * displacement_size / DisplacementDim)
                 .noalias() = N;
 
+        double const p_fr =
+            (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
+                ? p_ip
+                : std::numeric_limits<double>::quiet_NaN();
+        double const rho_fr =
+            _process_data.getFluidDensity(t, x_position, p_fr);
+        double const beta_p = _process_data.getFluidCompressibility(p_fr);
+
         auto rho_s = _process_data.solid_density(t, x_position)[0];
         auto const& b = _process_data.specific_body_force;
 
@@ -152,7 +160,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DisplacementDim>::value>::identity2;
 
         local_rhs.noalias() -=
-            (B.transpose() * (sigma_eff - ele_d * alpha * p_ip * identity2) -
+            (B.transpose() * (sigma - d_ip * alpha * p_ip * identity2) -
              N_u.transpose() * rho_s * b - p_ip * N_u.transpose() * dNdx * d) *
             w;
 
@@ -359,7 +367,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 

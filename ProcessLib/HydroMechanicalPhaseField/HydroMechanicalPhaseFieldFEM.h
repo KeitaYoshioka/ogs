@@ -53,7 +53,7 @@ struct IntegrationPointData final
 
     typename BMatricesType::KelvinMatrixType C_compressive;
 
-    typename BMatricesType::KelvinVectorType sigma_eff, sigma_tensile;
+    typename BMatricesType::KelvinVectorType sigma, sigma_tensile;
     typename BMatricesType::KelvinMatrixType C_tensile;
     double strain_energy_tensile;
     double elastic_energy;
@@ -89,25 +89,32 @@ struct IntegrationPointData final
             C_compressive = BMatricesType::KelvinMatrixType::Zero(
                 kelvin_vector_size, kelvin_vector_size);
 
-            std::tie(sigma_eff, sigma_tensile, C_tensile, strain_energy_tensile,
+            std::tie(sigma, sigma_tensile, C_tensile, strain_energy_tensile,
                      elastic_energy) = MaterialLib::Solids::Phasefield::
                 calculateIsotropicDegradedStress<DisplacementDim>(
                     degradation, bulk_modulus, mu, eps);
         }
         else if (split == 1)
         {
-            std::tie(sigma_eff, sigma_tensile, C_tensile, C_compressive,
+            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
                     DisplacementDim>(degradation, bulk_modulus, mu, eps, reg_param);
         }
         else if (split == 2)
         {
-            std::tie(sigma_eff, sigma_tensile, C_tensile, C_compressive,
+            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::
                     calculateDegradedStressMiehe<DisplacementDim>(
                         degradation, lambda, mu, eps, reg_param);
+        }
+        else if (split == 3)
+        {
+            std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::calculateDegradedStressMasonry<
+                    DisplacementDim>(degradation, lambda, mu, eps);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -227,7 +234,7 @@ public:
             ip_data.C_compressive.setZero(kelvin_vector_size,
                                           kelvin_vector_size);
             ip_data.sigma_tensile.setZero(kelvin_vector_size);
-            ip_data.sigma_eff.setZero(kelvin_vector_size);
+            ip_data.sigma.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
             ip_data.pressure = 0.0;
@@ -354,9 +361,9 @@ private:
 
         for (unsigned ip = 0; ip < num_intpts; ++ip)
         {
-            auto const& sigma_eff = _ip_data[ip].sigma_eff;
+            auto const& sigma = _ip_data[ip].sigma;
             cache_mat.col(ip) =
-                MathLib::KelvinVector::kelvinVectorToSymmetricTensor(sigma_eff);
+                MathLib::KelvinVector::kelvinVectorToSymmetricTensor(sigma);
         }
 
         return cache;

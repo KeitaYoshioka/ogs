@@ -14,6 +14,7 @@
 #include <memory>
 #include <utility>
 
+#include "MaterialLib/Fluid/FluidType/FluidType.h"
 #include "ParameterLib/Parameter.h"
 
 namespace MaterialLib
@@ -50,6 +51,10 @@ struct HydroMechanicalPhaseFieldProcessData
         ParameterLib::Parameter<double> const& biot_modulus_,
         ParameterLib::Parameter<double> const& drained_modulus_,
         ParameterLib::Parameter<double> const& porosity_,
+        FluidType::Fluid_Type const fluid_type_,
+        double const fluid_compressibility_,
+        double const specific_gas_constant_,
+        double const reference_temperature_,
         Eigen::Vector3d const& source_location_, double const source_)
         : material_ids(material_ids_),
           solid_materials{std::move(solid_materials_)},
@@ -71,6 +76,10 @@ struct HydroMechanicalPhaseFieldProcessData
           biot_modulus(biot_modulus_),
           drained_modulus(drained_modulus_),
           porosity(porosity_),
+          fluid_type(fluid_type_),
+          fluid_compressibility(fluid_compressibility_),
+          specific_gas_constant(specific_gas_constant_),
+          reference_temperature(reference_temperature_),
           source_location(source_location_),
           source(source_)
     {
@@ -118,6 +127,13 @@ struct HydroMechanicalPhaseFieldProcessData
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* width_prev = nullptr;
     MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
+    FluidType::Fluid_Type const fluid_type;
+    double const fluid_compressibility =
+        std::numeric_limits<double>::quiet_NaN();
+    double const specific_gas_constant =
+        std::numeric_limits<double>::quiet_NaN();
+    double const reference_temperature =
+        std::numeric_limits<double>::quiet_NaN();
     Eigen::Vector3d const source_location;
     double const source = 0.0;
     double poroelastic_energy = 0.0;
@@ -125,6 +141,41 @@ struct HydroMechanicalPhaseFieldProcessData
     double pressure_work = 0.0;
     double dt;
     double t;
+
+    /// will be removed after linking with MPL
+    double getFluidDensity(double const& t,
+                           ParameterLib::SpatialPosition const& x_position,
+                           double const& p_fr)
+    {
+        if (fluid_type == FluidType::Fluid_Type::INCOMPRESSIBLE_FLUID ||
+            fluid_type == FluidType::Fluid_Type::COMPRESSIBLE_FLUID)
+        {
+            return fluid_density(t, x_position)[0];
+        }
+        if (fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
+        {
+            return p_fr / (specific_gas_constant * reference_temperature);
+        }
+        OGS_FATAL("unknown fluid type %d", static_cast<int>(fluid_type));
+    }
+
+    /// will be removed after linking with MPL
+    double getFluidCompressibility(double const& p_fr)
+    {
+        if (fluid_type == FluidType::Fluid_Type::INCOMPRESSIBLE_FLUID)
+        {
+            return 0.0;
+        }
+        if (fluid_type == FluidType::Fluid_Type::COMPRESSIBLE_FLUID)
+        {
+            return fluid_compressibility;
+        }
+        if (fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
+        {
+            return 1.0 / p_fr;
+        }
+        OGS_FATAL("unknown fluid type %d", static_cast<int>(fluid_type));
+    }
 };
 
 }  // namespace HydroMechanicalPhaseField
