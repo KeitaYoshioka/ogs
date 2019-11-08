@@ -168,14 +168,10 @@ calculateDegradedStressMasonry(
     double const degradation, double const lambda, double const mu,
     MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& eps)
 {
-    static int const KelvinVectorSize =
-        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
     using KelvinVector =
         MathLib::KelvinVector::KelvinVectorType<DisplacementDim>;
     using KelvinMatrix =
         MathLib::KelvinVector::KelvinMatrixType<DisplacementDim>;
-    using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
-    auto const& identity2 = Invariants::identity2;
 
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
@@ -354,6 +350,9 @@ calculateDegradedStressMasonry(
     KelvinVector const sigma_real =
         degradation * sigma_tensile + sigma_compressive;
     /*
+        static int const KelvinVectorSize =
+            MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
+        using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
 
         double bulk_modulus = lambda + 2 / 3 * mu;
         auto const& P_dev = Invariants::deviatoric_projection;
@@ -402,7 +401,6 @@ calculateDegradedStressMiehe(
     using KelvinMatrix =
         MathLib::KelvinVector::KelvinMatrixType<DisplacementDim>;
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
-    auto const& identity2 = Invariants::identity2;
 
     KelvinMatrix C_tensile = KelvinMatrix::Zero();
     KelvinMatrix C_compressive = KelvinMatrix::Zero();
@@ -433,7 +431,8 @@ calculateDegradedStressMiehe(
     };
 
     auto stress_computation = [&](auto&& macaulay) {
-        KelvinVector stress = lambda * macaulay(sum_strain) * identity2;
+        KelvinVector stress =
+            lambda * macaulay(sum_strain) * Invariants::identity2;
         for (int i = 0; i < 3; i++)
             stress += 2 * mu * macaulay(principal_strain[i]) * M_kelvin[i];
         return stress;
@@ -529,7 +528,6 @@ calculateDegradedStressAmor(
     // calculation of deviatoric parts
     auto const& P_dev = Invariants::deviatoric_projection;
     KelvinVector const epsd_curr = P_dev * eps;
-    auto const& identity2 = Invariants::identity2;
 
     // Hydrostatic part for the stress and the tangent.
     double const eps_curr_trace = Invariants::trace(eps);
@@ -545,7 +543,7 @@ calculateDegradedStressAmor(
     };
 
     auto stress_computation_vol = [&](auto&& macaulay) {
-        return bulk_modulus * macaulay(eps_curr_trace) * identity2;
+        return bulk_modulus * macaulay(eps_curr_trace) * Invariants::identity2;
     };
 
     auto hs = [&](double const v) {
