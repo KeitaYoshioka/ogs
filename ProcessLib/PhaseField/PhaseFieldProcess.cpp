@@ -267,7 +267,7 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
 
 template <int DisplacementDim>
 void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
-    std::vector<GlobalVector*> const& x, const double t,
+    std::vector<GlobalVector*> const& /*x*/, const double /*t*/,
     const double /*delta_t*/, int const process_id)
 {
     if (isPhaseFieldProcess(process_id))
@@ -285,9 +285,6 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 
         dof_tables.emplace_back(*_local_to_global_index_map);
         dof_tables.emplace_back(*_local_to_global_index_map_single_component);
-
-        ProcessLib::ProcessVariable const& pv =
-            getProcessVariables(process_id)[0];
     }
 }
 
