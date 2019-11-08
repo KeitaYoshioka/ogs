@@ -148,8 +148,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const rho_fr =
             _process_data.getFluidDensity(t, x_position, p_fr);
         double const beta_p = _process_data.getFluidCompressibility(p_fr);
-
-        auto rho_s = _process_data.solid_density(t, x_position)[0];
+        auto const porosity = _process_data.porosity(t, x_position)[0];
+        auto rho_sr = _process_data.solid_density(t, x_position)[0];
+        double const rho = rho_sr * (1 - porosity) + porosity * rho_fr;
         auto const& b = _process_data.specific_body_force;
 
         auto const C_eff = degradation * C_tensile + C_compressive;
@@ -161,7 +162,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         local_rhs.noalias() -=
             (B.transpose() * (sigma - d_ip * alpha * p_ip * identity2) -
-             N_u.transpose() * rho_s * b - p_ip * N_u.transpose() * dNdx * d) *
+             N_u.transpose() * rho * b - p_ip * N_u.transpose() * dNdx * d) *
             w;
 
         local_Jac.noalias() += B.transpose() * C_eff * B * w;
@@ -219,19 +220,19 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
-    double ele_d = 0.0;
+    //    double ele_d = 0.0;
     double ele_source = 0.0;
-    double ele_grad_d_norm = 0.0;
+//    double ele_grad_d_norm = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
-        ele_d += N.dot(d);
-        ele_grad_d_norm += (dNdx * d).norm();
+ //       ele_d += N.dot(d);
+ //       ele_grad_d_norm += (dNdx * d).norm();
         ele_source += _ip_data[ip].reg_source;
     }
-    ele_d = ele_d / n_integration_points;
-    ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
+  //  ele_d = ele_d / n_integration_points;
+  //  ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
     ele_source = ele_source / n_integration_points;
 
     for (int ip = 0; ip < n_integration_points; ip++)
@@ -252,29 +253,36 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto& pressure = _ip_data[ip].pressure;
         auto const& pressure_prev = _ip_data[ip].pressure_prev;
-        pressure = N.dot(p);
+
+        double const d_ip = N.dot(d);
 
         double const perm =
             _process_data.intrinsic_permeability(t, x_position)[0];
         double const mu = _process_data.fluid_viscosity(t, x_position)[0];
+        double const p_fr =
+            (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
+                ? pressure
+                : std::numeric_limits<double>::quiet_NaN();
+        double const rho_fr =
+            _process_data.getFluidDensity(t, x_position, p_fr);
 
         double const grad_d_norm = (dNdx * d).norm();
 
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
         double const dp_dt = (pressure - pressure_prev) / dt;
         double const modulus_rm =
-            alpha * alpha / kappa * ele_d * ele_d + m_inv * (1 - ele_d * ele_d);
+            alpha * alpha / kappa * d_ip * d_ip + m_inv * (1 - d_ip * d_ip);
 
         local_rhs.noalias() +=
-            (-modulus_rm * dp_dt + ele_d * ele_d * alpha * dv_dt) * N * w;
+            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
 
-        mass.noalias() += (m_inv + ele_d * ele_d * alpha * alpha / kappa) *
+        mass.noalias() += (m_inv + d_ip * d_ip * alpha * alpha / kappa) *
                           N.transpose() * N * w;
 
-        local_rhs.noalias() += ele_source * ele_grad_d_norm * N * w;
+        local_rhs.noalias() += ele_source * grad_d_norm * N * w;
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
-        if (ele_d > 0.0 && ele_d < 0.99)
+        if (d_ip > 0.0 && d_ip < 0.99)
         {
             double const dw_dt = (width - width_prev) / dt;
 
