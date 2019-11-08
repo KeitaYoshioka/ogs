@@ -443,8 +443,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
-        auto pressure_ip = _process_data.pressure;
-        auto u_corrected = pressure_ip * u;
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
@@ -507,6 +505,8 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         //        if (_process_data.crack_pressure)
         //        {
+        //            auto pressure_ip = _process_data.pressure;
+        //            auto u_corrected = pressure_ip * u;
         //            ele_pressure_work +=
         //                pressure_ip * (N_u * u_corrected).dot(dNdx * d) * w;
         //        }
