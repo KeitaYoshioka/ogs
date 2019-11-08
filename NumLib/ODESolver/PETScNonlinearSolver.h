@@ -40,7 +40,7 @@ public:
     //! TODO doc
     void setEquationSystem(System& eq, ConvergenceCriterion& conv_crit);
 
-    void assemble(GlobalVector const& x) const override;
+    void assemble(GlobalVector const& x, int const process_id) const override;
 
     NonlinearSolverStatus solve(GlobalVector& x,
                std::function<void(int, GlobalVector const&)> const&

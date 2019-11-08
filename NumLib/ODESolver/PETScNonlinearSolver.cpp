@@ -27,6 +27,7 @@ struct PetscContext
     GlobalVector* x;
     GlobalVector* r;
     GlobalMatrix* J;
+    int const process_id;
 };
 }  // namespace detail
 
@@ -46,9 +47,9 @@ void PETScNonlinearSolver::setEquationSystem(System& eq,
     _convergence_criterion = &conv_crit;
 }
 
-void PETScNonlinearSolver::assemble(GlobalVector const& x) const
+void PETScNonlinearSolver::assemble(GlobalVector const& x, int const process_id) const
 {
-    _equation_system->assemble(x);
+    _equation_system->assemble(x, process_id);
 }
 
 NonlinearSolverStatus PETScNonlinearSolver::solve(
@@ -75,7 +76,7 @@ NonlinearSolverStatus PETScNonlinearSolver::solve(
     double time_dirichlet = 0.0;
 
     timer_dirichlet.start();
-    system->computeKnownSolutions(x);
+    system->computeKnownSolutions(x,process_id);
     system->applyKnownSolutions(x);
     time_dirichlet += timer_dirichlet.elapsed();
     INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet);
@@ -90,7 +91,7 @@ NonlinearSolverStatus PETScNonlinearSolver::solve(
     auto& petsc_J = NumLib::GlobalMatrixProvider::provider.getMatrix(
         system->getMatrixSpecifications(process_id), _petsc_jacobian_id);
 
-    ::detail::PetscContext petsc_context{_equation_system, &x, &r, &J};
+    ::detail::PetscContext petsc_context{_equation_system, &x, &r, &J,process_id};
 
     auto residual = [](SNES /*snes*/, Vec petsc_x, Vec petsc_r,
                        void* petsc_context) -> PetscErrorCode {
@@ -114,7 +115,7 @@ NonlinearSolverStatus PETScNonlinearSolver::solve(
         // Assemble in ogs context.
         BaseLib::RunTime time_assembly;
         time_assembly.start();
-        context->system->assemble(*context->x);
+        context->system->assemble(*context->x,context->process_id);
 
         INFO("[time] Assembly took %g s.", time_assembly.elapsed());
         context->system->getResidual(*context->x, *context->r);
