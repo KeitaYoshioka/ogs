@@ -73,7 +73,7 @@ void PhaseFieldIrreversibleDamageOracleBoundaryCondition::preTimestep(
             _bc_values.ids.emplace_back(g_idx);
             _bc_values.values.emplace_back(0.0);
         }
-        else if(x[g_idx] > fixedDamage)
+        else if ((*x[process_id])[g_idx] > fixedDamage)
         {
             _bc_values.ids.emplace_back(g_idx);
             _bc_values.values.emplace_back(1.0);

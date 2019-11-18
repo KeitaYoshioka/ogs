@@ -41,7 +41,7 @@ struct PhaseFieldInSituLocalAssemblerInterface
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs, int process_id) = 0;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
 
     virtual void computeEnergy(
         std::size_t mesh_item_id,

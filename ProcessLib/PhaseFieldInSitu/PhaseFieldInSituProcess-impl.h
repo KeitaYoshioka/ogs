@@ -265,9 +265,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::
 
 template <int DisplacementDim>
 void PhaseFieldInSituProcess<DisplacementDim>::preTimestepConcreteProcess(
-    GlobalVector const& x,
-    double const t,
-    double const dt,
+    std::vector<GlobalVector*> const& x, double const t, double const dt,
     const int process_id)
 {
     DBUG("PreTimestep PhaseFieldInSituProcess.");
@@ -276,11 +274,11 @@ void PhaseFieldInSituProcess<DisplacementDim>::preTimestepConcreteProcess(
     _process_data.t = t;
     _process_data.injected_volume = _process_data.t;
     _x_previous_timestep =
-        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(*x[process_id]);
 
     GlobalExecutor::executeMemberOnDereferenced(
         &PhaseFieldInSituLocalAssemblerInterface::preTimestep,
-        _local_assemblers, getDOFTable(process_id), x, t, dt);
+        _local_assemblers, getDOFTable(process_id), *x[process_id], t, dt);
     /*    if (_coupled_solutions->process_id == _mechanics_process0_id)
         {
             std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
@@ -305,9 +303,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::preTimestepConcreteProcess(
 
 template <int DisplacementDim>
 void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
-    GlobalVector const& x,
-    double const t,
-    double const dt,
+    std::vector<GlobalVector*> const& x, double const t, double const dt,
     int const process_id)
 {
     DBUG("PostTimestep PhaseFieldInSituProcess.");
@@ -344,7 +340,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
                 */
         GlobalExecutor::executeMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
-            _local_assemblers, dof_tables, x, _process_data.t,
+            _local_assemblers, dof_tables, *x[process_id], _process_data.t,
             _process_data.elastic_energy, _process_data.surface_energy,
             _process_data.pressure_work, _use_monolithic_scheme,
             _coupled_solutions);

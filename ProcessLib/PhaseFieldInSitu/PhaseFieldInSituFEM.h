@@ -138,6 +138,13 @@ template <typename ShapeFunction, typename IntegrationMethod,
 class PhaseFieldInSituLocalAssembler
     : public PhaseFieldInSituLocalAssemblerInterface
 {
+private:
+    static constexpr int phasefield_index = 0;
+    static constexpr int phasefield_size = ShapeFunction::NPOINTS;
+    static constexpr int displacement_size =
+        ShapeFunction::NPOINTS * DisplacementDim;
+    static constexpr int displacement_index = 2 * ShapeFunction::NPOINTS;
+
 public:
     using ShapeMatricesType =
         ShapeMatrixPolicyType<ShapeFunction, DisplacementDim>;
@@ -149,6 +156,14 @@ public:
     using NodalForceVectorType = typename BMatricesType::NodalForceVectorType;
 
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
+
+    using DeformationVector =
+        typename ShapeMatricesType::template VectorType<displacement_size>;
+    using PhaseFieldVector =
+        typename ShapeMatricesType::template VectorType<phasefield_size>;
+    using PhaseFieldMatrix =
+        typename ShapeMatricesType::template MatrixType<phasefield_size,
+                                                        phasefield_size>;
 
     PhaseFieldInSituLocalAssembler(PhaseFieldInSituLocalAssembler const&) =
         delete;
@@ -264,8 +279,7 @@ public:
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
-        int process_id) override;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
     void computeEnergy(
         std::size_t mesh_item_id,
@@ -372,13 +386,6 @@ private:
     MeshLib::Element const& _element;
     bool const _is_axially_symmetric;
     SecondaryData<typename ShapeMatrices::ShapeType> _secondary_data;
-
-    static const int phasefield_index = 0;
-    static const int phasefield_size = ShapeFunction::NPOINTS;
-    static const int displacement0_index = ShapeFunction::NPOINTS;
-    static const int displacement_size =
-        ShapeFunction::NPOINTS * DisplacementDim;
-    static const int displacement1_index = 2 * ShapeFunction::NPOINTS;
 
     /// ID of the processes that contains mechanical0 process.
     int const _mechanics_process0_id;

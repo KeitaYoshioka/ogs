@@ -255,7 +255,7 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
     _process_data.injected_volume = t;
 
     _x_previous_timestep =
-        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(*x[process_id]);
 
     ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
 
@@ -333,7 +333,7 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 
     GlobalExecutor::executeSelectedMemberOnDereferenced(
         &LocalAssemblerInterface::computeEnergy, _local_assemblers,
-        pv.getActiveElementIDs(), dof_tables, *x[process_id], t, dt,
+        pv.getActiveElementIDs(), dof_tables, x, t, dt,
         _process_data.elastic_energy, _process_data.surface_energy,
         _process_data.pressure_work, _coupled_solutions);
 
