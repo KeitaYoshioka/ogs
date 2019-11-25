@@ -157,15 +157,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                    i, i * displacement_size / DisplacementDim)
                 .noalias() = N;
 
-        double const p_fr =
-            (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
-                ? p_ip
-                : std::numeric_limits<double>::quiet_NaN();
-        double const rho_fr =
-            _process_data.getFluidDensity(t, x_position, p_fr);
-        auto const porosity = _process_data.porosity(t, x_position)[0];
-        auto rho_sr = _process_data.solid_density(t, x_position)[0];
-        double const rho = rho_sr * (1 - porosity) + porosity * rho_fr;
         auto const& b = _process_data.specific_body_force;
 
         auto const C_eff = degradation * C_tensile + C_compressive;
@@ -239,10 +230,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
-
     //    double ele_d = 0.0;
-    //    double ele_grad_d_norm = 0.0;
     double ele_source = 0.0;
+    //    double ele_grad_d_norm = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         //        auto const& N = _ip_data[ip].N;
@@ -255,49 +245,50 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     //  ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
     ele_source = ele_source / n_integration_points;
 
+    double const Kd = _process_data.drained_modulus(t, x_position)[0];
+    double const Ks = _process_data.grain_modulus(t, x_position)[0];
+    double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
+    double const mu = _process_data.fluid_viscosity(t, x_position)[0];
+
+    auto const porosity = _process_data.porosity(t, x_position)[0];
+
+    double const alpha = (1 - Kd / Ks);
+
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
-
-        auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
-        auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
-
-        //        auto const& reg_source = _ip_data[ip].reg_source;
-
-        auto const alpha = _process_data.biot_coefficient(t, x_position)[0];
-        auto const m_inv = 1 / _process_data.biot_modulus(t, x_position)[0];
-        auto const kappa = _process_data.drained_modulus(t, x_position)[0];
-
-        auto& pressure = _ip_data[ip].pressure;
-        auto const& pressure_prev = _ip_data[ip].pressure_prev;
-
         double const d_ip = N.dot(d);
 
-        double const perm =
-            _process_data.intrinsic_permeability(t, x_position)[0];
-        double const mu = _process_data.fluid_viscosity(t, x_position)[0];
+        auto& pressure = _ip_data[ip].pressure;
         double const p_fr =
             (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
                 ? pressure
                 : std::numeric_limits<double>::quiet_NaN();
         double const rho_fr =
             _process_data.getFluidDensity(t, x_position, p_fr);
+        double const beta_p = _process_data.getFluidCompressibility(p_fr);
+        double m_inv =
+            porosity * beta_p + (alpha - porosity) * (1 - alpha) / Ks;
+        auto const& pressure_prev = _ip_data[ip].pressure_prev;
+
+        auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
+        auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
+        double const dv_dt = (vol_strain - vol_strain_prev) / dt;
+        double const dp_dt = (pressure - pressure_prev) / dt;
 
         double const grad_d_norm = (dNdx * d).norm();
 
-        double const dv_dt = (vol_strain - vol_strain_prev) / dt;
-        double const dp_dt = (pressure - pressure_prev) / dt;
         double const modulus_rm =
-            alpha * alpha / kappa * d_ip * d_ip + m_inv * (1 - d_ip * d_ip);
+            alpha * alpha / Kd * d_ip * d_ip + m_inv * (1 - d_ip * d_ip);
 
         local_rhs.noalias() +=
             (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
 
-        mass.noalias() += (m_inv + d_ip * d_ip * alpha * alpha / kappa) *
-                          N.transpose() * N * w;
+        mass.noalias() +=
+            (m_inv + d_ip * d_ip * alpha * alpha / Kd) * N.transpose() * N * w;
 
         local_rhs.noalias() += ele_source * grad_d_norm * N * w;
 
