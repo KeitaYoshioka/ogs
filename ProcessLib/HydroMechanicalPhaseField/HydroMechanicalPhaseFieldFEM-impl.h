@@ -268,8 +268,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
                 ? p_ip * 2.e6
                 : std::numeric_limits<double>::quiet_NaN();
-        double const rho_fr = 1.0;// _process_data.getFluidDensity(t, x_position, p_fr);
-        double const beta_p = 0.0;// _process_data.getFluidCompressibility(p_fr);
+        double const rho_fr =
+            _process_data.getFluidDensity(t, x_position, p_fr);
+        double const beta_p = _process_data.getFluidCompressibility(p_fr);
         double m_inv =
             porosity * beta_p + (alpha - porosity) * (1 - alpha) / Ks;
 
@@ -277,36 +278,47 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
         double const dp_dt = (p_ip - p0_ip) / dt;
+        // pf_fixed_strs = 1.0 -> no pf fixed stress
+        //               = 0.0 -> pf_fixed stress
+        double const pf_fixed_strs = 0.0;
 
         double const grad_d_norm = (dNdx * d).norm();
 
         double const modulus_rm =
-            alpha * alpha / Kd * d_ip * d_ip + m_inv * (1 - d_ip * d_ip);
+            alpha * alpha / Kd * d_ip * d_ip +
+            m_inv * (1 - d_ip * d_ip) * (1 - pf_fixed_strs);
 
         local_rhs.noalias() +=
             (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
 
-        mass.noalias() +=
-            (m_inv + d_ip * d_ip * alpha * alpha / Kd) * N.transpose() * N * w;
+        mass.noalias() += ((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
+                           d_ip * d_ip * alpha * alpha / Kd) *
+                          N.transpose() * N * w;
 
         local_rhs.noalias() += ele_source * grad_d_norm * N * w;
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
+
         if (d_ip > 0.0 && d_ip < 0.99)
         {
             double const dw_dt = (width - width_prev) / dt;
-
-            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
             auto norm_gamma = (dNdx * d).normalized();
-
             decltype(dNdx) const dNdx_gamma =
                 (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
 
+            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
             double const frac_trans = 4 * pow(width, 3) / (12 * mu);
+
             laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
                                   dNdx_gamma * grad_d_norm) *
                                  w;
+            mass.noalias() +=
+                (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
         }
+
+        // For debugging purpose
+        if (_element.getID() == 1 && ip == 0)
+            DBUG("something");
     }
     local_Jac.noalias() = laplace + mass / dt;
 
