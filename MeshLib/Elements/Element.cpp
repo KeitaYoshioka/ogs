@@ -232,6 +232,12 @@ std::ostream& operator<<(std::ostream& os, Element const& e)
 }
 #endif  // NDEBUG
 
+void Element::setAdditionalNeighbor(
+    std::vector<Element*>&& addtional_neighbours)
+{
+    _additional_neighbours = std::move(addtional_neighbours);
+}
+
 bool isPointInElementXY(MathLib::Point3d const& p, Element const& e)
 {
     for(std::size_t i(0); i<e.getNumberOfBaseNodes(); ++i) {

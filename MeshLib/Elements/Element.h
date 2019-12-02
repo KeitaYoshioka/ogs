@@ -98,6 +98,11 @@ public:
     /// Get the specified neighbor.
     const Element* getNeighbor(unsigned i) const;
 
+    std::vector<Element*> const& getAdditionalNeighbor() const
+    {
+        return _additional_neighbours;
+    }
+
     /// Get the number of neighbors for this element.
     virtual unsigned getNumberOfNeighbors() const = 0;
 
@@ -213,10 +218,20 @@ protected:
     /// Content corresponds to length for 1D, area for 2D, and volume for 3D elements
     double _content;
 
+    /// 1D: node neighbours.
+    /// 2D: edge neighbours.
+    /// 3D: face neighbours.
     Element** _neighbors;
     /// Sets the neighbor over the face with \c face_id to the given \c
     /// neighbor.
     void setNeighbor(Element* neighbor, unsigned const face_id);
+
+    /// 1D: None
+    /// 2D: All neighbors except that edge neighbours
+    /// 2D: All neighbors except that face neighbours
+    std::vector<Element*> _additional_neighbours;
+
+    void setAdditionalNeighbor(std::vector<Element*>&& addtional_neighbours);
 
 }; /* class */
 

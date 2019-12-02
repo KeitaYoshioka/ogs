@@ -222,11 +222,14 @@ void Mesh::calcEdgeLengthRange()
 
 void Mesh::setElementNeighbors()
 {
-    std::vector<Element*> neighbors;
     for (auto element : _elements)
     {
         // create vector with all elements connected to current element (includes lots of doubles!)
         const std::size_t nNodes (element->getNumberOfBaseNodes());
+
+        std::vector<Element*> neighbors;
+        std::vector<Element*> additional_neighbors;
+
         for (unsigned n(0); n<nNodes; ++n)
         {
             std::vector<Element*> const& conn_elems ((element->getNode(n)->getElements()));
@@ -242,8 +245,16 @@ void Mesh::setElementNeighbors()
             {
                 (*neighbor)->setNeighbor(element, *opposite_face_id);
             }
+            else
+            {
+                additional_neighbors.push_back(*neighbor);
+            }
         }
-        neighbors.clear();
+
+        if (!additional_neighbors.empty())
+        {
+            element->setAdditionalNeighbor(std::move(additional_neighbors));
+        }
     }
 }
 
