@@ -238,6 +238,32 @@ void Element::setAdditionalNeighbor(
     _additional_neighbours = std::move(addtional_neighbours);
 }
 
+Element const* Element::findElementInNeighboursWithPoint(
+    MathLib::Point3d const& point) const
+{
+    if (isPntInElement(point))
+        return this;
+
+    for (unsigned i = 0; i < getNumberOfNeighbors(); i++)
+    {
+        auto const neighbour = getNeighbor(i);
+        if (neighbour && neighbour->isPntInElement(point))
+        {
+            return neighbour;
+        }
+    }
+
+    for (auto const additional_neighbour : _additional_neighbours)
+    {
+        if (additional_neighbour->isPntInElement(point))
+        {
+            return additional_neighbour;
+        }
+    }
+
+    return nullptr;
+}
+
 bool isPointInElementXY(MathLib::Point3d const& p, Element const& e)
 {
     for(std::size_t i(0); i<e.getNumberOfBaseNodes(); ++i) {

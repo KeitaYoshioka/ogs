@@ -158,6 +158,9 @@ public:
      */
     virtual bool isPntInElement(MathLib::Point3d const& pnt, double eps = std::numeric_limits<double>::epsilon()) const = 0;
 
+    Element const* findElementInNeighboursWithPoint(
+        MathLib::Point3d const& point) const;
+
     /**
      * Tests if the element is geometrically valid.
      */
