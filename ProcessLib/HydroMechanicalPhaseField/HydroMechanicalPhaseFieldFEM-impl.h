@@ -230,9 +230,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
+
     //    double ele_d = 0.0;
-    double ele_source = 0.0;
     //    double ele_grad_d_norm = 0.0;
+    double ele_source = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         //        auto const& N = _ip_data[ip].N;
@@ -261,12 +262,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
-        double const p_ip = N.dot(p);
         double const p0_ip = N.dot(p0);
+
+        auto& pressure = _ip_data[ip].pressure;
+        auto& pressureNL = _ip_data[ip].pressureNL;
+        pressure = N.dot(p);
 
         double const p_fr =
             (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
-                ? p_ip * 2.e6
+                ? pressure * 2.e6
                 : std::numeric_limits<double>::quiet_NaN();
         double const rho_fr =
             _process_data.getFluidDensity(t, x_position, p_fr);
@@ -277,7 +281,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
         auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
-        double const dp_dt = (p_ip - p0_ip) / dt;
+        double const dp_dt = (pressureNL - p0_ip) / dt;
         // pf_fixed_strs = 1.0 -> no pf fixed stress
         //               = 0.0 -> pf_fixed stress
         double const pf_fixed_strs = 0.0;
