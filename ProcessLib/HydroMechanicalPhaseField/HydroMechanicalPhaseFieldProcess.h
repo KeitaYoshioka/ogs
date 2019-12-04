@@ -9,10 +9,9 @@
 
 #pragma once
 
+#include "HydroMechanicalPhaseFieldProcessData.h"
 #include "LocalAssemblerInterface.h"
 #include "ProcessLib/Process.h"
-
-#include "HydroMechanicalPhaseFieldProcessData.h"
 
 namespace ProcessLib
 {
@@ -91,6 +90,13 @@ private:
     NumLib::LocalToGlobalIndexMap& getDOFTableByProcessID(
         const int process_id) const;
 
+    void setCoupledSolutionsOfPreviousTimeStepPerProcess(const int process_id);
+
+    /// Set the solutions of the previous time step to the coupled term.
+    /// It is only for the staggered scheme, and it must be called within
+    /// the coupling loop because that the coupling term is only created there.
+    void setCoupledSolutionsOfPreviousTimeStep();
+
 private:
     HydroMechanicalPhaseFieldProcessData<DisplacementDim> _process_data;
 
@@ -104,7 +110,7 @@ private:
     MeshLib::PropertyVector<double>* _nodal_forces = nullptr;
 
     /// Previous time step solution used for the constraints.
-    std::unique_ptr<GlobalVector> _x_previous_timestep;
+    std::array<std::unique_ptr<GlobalVector>, 3> _x_previous_timestep;
 
     /// Sparsity pattern for the phase field equation, and it is initialized
     //  only if the staggered scheme is used.

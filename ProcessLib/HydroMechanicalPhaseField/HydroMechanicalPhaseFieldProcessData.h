@@ -47,8 +47,7 @@ struct HydroMechanicalPhaseFieldProcessData
         ParameterLib::Parameter<double> const& intrinsic_permeability_,
         ParameterLib::Parameter<double> const& fluid_viscosity_,
         ParameterLib::Parameter<double> const& fluid_density_,
-        ParameterLib::Parameter<double> const& biot_coefficient_,
-        ParameterLib::Parameter<double> const& biot_modulus_,
+        ParameterLib::Parameter<double> const& grain_modulus_,
         ParameterLib::Parameter<double> const& drained_modulus_,
         ParameterLib::Parameter<double> const& porosity_,
         FluidType::Fluid_Type const fluid_type_,
@@ -72,8 +71,7 @@ struct HydroMechanicalPhaseFieldProcessData
           intrinsic_permeability(intrinsic_permeability_),
           fluid_viscosity(fluid_viscosity_),
           fluid_density(fluid_density_),
-          biot_coefficient(biot_coefficient_),
-          biot_modulus(biot_modulus_),
+          grain_modulus(grain_modulus_),
           drained_modulus(drained_modulus_),
           porosity(porosity_),
           fluid_type(fluid_type_),
@@ -117,8 +115,7 @@ struct HydroMechanicalPhaseFieldProcessData
     ParameterLib::Parameter<double> const& intrinsic_permeability;
     ParameterLib::Parameter<double> const& fluid_viscosity;
     ParameterLib::Parameter<double> const& fluid_density;
-    ParameterLib::Parameter<double> const& biot_coefficient;
-    ParameterLib::Parameter<double> const& biot_modulus;
+    ParameterLib::Parameter<double> const& grain_modulus;
     ParameterLib::Parameter<double> const& drained_modulus;
     ParameterLib::Parameter<double> const& porosity;
     MeshLib::PropertyVector<double>* ele_grad_d = nullptr;

@@ -190,19 +190,19 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "fluid_density", parameters, 1);
     DBUG("Use '%s' as fluid density parameter.", fluid_density.name.c_str());
 
-    // Biot coefficient
-    auto& biot_coefficient = ParameterLib::findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_coefficient}
-        "biot_coefficient", parameters, 1);
-    DBUG("Use '%s' as Biot coefficient parameter.",
-         biot_coefficient.name.c_str());
+//    // Biot coefficient
+//    auto& biot_coefficient = ParameterLib::findParameter<double>(
+//        config,
+//        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_coefficient}
+//        "biot_coefficient", parameters, 1);
+//    DBUG("Use '%s' as Biot coefficient parameter.",
+//         biot_coefficient.name.c_str());
 
-    // Biot's modulus
-    auto& biot_modulus = ParameterLib::findParameter<double>(
+    // Grain modulus
+    auto& grain_modulus = ParameterLib::findParameter<double>(
         config,
-        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_modulus}
-        "biot_modulus", parameters, 1);
+        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__grain_modulus}
+        "grain_modulus", parameters, 1);
 
     // drained modulus
     auto& drained_modulus = ParameterLib::findParameter<double>(
@@ -218,26 +218,26 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     DBUG("Use '%s' as porosity parameter.", porosity.name.c_str());
 
     auto const fluid_type = FluidType::strToFluidType(
-        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__fluid_type}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_type}
         config.getConfigParameter<std::string>("fluid_type"));
     DBUG("Use 'fluid_type' as fluid type parameter.");
     // Reference temperature
     double const reference_temperature =
-        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__reference_temperature}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__reference_temperature}
         config.getConfigParameter<double>(
             "reference_temperature", std::numeric_limits<double>::quiet_NaN());
     DBUG("Use 'reference_temperature' as reference temperature.");
 
     // Specific gas constant
     double const specific_gas_constant =
-        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__specific_gas_constant}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__specific_gas_constant}
         config.getConfigParameter<double>(
             "specific_gas_constant", std::numeric_limits<double>::quiet_NaN());
     DBUG("Use 'specific_gas_constant' as specific gas constant.");
 
     // Fluid compressibility
     double const fluid_compressibility =
-        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__fluid_compressibility}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_compressibility}
         config.getConfigParameter<double>(
             "fluid_compressibility", std::numeric_limits<double>::quiet_NaN());
     DBUG("Use 'fluid_compressibility' as fluid compressibility parameter.");
@@ -356,8 +356,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         intrinsic_permeability,
         fluid_viscosity,
         fluid_density,
-        biot_coefficient,
-        biot_modulus,
+        grain_modulus,
         drained_modulus,
         porosity,
         fluid_type,

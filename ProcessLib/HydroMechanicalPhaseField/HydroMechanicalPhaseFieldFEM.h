@@ -12,6 +12,8 @@
 #include <memory>
 #include <vector>
 
+#include "HydroMechanicalPhaseFieldProcessData.h"
+#include "LocalAssemblerInterface.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropic.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
 #include "MaterialLib/SolidModels/SelectSolidConstitutiveRelation.h"
@@ -22,9 +24,6 @@
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
 #include "ProcessLib/Deformation/LinearBMatrix.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
-
-#include "HydroMechanicalPhaseFieldProcessData.h"
-#include "LocalAssemblerInterface.h"
 namespace ProcessLib
 {
 namespace HydroMechanicalPhaseField
@@ -58,22 +57,25 @@ struct IntegrationPointData final
     double strain_energy_tensile;
     double elastic_energy;
     double integration_weight;
-    double pressure, pressure_prev;
     double reg_source;
+    double pressureNL;
+    double pressure;
 
     void pushBackState()
     {
         eps_prev = eps;
-        pressure_prev = pressure;
         material_state_variables->pushBackState();
     }
+
+    void fixedStressNL() { pressureNL = pressure; }
 
     template <typename DisplacementVectorType>
     void updateConstitutiveRelation(double const t,
                                     ParameterLib::SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
-                                    double const degradation, int const split, double const reg_param)
+                                    double const degradation, int const split,
+                                    double const reg_param)
     {
         auto linear_elastic_mp =
             static_cast<MaterialLib::Solids::LinearElasticIsotropic<
@@ -82,7 +84,7 @@ struct IntegrationPointData final
 
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
-        auto const lambda = linear_elastic_mp.lambda(t,x);
+        auto const lambda = linear_elastic_mp.lambda(t, x);
 
         if (split == 0)
         {
@@ -99,15 +101,15 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps, reg_param);
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps,
+                                     reg_param);
         }
         else if (split == 2)
         {
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
-                MaterialLib::Solids::Phasefield::
-                    calculateDegradedStressMiehe<DisplacementDim>(
-                        degradation, lambda, mu, eps, reg_param);
+                MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
         else if (split == 3)
         {
@@ -238,7 +240,7 @@ public:
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
             ip_data.pressure = 0.0;
-            ip_data.pressure_prev = 0.0;
+            ip_data.pressureNL = 0.0;
             _secondary_data.N[ip] = shape_matrices[ip].N;
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;
@@ -306,6 +308,19 @@ public:
             _ip_data[ip].pushBackState();
         }
         _process_data.width_prev = _process_data.width;
+    }
+
+    void postNonLinearSolverConcrete(
+        std::vector<double> const& /*local_x*/, double const /*t*/,
+        double const /*dt*/, bool const /*use_monolithic_scheme*/) override
+    {
+        unsigned const n_integration_points =
+            _integration_method.getNumberOfPoints();
+
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            _ip_data[ip].fixedStressNL();
+        }
     }
 
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
