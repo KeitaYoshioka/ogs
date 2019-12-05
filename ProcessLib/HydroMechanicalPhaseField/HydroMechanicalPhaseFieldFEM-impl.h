@@ -578,6 +578,7 @@ bool isPointOnEdge(Eigen::Vector3d pnt_end, GeoLib::Point p0, GeoLib::Point p1)
         return false;
 }
 
+#ifdef enable_findHostElement
 void findHostElement(MeshLib::Element const& current_ele,
                      Eigen::Vector3d pnt_end,
                      MeshLib::Element const*& neighbor_ele,
@@ -672,6 +673,7 @@ void findHostElement(MeshLib::Element const& current_ele,
         }
     }
 }
+#endif
 
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
@@ -747,7 +749,12 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
-            findHostElement(*current_ele, pnt_end, neighbor_ele, probe_offset);
+
+            const MathLib::Point3d pnt_end_copy{
+                {pnt_end[0], pnt_end[1], pnt_end[2]}};
+
+            neighbor_ele =
+                current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
@@ -826,7 +833,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
-            findHostElement(*current_ele, pnt_end, neighbor_ele, probe_offset);
+            const MathLib::Point3d pnt_end_copy{
+                {pnt_end[0], pnt_end[1], pnt_end[2]}};
+
+            neighbor_ele =
+                current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
