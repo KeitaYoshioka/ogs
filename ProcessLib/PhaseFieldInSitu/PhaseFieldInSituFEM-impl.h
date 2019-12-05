@@ -127,7 +127,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             degradation = ele_d * ele_d * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
 
         auto const& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -233,7 +234,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             degradation = ele_d * ele_d * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
 
         auto const& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -324,7 +326,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             double degradation;
             // KKL
             if (_process_data.at_param == 3)
-                degradation = (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
+                degradation =
+                    (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
             // ATn
             else
                 degradation = ele_d * ele_d * (1 - k) + k;
@@ -340,7 +343,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             auto& eps = _ip_data[ip].eps;
             eps.noalias() = B * u;
             _ip_data[ip].updateConstitutiveRelation(
-                t, x_position, dt, u, degradation, _process_data.split_method, reg_param);
+                t, x_position, dt, u, degradation, _process_data.split_method,
+                reg_param);
         }
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
@@ -494,7 +498,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
                       NumLib::LocalToGlobalIndexMap>> const& dof_tables,
                   GlobalVector const& /*x*/, double const t,
                   double& elastic_energy, double& surface_energy,
-                  double& pressure_work, bool const /*use_monolithic_scheme*/,
+                  double& crack_length, double& pressure_work,
+                  bool const /*use_monolithic_scheme*/,
                   CoupledSolutionsForStaggeredScheme const* const cpl_xs)
 {
     assert(cpl_xs != nullptr);
@@ -551,6 +556,11 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
                               ((1 - d_ip) * (1 - d_ip) / ls +
                                (dNdx * d).dot((dNdx * d)) * ls) *
                               w;
+
+            crack_length += 0.5 *
+                            ((1 - d_ip) * (1 - d_ip) / ls +
+                             (dNdx * d).dot((dNdx * d)) * ls) *
+                            w;
         }
         // For AT1
         else
@@ -558,6 +568,9 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             surface_energy +=
                 0.375 * gc *
                 ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
+
+            crack_length +=
+                0.375 * ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
         }
 
         if (_process_data.crack_pressure)

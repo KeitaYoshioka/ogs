@@ -92,6 +92,7 @@ struct PhaseFieldInSituProcessData
     double crack_volume1 = 0.0;
     double elastic_energy = 0.0;
     double surface_energy = 0.0;
+    double crack_length = 0.0;
     double pressure_work = 0.0;
     bool propagating_crack = false;
     bool crack_pressure = false;

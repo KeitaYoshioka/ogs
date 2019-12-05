@@ -41,7 +41,8 @@ struct PhaseFieldInSituLocalAssemblerInterface
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
         bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        int process_id) = 0;
 
     virtual void computeEnergy(
         std::size_t mesh_item_id,
@@ -49,10 +50,9 @@ struct PhaseFieldInSituLocalAssemblerInterface
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double& pressure_work,
+        double& surface_energy, double& crack_length, double& pressure_work,
         bool const use_monolithic_scheme,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
-
 };
 
 }  // namespace PhaseFieldInSitu

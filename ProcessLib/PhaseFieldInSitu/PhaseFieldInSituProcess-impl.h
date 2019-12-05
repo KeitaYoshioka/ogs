@@ -9,14 +9,13 @@
 
 #pragma once
 
-#include "PhaseFieldInSituFEM.h"
-#include "PhaseFieldInSituProcess.h"
-#include "PhaseFieldInSituProcessData.h"
-
 #include <cassert>
 
 #include "MathLib/LinAlg/LinAlg.h"
 #include "NumLib/DOF/ComputeSparsityPattern.h"
+#include "PhaseFieldInSituFEM.h"
+#include "PhaseFieldInSituProcess.h"
+#include "PhaseFieldInSituProcessData.h"
 #include "ProcessLib/Process.h"
 #include "ProcessLib/SmallDeformation/CreateLocalAssemblers.h"
 
@@ -317,6 +316,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
         _process_data.elastic_energy = 0.0;
         _process_data.surface_energy = 0.0;
         _process_data.pressure_work = 0.0;
+        _process_data.crack_length = 0.0;
 
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
             dof_tables;
@@ -342,11 +342,11 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
             _local_assemblers, dof_tables, *x[process_id], _process_data.t,
             _process_data.elastic_energy, _process_data.surface_energy,
-            _process_data.pressure_work, _use_monolithic_scheme,
-            _coupled_solutions);
+            _process_data.crack_length, _process_data.pressure_work,
+            _use_monolithic_scheme, _coupled_solutions);
 
         INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
-             _process_data.elastic_energy, _process_data.surface_energy,
+             _process_data.elastic_energy, _process_data.crack_length,
              _process_data.pressure_work);
     }
 }

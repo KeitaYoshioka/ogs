@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 
+#include "LocalAssemblerInterface.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropic.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
 #include "MaterialLib/SolidModels/SelectSolidConstitutiveRelation.h"
@@ -19,12 +20,10 @@
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
 #include "ParameterLib/SpatialPosition.h"
+#include "PhaseFieldInSituProcessData.h"
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
 #include "ProcessLib/Deformation/LinearBMatrix.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
-
-#include "LocalAssemblerInterface.h"
-#include "PhaseFieldInSituProcessData.h"
 
 namespace ProcessLib
 {
@@ -287,7 +286,7 @@ public:
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double& pressure_work,
+        double& surface_energy, double& crack_length, double& pressure_work,
         bool const use_monolithic_scheme,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
