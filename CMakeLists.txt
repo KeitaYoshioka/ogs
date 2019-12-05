@@ -102,6 +102,7 @@ endif()
 # processes to be build.
 set(ProcessesList
     ComponentTransport
+    DPHMPhaseField
     GroundwaterFlow
     HT
     HeatConduction
