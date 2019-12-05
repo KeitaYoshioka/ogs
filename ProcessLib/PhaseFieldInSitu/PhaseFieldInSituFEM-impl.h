@@ -525,6 +525,8 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
     x_position.setElementID(_element.getID());
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
+    double ele_surface_energy = 0.0;
+    double ele_crack_length = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         x_position.setIntegrationPoint(ip);
@@ -552,30 +554,47 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         // For AT2
         if (_process_data.at_param == 2)
         {
-            surface_energy += 0.5 * gc *
-                              ((1 - d_ip) * (1 - d_ip) / ls +
-                               (dNdx * d).dot((dNdx * d)) * ls) *
-                              w;
+            ele_surface_energy += 0.5 * gc *
+                                  ((1 - d_ip) * (1 - d_ip) / ls +
+                                   (dNdx * d).dot((dNdx * d)) * ls) *
+                                  w;
 
-            crack_length += 0.5 *
-                            ((1 - d_ip) * (1 - d_ip) / ls +
-                             (dNdx * d).dot((dNdx * d)) * ls) *
-                            w;
+            ele_crack_length += 0.5 *
+                                ((1 - d_ip) * (1 - d_ip) / ls +
+                                 (dNdx * d).dot((dNdx * d)) * ls) *
+                                w;
         }
         // For AT1
         else
         {
-            surface_energy +=
+            ele_surface_energy +=
                 0.375 * gc *
                 ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
 
-            crack_length +=
+            ele_crack_length +=
                 0.375 * ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
         }
 
         if (_process_data.crack_pressure)
             pressure_work += pressure_ip * (N_u * u).dot(dNdx * d) * w;
     }
+#ifdef USE_PETSC
+    int const n_all_nodes =
+        indices_of_processes[_phase_field_process_id].size();
+    int const n_regular_nodes =
+        std::count_if(begin(indices_of_processes[_phase_field_process_id]),
+                      end(indices_of_processes[_phase_field_process_id]),
+                      [](GlobalIndexType const& index) { return index >= 0; });
+    if (n_all_nodes != n_regular_nodes)
+    {
+        ele_surface_energy *=
+            static_cast<double>(n_regular_nodes) / n_all_nodes;
+        ele_crack_length *= static_cast<double>(n_regular_nodes) / n_all_nodes;
+    }
+#endif  // USE_PETSC
+
+    surface_energy += ele_surface_energy;
+    crack_length += ele_crack_length;
 }
 
 }  // namespace PhaseFieldInSitu
