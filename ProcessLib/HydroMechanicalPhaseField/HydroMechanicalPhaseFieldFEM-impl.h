@@ -578,7 +578,6 @@ bool isPointOnEdge(Eigen::Vector3d pnt_end, GeoLib::Point p0, GeoLib::Point p1)
         return false;
 }
 
-#ifdef enable_findHostElement
 void findHostElement(MeshLib::Element const& current_ele,
                      Eigen::Vector3d pnt_end,
                      MeshLib::Element const*& neighbor_ele,
@@ -673,7 +672,6 @@ void findHostElement(MeshLib::Element const& current_ele,
         }
     }
 }
-#endif
 
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
