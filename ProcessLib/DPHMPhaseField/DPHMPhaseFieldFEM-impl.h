@@ -21,7 +21,7 @@ namespace DPHMPhaseField
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                             DisplacementDim>::
+                                  DisplacementDim>::
     assembleWithJacobianForStaggeredScheme(
         double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx, int const process_id,
@@ -39,7 +39,15 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     if (process_id == _frac_hydro_process_id)
     {
-        assembleWithJacobianForHydroProcessEquations(
+        assembleWithJacobianForFracHydroProcessEquations(
+            t, dt, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
+            local_b_data, local_Jac_data, local_coupled_solutions);
+        return;
+    }
+
+    if (process_id == _pore_hydro_process_id)
+    {
+        assembleWithJacobianForPoreHydroProcessEquations(
             t, dt, local_xdot, dxdot_dx, dx_dx, local_M_data, local_K_data,
             local_b_data, local_Jac_data, local_coupled_solutions);
         return;
@@ -54,7 +62,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                             DisplacementDim>::
+                                  DisplacementDim>::
     assembleWithJacobianForDeformationEquations(
         double const t, double const dt,
         std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
@@ -193,8 +201,8 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                             DisplacementDim>::
-    assembleWithJacobianForHydroProcessEquations(
+                                  DisplacementDim>::
+    assembleWithJacobianForFracHydroProcessEquations(
         double const t, double const dt, std::vector<double> const& local_xdot,
         const double /*dxdot_dx*/, const double /*dx_dx*/,
         std::vector<double>& /*local_M_data*/,
@@ -204,27 +212,156 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 {
     auto const& local_d =
         local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
-    auto const& local_p =
+    auto const& local_p_f =
         local_coupled_solutions.local_coupled_xs[_frac_hydro_process_id];
-    auto const& local_p0 =
+    auto const& local_p_f0 =
         local_coupled_solutions.local_coupled_xs0[_frac_hydro_process_id];
-    assert(local_p.size() == pressure_size);
-    assert(local_p0.size() == pressure_size);
+    assert(local_p_f.size() == pressure_size);
+    assert(local_p_f0.size() == pressure_size);
     assert(local_d.size() == phasefield_size);
 
     auto d = Eigen::Map<
         typename ShapeMatricesType::template VectorType<phasefield_size> const>(
         local_d.data(), phasefield_size);
 
-    auto p = Eigen::Map<
+    auto p_f = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
-        local_p.data(), pressure_size);
+        local_p_f.data(), pressure_size);
 
-    auto p0 = Eigen::Map<
+    auto p_f0 = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
-        local_p0.data(), pressure_size);
+        local_p_f0.data(), pressure_size);
 
-    auto p_dot = Eigen::Map<
+    auto p_f_dot = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_xdot.data(), pressure_size);
+
+    auto local_Jac = MathLib::createZeroedMatrix<
+        typename ShapeMatricesType::template MatrixType<pressure_size,
+                                                        pressure_size>>(
+        local_Jac_data, pressure_size, pressure_size);
+
+    auto local_rhs = MathLib::createZeroedVector<
+        typename ShapeMatricesType::template VectorType<pressure_size>>(
+        local_b_data, pressure_size);
+
+    typename ShapeMatricesType::NodalMatrixType mass =
+        ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
+
+    typename ShapeMatricesType::NodalMatrixType laplace =
+        ShapeMatricesType::NodalMatrixType::Zero(pressure_size, pressure_size);
+
+    ParameterLib::SpatialPosition x_position;
+    x_position.setElementID(_element.getID());
+
+    double width = (*_process_data.width)[_element.getID()];
+    double width_prev = (*_process_data.width_prev)[_element.getID()];
+    static int const KelvinVectorSize =
+        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
+    using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
+    int const n_integration_points = _integration_method.getNumberOfPoints();
+
+    //    double ele_d = 0.0;
+    //    double ele_grad_d_norm = 0.0;
+    double ele_source = 0.0;
+    for (int ip = 0; ip < n_integration_points; ip++)
+    {
+        //        auto const& N = _ip_data[ip].N;
+        //        auto const& dNdx = _ip_data[ip].dNdx;
+        //       ele_d += N.dot(d);
+        //       ele_grad_d_norm += (dNdx * d).norm();
+        ele_source += _ip_data[ip].reg_source;
+    }
+    //  ele_d = ele_d / n_integration_points;
+    //  ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
+    ele_source = ele_source / n_integration_points;
+
+    double const Kd = _process_data.drained_modulus(t, x_position)[0];
+    double const Ks = _process_data.grain_modulus(t, x_position)[0];
+    double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
+    double const mu = _process_data.fluid_viscosity(t, x_position)[0];
+    double const eta = _process_data.residual_stiffness(t, x_position)[0];
+
+    auto const porosity = _process_data.porosity(t, x_position)[0];
+
+    double const alpha = (1 - Kd / Ks);
+
+    for (int ip = 0; ip < n_integration_points; ip++)
+    {
+        x_position.setIntegrationPoint(ip);
+        auto const& w = _ip_data[ip].integration_weight;
+        auto const& N = _ip_data[ip].N;
+        auto const& dNdx = _ip_data[ip].dNdx;
+        double const d_ip = N.dot(d);
+        double const p_f0_ip = N.dot(p_f0);
+
+        double const p_fr =
+            (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
+                ? p_f0_ip
+                : std::numeric_limits<double>::quiet_NaN();
+        double const rho_fr =
+            _process_data.getFluidDensity(t, x_position, p_fr);
+        double const beta_p = _process_data.getFluidCompressibility(p_fr);
+
+        double const grad_d_norm = (dNdx * d).norm() + eta;
+        double const dw_dt = (width - width_prev) / dt;
+        double const frac_trans = 4 * pow(width, 3) / (12 * mu);
+        auto norm_gamma = (dNdx * d).normalized();
+        decltype(dNdx) const dNdx_gamma =
+            (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
+
+        local_rhs.noalias() += (ele_source - dw_dt) * grad_d_norm * N * w;
+
+        laplace.noalias() +=
+            (frac_trans * dNdx_gamma.transpose() * dNdx_gamma * grad_d_norm) *
+            w;
+        mass.noalias() +=
+            (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
+
+        // For debugging purpose
+        if (_element.getID() == 1 && ip == 0)
+            DBUG("something");
+    }
+    local_Jac.noalias() = laplace + mass / dt;
+
+    local_rhs.noalias() -= laplace * p_f + mass * p_f_dot;
+}
+
+template <typename ShapeFunction, typename IntegrationMethod,
+          int DisplacementDim>
+void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
+                                  DisplacementDim>::
+    assembleWithJacobianForPoreHydroProcessEquations(
+        double const t, double const dt, std::vector<double> const& local_xdot,
+        const double /*dxdot_dx*/, const double /*dx_dx*/,
+        std::vector<double>& /*local_M_data*/,
+        std::vector<double>& /*local_K_data*/,
+        std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
+        LocalCoupledSolutions const& local_coupled_solutions)
+{
+    auto const& local_d =
+        local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
+    auto const& local_p_p =
+        local_coupled_solutions.local_coupled_xs[_pore_hydro_process_id];
+    auto const& local_p_p0 =
+        local_coupled_solutions.local_coupled_xs0[_pore_hydro_process_id];
+    assert(local_p_p.size() == pressure_size);
+    assert(local_p_p0.size() == pressure_size);
+    assert(local_d.size() == phasefield_size);
+
+    auto d = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<phasefield_size> const>(
+        local_d.data(), phasefield_size);
+
+    auto p_p = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_p_p.data(), pressure_size);
+
+    auto p_p0 = Eigen::Map<
+        typename ShapeMatricesType::template VectorType<pressure_size> const>(
+        local_p_p0.data(), pressure_size);
+
+    auto p_p_dot = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
         local_xdot.data(), pressure_size);
 
@@ -284,15 +421,15 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
-        double const p0_ip = N.dot(p0);
+        double const p_p0_ip = N.dot(p_p0);
 
-        auto& pressure = _ip_data[ip].pressure;
-        auto& pressureNL = _ip_data[ip].pressureNL;
-        pressure = N.dot(p);
+        auto& pore_pressure = _ip_data[ip].pore_pressure;
+        auto& pore_pressureNL = _ip_data[ip].pore_pressureNL;
+        pore_pressure = N.dot(p_p);
 
         double const p_fr =
             (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
-                ? pressure * 2.e6
+                ? pore_pressure
                 : std::numeric_limits<double>::quiet_NaN();
         double const rho_fr =
             _process_data.getFluidDensity(t, x_position, p_fr);
@@ -303,7 +440,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
         auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
-        double const dp_dt = (pressureNL - p0_ip) / dt;
+        double const dp_p_dt = (pore_pressureNL - p_p0_ip) / dt;
         // pf_fixed_strs = 1.0 -> no pf fixed stress
         //               = 0.0 -> pf_fixed stress
         double const pf_fixed_strs = 0.0;
@@ -315,7 +452,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             m_inv * (1 - d_ip * d_ip) * (1 - pf_fixed_strs);
 
         local_rhs.noalias() +=
-            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
+            (-modulus_rm * dp_p_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
 
         mass.noalias() += ((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
                            d_ip * d_ip * alpha * alpha / Kd) *
@@ -325,36 +462,19 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
-        if (d_ip > 0.0 && d_ip < 0.99)
-        {
-            double const dw_dt = (width - width_prev) / dt;
-            auto norm_gamma = (dNdx * d).normalized();
-            decltype(dNdx) const dNdx_gamma =
-                (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
-
-            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
-            double const frac_trans = 4 * pow(width, 3) / (12 * mu);
-
-            laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
-                                  dNdx_gamma * grad_d_norm) *
-                                 w;
-            mass.noalias() +=
-                (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
-        }
-
         // For debugging purpose
         if (_element.getID() == 1 && ip == 0)
             DBUG("something");
     }
     local_Jac.noalias() = laplace + mass / dt;
 
-    local_rhs.noalias() -= laplace * p + mass * p_dot;
+    local_rhs.noalias() -= laplace * p_p + mass * p_p_dot;
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                             DisplacementDim>::
+                                  DisplacementDim>::
     assembleWithJacobianForPhaseFieldEquations(
         double const t, double const dt,
         std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
@@ -506,7 +626,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                             DisplacementDim>::
+                                  DisplacementDim>::
     computeFractureNormal(
         std::size_t mesh_item_id,
         std::vector<
@@ -727,7 +847,7 @@ void findHostElement(MeshLib::Element const& current_ele,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
-                                             DisplacementDim>::
+                                  DisplacementDim>::
     computeFractureWidth(
         std::size_t mesh_item_id,
         std::vector<

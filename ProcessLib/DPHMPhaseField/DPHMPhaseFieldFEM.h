@@ -58,8 +58,8 @@ struct IntegrationPointData final
     double elastic_energy;
     double integration_weight;
     double reg_source;
-    double pressureNL;
-    double pressure;
+    double pore_pressureNL;
+    double pore_pressure;
 
     void pushBackState()
     {
@@ -67,7 +67,7 @@ struct IntegrationPointData final
         material_state_variables->pushBackState();
     }
 
-    void fixedStressNL() { pressureNL = pressure; }
+    void fixedStressNL() { pore_pressureNL = pore_pressure; }
 
     template <typename DisplacementVectorType>
     void updateConstitutiveRelation(double const t,
@@ -217,8 +217,8 @@ public:
             ip_data.sigma.setZero(kelvin_vector_size);
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
-            ip_data.pressure = 0.0;
-            ip_data.pressureNL = 0.0;
+            ip_data.pore_pressure = 0.0;
+            ip_data.pore_pressureNL = 0.0;
             _secondary_data.N[ip] = shape_matrices[ip].N;
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;
@@ -395,7 +395,14 @@ private:
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions);
 
-    void assembleWithJacobianForHydroProcessEquations(
+    void assembleWithJacobianForFracHydroProcessEquations(
+        double const t, double const dt, std::vector<double> const& local_xdot,
+        const double dxdot_dx, const double dx_dx,
+        std::vector<double>& local_M_data, std::vector<double>& local_K_data,
+        std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
+        LocalCoupledSolutions const& local_coupled_solutions);
+
+    void assembleWithJacobianForPoreHydroProcessEquations(
         double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,
         std::vector<double>& local_M_data, std::vector<double>& local_K_data,
