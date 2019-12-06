@@ -346,6 +346,21 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
     else
         split_method = 0;
 
+    auto const leakoff_scheme =
+        //! \ogs_file_param{prj__processes__process__DPHMPHASE_FIELD__leak_off_scheme}
+        config.getConfigParameterOptional<std::string>("leakoff_scheme");
+    if (leakoff_scheme &&
+        ((*leakoff_scheme != "yes") && (*leakoff_scheme != "no")))
+    {
+        OGS_FATAL(
+            "leakoff_scheme must be 'yes' or 'no' but "
+            "'%s' was given",
+            leakoff_scheme->c_str());
+    }
+
+    const bool leak_off =
+        (leakoff_scheme && (*leakoff_scheme == "yes"));
+
     DPHMPhaseFieldProcessData<DisplacementDim> process_data{
         materialIDs(mesh),
         std::move(solid_constitutive_relations),

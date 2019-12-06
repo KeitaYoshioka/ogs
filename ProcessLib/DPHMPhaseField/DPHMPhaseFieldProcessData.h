@@ -10,7 +10,6 @@
 #pragma once
 
 #include <Eigen/Eigen>
-
 #include <memory>
 #include <utility>
 
@@ -83,12 +82,10 @@ struct DPHMPhaseFieldProcessData
     {
     }
 
-    DPHMPhaseFieldProcessData(
-        DPHMPhaseFieldProcessData&& other) = default;
+    DPHMPhaseFieldProcessData(DPHMPhaseFieldProcessData&& other) = default;
 
     //! Copies are forbidden.
-    DPHMPhaseFieldProcessData(
-        DPHMPhaseFieldProcessData const&) = delete;
+    DPHMPhaseFieldProcessData(DPHMPhaseFieldProcessData const&) = delete;
 
     //! Assignments are not needed.
     void operator=(DPHMPhaseFieldProcessData const&) = delete;
@@ -112,6 +109,7 @@ struct DPHMPhaseFieldProcessData
     double const li_disc = 60;
     double cum_grad_d_CutOff = 0.5;
     int const at_param = 2;
+    bool leak_off = false;
     ParameterLib::Parameter<double> const& intrinsic_permeability;
     ParameterLib::Parameter<double> const& fluid_viscosity;
     ParameterLib::Parameter<double> const& fluid_density;
