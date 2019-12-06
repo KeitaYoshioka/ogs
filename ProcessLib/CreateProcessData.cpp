@@ -22,11 +22,10 @@ namespace ProcessLib
 {
 static std::unique_ptr<ProcessData> makeProcessData(
     std::unique_ptr<NumLib::TimeStepAlgorithm>&& timestepper,
-    NumLib::NonlinearSolverBase& nonlinear_solver,
-    int const process_id,
-    Process& process,
-    std::unique_ptr<NumLib::TimeDiscretization>&& time_disc,
-    std::unique_ptr<NumLib::ConvergenceCriterion>&& conv_crit)
+    NumLib::NonlinearSolverBase& nonlinear_solver, int const process_id,
+    Process& process, std::unique_ptr<NumLib::TimeDiscretization>&& time_disc,
+    std::unique_ptr<NumLib::ConvergenceCriterion>&& conv_crit,
+    bool const skip_process_computation)
 {
     using Tag = NumLib::NonlinearSolverTag;
 
@@ -36,7 +35,8 @@ static std::unique_ptr<ProcessData> makeProcessData(
     {
         return std::make_unique<ProcessData>(
             std::move(timestepper), Tag::Picard, *nonlinear_solver_picard,
-            std::move(conv_crit), std::move(time_disc), process_id, process);
+            std::move(conv_crit), std::move(time_disc), process_id, process,
+            skip_process_computation);
     }
     if (auto* nonlinear_solver_newton =
             dynamic_cast<NumLib::NonlinearSolver<Tag::Newton>*>(
@@ -44,7 +44,8 @@ static std::unique_ptr<ProcessData> makeProcessData(
     {
         return std::make_unique<ProcessData>(
             std::move(timestepper), Tag::Newton, *nonlinear_solver_newton,
-            std::move(conv_crit), std::move(time_disc), process_id, process);
+            std::move(conv_crit), std::move(time_disc), process_id, process,
+            skip_process_computation);
     }
 #ifdef USE_PETSC
     if (auto* nonlinear_solver_petsc =
@@ -52,7 +53,8 @@ static std::unique_ptr<ProcessData> makeProcessData(
     {
         return std::make_unique<ProcessData>(
             std::move(timestepper), Tag::Newton, *nonlinear_solver_petsc,
-            std::move(conv_crit), std::move(time_disc), process_id,process);
+            std::move(conv_crit), std::move(time_disc), process_id, process,
+            skip_process_computation);
     }
 #endif  // USE_PETSC
 
@@ -99,6 +101,11 @@ std::vector<std::unique_ptr<ProcessData>> createPerProcessData(
             //! \ogs_file_param{prj__time_loop__processes__process__convergence_criterion}
             pcs_config.getConfigSubtree("convergence_criterion"));
 
+        auto skip_process_computation =
+            //! \ogs_file_param{prj__time_loop__processes__process__skip_process_computation}
+            pcs_config.getConfigParameter<bool>("skip_process_computation",
+                                                false);
+
         //! \ogs_file_param{prj__time_loop__processes__process__output}
         auto output = pcs_config.getConfigSubtreeOptional("output");
         if (output)
@@ -115,7 +122,8 @@ std::vector<std::unique_ptr<ProcessData>> createPerProcessData(
 
         per_process_data.emplace_back(
             makeProcessData(std::move(timestepper), nl_slv, process_id, pcs,
-                            std::move(time_disc), std::move(conv_crit)));
+                            std::move(time_disc), std::move(conv_crit),
+                            skip_process_computation));
         ++process_id;
     }
 
