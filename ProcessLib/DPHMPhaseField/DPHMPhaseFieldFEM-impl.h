@@ -303,18 +303,26 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             _process_data.getFluidDensity(t, x_position, p_fr);
         double const beta_p = _process_data.getFluidCompressibility(p_fr);
 
-        double const grad_d_norm = (dNdx * d).norm() + eta;
+        double const grad_d_norm = (dNdx * d).norm();
         double const dw_dt = (width - width_prev) / dt;
         double const frac_trans = 4 * pow(width, 3) / (12 * mu);
         auto norm_gamma = (dNdx * d).normalized();
         decltype(dNdx) const dNdx_gamma =
             (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
 
-        local_rhs.noalias() += (ele_source - dw_dt) * grad_d_norm * N * w;
+//        if (grad_d_norm < eta || frac_trans < eta)
+//        {
+//            laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
-        laplace.noalias() +=
-            (frac_trans * dNdx_gamma.transpose() * dNdx_gamma * grad_d_norm) *
-            w;
+//        }
+//        else
+//        {
+            laplace.noalias() += ((frac_trans+perm/mu) * dNdx_gamma.transpose() *
+                                  dNdx_gamma * (grad_d_norm + eta)) *
+                                 w;
+            local_rhs.noalias() += (ele_source - dw_dt) * (grad_d_norm ) * N * w;
+//        }
+
         mass.noalias() +=
             (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
 
@@ -646,7 +654,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == 3);
+    assert(local_coupled_xs.size() == 4);
 
     auto const& local_u = local_coupled_xs[_mechanics_related_process_id];
     auto const& local_d = local_coupled_xs[_phase_field_process_id];

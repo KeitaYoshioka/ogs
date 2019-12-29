@@ -319,7 +319,6 @@ void DPHMPhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
     GlobalExecutor::executeMemberOnDereferenced(
         &DPHMPhaseFieldLocalAssemblerInterface::postTimestep, _local_assemblers,
         getDOFTable(process_id), x, t, dt);
-
 }
 
 template <int DisplacementDim>
@@ -332,7 +331,7 @@ void DPHMPhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
     dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
-       dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
     dof_tables.emplace_back(
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
@@ -392,9 +391,9 @@ template <int DisplacementDim>
 void DPHMPhaseFieldProcess<
     DisplacementDim>::setCoupledSolutionsOfPreviousTimeStep()
 {
-    _coupled_solutions->coupled_xs_t0.resize(3);
+    _coupled_solutions->coupled_xs_t0.resize(4);
     setCoupledSolutionsOfPreviousTimeStepPerProcess(_frac_hydro_process_id);
-        setCoupledSolutionsOfPreviousTimeStepPerProcess(_pore_hydro_process_id);
+    setCoupledSolutionsOfPreviousTimeStepPerProcess(_pore_hydro_process_id);
     setCoupledSolutionsOfPreviousTimeStepPerProcess(
         _mechanics_related_process_id);
     setCoupledSolutionsOfPreviousTimeStepPerProcess(_phase_field_process_id);

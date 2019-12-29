@@ -34,7 +34,7 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
     BaseLib::ConfigTree const& config)
 {
     //! \ogs_file_param{prj__processes__process__type}
-    config.checkConfigParameter("type", "HYDRO_MECHANICAL_PHASE_FIELD");
+    config.checkConfigParameter("type", "DPHM_PHASE_FIELD");
     DBUG("Create DPHMPhaseFieldProcess.");
 
     INFO(
@@ -55,16 +55,16 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
 
     auto process_variable_p_f = findProcessVariables(
         variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__pressure_f}
-         "pressure_f"});
+        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__frac_pressure}
+         "frac_pressure"});
     process_variables.push_back(std::move(process_variable_p_f));
     ProcessVariable* variable_p_f =
         &process_variables[process_variables.size() - 1][0].get();
 
     auto process_variable_p_p = findProcessVariables(
         variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__pressure_p}
-         "pressure_p"});
+        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__pore_pressure}
+         "pore_pressure"});
     process_variables.push_back(std::move(process_variable_p_p));
     ProcessVariable* variable_p_p =
         &process_variables[process_variables.size() - 1][0].get();

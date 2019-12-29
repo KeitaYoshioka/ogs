@@ -72,6 +72,9 @@
 #ifdef OGS_BUILD_PROCESS_HYDROMECHANICALPHASEFIELD
 #include "ProcessLib/HydroMechanicalPhaseField/CreateHydroMechanicalPhaseFieldProcess.h"
 #endif
+#ifdef OGS_BUILD_PROCESS_DPHMPHASEFIELD
+#include "ProcessLib/DPHMPhaseField/CreateDPHMPhaseFieldProcess.h"
+#endif
 #ifdef OGS_BUILD_PROCESS_PHASEFIELDEXTERNAL
 #include "ProcessLib/PhaseFieldExternal/CreatePhaseFieldExternalProcess.h"
 #endif
@@ -648,6 +651,31 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 case 3:
                     process = ProcessLib::HydroMechanicalPhaseField::
                         createHydroMechanicalPhaseFieldProcess<3>(
+                            name, *_mesh_vec[0], std::move(jacobian_assembler),
+                            _process_variables, _parameters,
+                            _local_coordinate_system, integration_order,
+                            process_config);
+                    break;
+            }
+        }
+        else
+#endif
+#ifdef OGS_BUILD_PROCESS_DPHMPHASEFIELD
+            if (type == "DPHM_PHASE_FIELD")
+        {
+            switch (_mesh_vec[0]->getDimension())
+            {
+                case 2:
+                    process = ProcessLib::DPHMPhaseField::
+                        createDPHMPhaseFieldProcess<2>(
+                            name, *_mesh_vec[0], std::move(jacobian_assembler),
+                            _process_variables, _parameters,
+                            _local_coordinate_system, integration_order,
+                            process_config);
+                    break;
+                case 3:
+                    process = ProcessLib::DPHMPhaseField::
+                        createDPHMPhaseFieldProcess<3>(
                             name, *_mesh_vec[0], std::move(jacobian_assembler),
                             _process_variables, _parameters,
                             _local_coordinate_system, integration_order,
