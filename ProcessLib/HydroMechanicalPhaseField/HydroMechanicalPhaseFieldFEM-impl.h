@@ -63,26 +63,19 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
-    auto const& local_d =
-        local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
-    auto const& local_u =
-        local_coupled_solutions.local_coupled_xs[_mechanics_related_process_id];
-    auto const& local_p =
-        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
-    assert(local_d.size() == phasefield_size);
-    assert(local_u.size() == displacement_size);
-    assert(local_p.size() == pressure_size);
+    assert(local_coupled_solutions.local_coupled_xs.size() ==
+           phasefield_size + displacement_size + pressure_size);
 
-    auto d = Eigen::Map<
-        typename ShapeMatricesType::template VectorType<phasefield_size> const>(
-        local_d.data(), phasefield_size);
-
-    auto u = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        displacement_size> const>(local_u.data(), displacement_size);
-
-    auto p = Eigen::Map<
+    auto const d = Eigen::Map<PhaseFieldVector const>(
+        &local_coupled_solutions.local_coupled_xs[phasefield_index],
+        phasefield_size);
+    auto const u = Eigen::Map<DeformationVector const>(
+        &local_coupled_solutions.local_coupled_xs[displacement_index],
+        displacement_size);
+    auto const p = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
-        local_p.data(), pressure_size);
+        &local_coupled_solutions.local_coupled_xs[pressure_index],
+        pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
         typename ShapeMatricesType::template MatrixType<displacement_size,
@@ -179,20 +172,16 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
-    auto const& local_d =
-        local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
-    auto const& local_p =
-        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
-    assert(local_p.size() == pressure_size);
-    assert(local_d.size() == phasefield_size);
+    assert(local_coupled_solutions.local_coupled_xs.size() ==
+           phasefield_size + displacement_size + pressure_size);
 
-    auto d = Eigen::Map<
-        typename ShapeMatricesType::template VectorType<phasefield_size> const>(
-        local_d.data(), phasefield_size);
-
-    auto p = Eigen::Map<
+    auto const d = Eigen::Map<PhaseFieldVector const>(
+        &local_coupled_solutions.local_coupled_xs[phasefield_index],
+        phasefield_size);
+    auto const p = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
-        local_p.data(), pressure_size);
+        &local_coupled_solutions.local_coupled_xs[pressure_index],
+        pressure_size);
 
     auto p_dot = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
@@ -310,39 +299,24 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
-    using DeformationVector =
-        typename ShapeMatricesType::template VectorType<displacement_size>;
-    using PhaseFieldVector =
-        typename ShapeMatricesType::template VectorType<phasefield_size>;
-    using PhaseFieldMatrix =
-        typename ShapeMatricesType::template MatrixType<phasefield_size,
-                                                        phasefield_size>;
+    assert(local_coupled_solutions.local_coupled_xs.size() ==
+           phasefield_size + displacement_size + pressure_size);
 
-    auto const& local_u =
-        local_coupled_solutions.local_coupled_xs[_mechanics_related_process_id];
-    auto const& local_d =
-        local_coupled_solutions.local_coupled_xs[_phase_field_process_id];
-    auto const& local_p =
-        local_coupled_solutions.local_coupled_xs[_hydro_process_id];
-
-    assert(local_u.size() == displacement_size);
-    assert(local_d.size() == phasefield_size);
-    assert(local_p.size() == pressure_size);
-
-    auto const local_matrix_size = local_d.size();
-    auto d =
-        Eigen::Map<PhaseFieldVector const>(local_d.data(), phasefield_size);
-    auto u =
-        Eigen::Map<DeformationVector const>(local_u.data(), displacement_size);
-
-    auto p = Eigen::Map<
+    auto const d = Eigen::Map<PhaseFieldVector const>(
+        &local_coupled_solutions.local_coupled_xs[phasefield_index],
+        phasefield_size);
+    auto const u = Eigen::Map<DeformationVector const>(
+        &local_coupled_solutions.local_coupled_xs[displacement_index],
+        displacement_size);
+    auto const p = Eigen::Map<
         typename ShapeMatricesType::template VectorType<pressure_size> const>(
-        local_p.data(), pressure_size);
+        &local_coupled_solutions.local_coupled_xs[pressure_index],
+        pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
-        local_Jac_data, local_matrix_size, local_matrix_size);
+        local_Jac_data, phasefield_size, phasefield_size);
     auto local_rhs = MathLib::createZeroedVector<PhaseFieldVector>(
-        local_b_data, local_matrix_size);
+        local_b_data, phasefield_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -461,20 +435,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                    });
 
     auto local_coupled_xs =
-        getCurrentLocalSolutions(*cpl_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == 3);
+        getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
+    assert(local_coupled_xs.size() ==
+           phasefield_size + displacement_size + pressure_size);
 
-    auto const& local_u = local_coupled_xs[_mechanics_related_process_id];
-    auto const& local_d = local_coupled_xs[_phase_field_process_id];
-
-    assert(local_d.size() == phasefield_size);
-
-    auto d = Eigen::Map<
-        typename ShapeMatricesType::template VectorType<phasefield_size> const>(
-        local_d.data(), phasefield_size);
-
-    auto u = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        displacement_size> const>(local_u.data(), displacement_size);
+    auto const d = Eigen::Map<PhaseFieldVector const>(
+        &local_coupled_xs[phasefield_index], phasefield_size);
+    auto const u = Eigen::Map<DeformationVector const>(
+        &local_coupled_xs[displacement_index], displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());

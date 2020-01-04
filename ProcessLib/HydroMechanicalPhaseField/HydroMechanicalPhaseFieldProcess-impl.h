@@ -284,18 +284,18 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
 }
 
 template <int DisplacementDim>
-void HydroMechanicalPhaseFieldProcess<
-    DisplacementDim>::preTimestepConcreteProcess(GlobalVector const& x,
-                                                 double const t,
-                                                 double const dt,
-                                                 const int process_id)
+void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
+    preTimestepConcreteProcess(std::vector<GlobalVector*> const& x,
+                               double const t,
+                               double const dt,
+                               const int process_id)
 {
     DBUG("PreTimestep HydroMechanicalPhaseFieldProcess.");
 
     _process_data.dt = dt;
     _process_data.t = t;
     _x_previous_timestep =
-        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(*x[process_id]);
 
     if (process_id != _mechanics_related_process_id)
     {
@@ -303,21 +303,21 @@ void HydroMechanicalPhaseFieldProcess<
     }
     GlobalExecutor::executeMemberOnDereferenced(
         &HydroMechanicalPhaseFieldLocalAssemblerInterface::preTimestep,
-        _local_assemblers, getDOFTable(process_id), x, t, dt);
+        _local_assemblers, getDOFTable(process_id), *x[process_id], t, dt);
 }
 
 template <int DisplacementDim>
-void HydroMechanicalPhaseFieldProcess<
-    DisplacementDim>::postTimestepConcreteProcess(GlobalVector const& x,
-                                                  double const t,
-                                                  double const dt,
-                                                  int const process_id)
+void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
+    postTimestepConcreteProcess(std::vector<GlobalVector*> const& x,
+                                double const t,
+                                double const dt,
+                                int const process_id)
 {
     DBUG("PostTimestep HydroMechanicalPhaseFieldProcess.");
 
     GlobalExecutor::executeMemberOnDereferenced(
         &HydroMechanicalPhaseFieldLocalAssemblerInterface::postTimestep,
-        _local_assemblers, getDOFTable(process_id), x, t, dt);
+        _local_assemblers, getDOFTable(process_id), *x[process_id], t, dt);
 
     /*
         _process_data.poroelastic_energy = 0.0;

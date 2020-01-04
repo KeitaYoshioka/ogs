@@ -129,6 +129,15 @@ template <typename ShapeFunction, typename IntegrationMethod,
 class HydroMechanicalPhaseFieldLocalAssembler
     : public HydroMechanicalPhaseFieldLocalAssemblerInterface
 {
+private:
+    static constexpr int pressure_index = 0;
+    static constexpr int pressure_size = ShapeFunction::NPOINTS;
+    static constexpr int phasefield_index = ShapeFunction::NPOINTS;
+    static constexpr int phasefield_size = ShapeFunction::NPOINTS;
+    static constexpr int displacement_index = 2 * ShapeFunction::NPOINTS;
+    static constexpr int displacement_size =
+        ShapeFunction::NPOINTS * DisplacementDim;
+
 public:
     using ShapeMatricesType =
         ShapeMatrixPolicyType<ShapeFunction, DisplacementDim>;
@@ -140,6 +149,16 @@ public:
     using NodalForceVectorType = typename BMatricesType::NodalForceVectorType;
 
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
+
+    using DeformationVector =
+        typename ShapeMatricesType::template VectorType<displacement_size>;
+    using PressureVector =
+        typename ShapeMatricesType::template VectorType<pressure_size>;
+    using PhaseFieldVector =
+        typename ShapeMatricesType::template VectorType<phasefield_size>;
+    using PhaseFieldMatrix =
+        typename ShapeMatricesType::template MatrixType<phasefield_size,
+                                                        phasefield_size>;
 
     HydroMechanicalPhaseFieldLocalAssembler(
         HydroMechanicalPhaseFieldLocalAssembler const&) = delete;
@@ -402,14 +421,6 @@ private:
     MeshLib::Element const& _element;
     bool const _is_axially_symmetric;
     SecondaryData<typename ShapeMatrices::ShapeType> _secondary_data;
-
-    static const int pressure_index = 0;
-    static const int pressure_size = ShapeFunction::NPOINTS;
-    static const int phasefield_index = ShapeFunction::NPOINTS;
-    static const int phasefield_size = ShapeFunction::NPOINTS;
-    static const int displacement_index = 2 * ShapeFunction::NPOINTS;
-    static const int displacement_size =
-        ShapeFunction::NPOINTS * DisplacementDim;
 
     /// ID of the processes that contains mechanical process.
     int const _mechanics_related_process_id;
