@@ -284,7 +284,7 @@ void DPHMPhaseFieldProcess<DisplacementDim>::
 
 template <int DisplacementDim>
 void DPHMPhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
-    GlobalVector const& x,
+    std::vector<GlobalVector*> const& x,
     double const t,
     double const dt,
     const int process_id)
@@ -294,7 +294,7 @@ void DPHMPhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
     _process_data.dt = dt;
     _process_data.t = t;
     _x_previous_timestep[process_id] =
-        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(*x[process_id]);
     //    MathLib::LinAlg::setLocalAccessibleVector(*_x_previous_timestep);
     //    MathLib::LinAlg::copy(x,*_x_previous_timestep);
 
@@ -304,12 +304,12 @@ void DPHMPhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
     }
     GlobalExecutor::executeMemberOnDereferenced(
         &DPHMPhaseFieldLocalAssemblerInterface::preTimestep, _local_assemblers,
-        getDOFTable(process_id), x, t, dt);
+        getDOFTable(process_id), *x[process_id], t, dt);
 }
 
 template <int DisplacementDim>
 void DPHMPhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
-    GlobalVector const& x,
+    std::vector<GlobalVector*> const& x,
     double const t,
     double const dt,
     int const process_id)
@@ -318,7 +318,7 @@ void DPHMPhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 
     GlobalExecutor::executeMemberOnDereferenced(
         &DPHMPhaseFieldLocalAssemblerInterface::postTimestep, _local_assemblers,
-        getDOFTable(process_id), x, t, dt);
+        getDOFTable(process_id), *x[process_id], t, dt);
 }
 
 template <int DisplacementDim>
