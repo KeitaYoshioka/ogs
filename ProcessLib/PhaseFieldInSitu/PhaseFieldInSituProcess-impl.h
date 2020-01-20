@@ -342,7 +342,7 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
                 */
         GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
-            _local_assemblers, pv.getActiveElementIDs(), dof_tables, x, t, dt,
+            _local_assemblers, pv.getActiveElementIDs(), dof_tables, *x[process_id], t, dt,
             _process_data.elastic_energy, _process_data.surface_energy,
             _process_data.crack_length, _process_data.pressure_work,
             _coupled_solutions);
