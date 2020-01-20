@@ -277,17 +277,16 @@ public:
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
-        bool const use_monolithic_scheme,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) const override;
 
     void computeEnergy(
         std::size_t mesh_item_id,
         std::vector<
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
-        GlobalVector const& x, double const t, double& elastic_energy,
-        double& surface_energy, double& crack_length, double& pressure_work,
-        bool const use_monolithic_scheme,
+        GlobalVector const& x, double const t, double const dt,
+        double& elastic_energy, double& surface_energy, double& crack_length,
+        double& pressure_work,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(

@@ -138,6 +138,17 @@ template <typename ShapeFunction, typename IntegrationMethod,
 class DPHMPhaseFieldLocalAssembler
     : public DPHMPhaseFieldLocalAssemblerInterface
 {
+private:
+    static const int frac_pressure_index = 0 * ShapeFunction::NPOINTS;
+    static const int frac_pressure_size = ShapeFunction::NPOINTS;
+    static const int pore_pressure_index = 1 * ShapeFunction::NPOINTS;
+    static const int pore_pressure_size = ShapeFunction::NPOINTS;
+    static const int phasefield_index = 2 * ShapeFunction::NPOINTS;
+    static const int phasefield_size = ShapeFunction::NPOINTS;
+    static const int displacement_index = 3 * ShapeFunction::NPOINTS;
+    static const int displacement_size =
+        ShapeFunction::NPOINTS * DisplacementDim;
+
 public:
     using ShapeMatricesType =
         ShapeMatrixPolicyType<ShapeFunction, DisplacementDim>;
@@ -149,6 +160,18 @@ public:
     using NodalForceVectorType = typename BMatricesType::NodalForceVectorType;
 
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
+
+    using DeformationVector =
+        typename ShapeMatricesType::template VectorType<displacement_size>;
+    using FracPressureVector =
+        typename ShapeMatricesType::template VectorType<frac_pressure_size>;
+    using PorePressureVector =
+        typename ShapeMatricesType::template VectorType<pore_pressure_size>;
+    using PhaseFieldVector =
+        typename ShapeMatricesType::template VectorType<phasefield_size>;
+    using PhaseFieldMatrix =
+        typename ShapeMatricesType::template MatrixType<phasefield_size,
+                                                        phasefield_size>;
 
     DPHMPhaseFieldLocalAssembler(DPHMPhaseFieldLocalAssembler const&) = delete;
     DPHMPhaseFieldLocalAssembler(DPHMPhaseFieldLocalAssembler&&) = delete;
@@ -429,14 +452,6 @@ private:
     bool const _is_axially_symmetric;
     SecondaryData<typename ShapeMatrices::ShapeType> _secondary_data;
 
-    static const int pressure_index = 0;
-    static const int pressure_size = ShapeFunction::NPOINTS;
-    static const int phasefield_index = ShapeFunction::NPOINTS;
-    static const int phasefield_size = ShapeFunction::NPOINTS;
-    static const int displacement_index = 2 * ShapeFunction::NPOINTS;
-    static const int displacement_size =
-        ShapeFunction::NPOINTS * DisplacementDim;
-
     /// ID of the processes that contains mechanical process.
     int const _mechanics_related_process_id;
 
@@ -445,7 +460,6 @@ private:
 
     /// ID of frac hydro process.
     int const _frac_hydro_process_id;
-
 
     /// ID of pore hydro process.
     int const _pore_hydro_process_id;

@@ -9,13 +9,12 @@
 
 #pragma once
 
-#include "PhaseFieldExternalFEM.h"
-#include "PhaseFieldExternalProcess.h"
-#include "PhaseFieldExternalProcessData.h"
-
 #include <cassert>
 
 #include "NumLib/DOF/ComputeSparsityPattern.h"
+#include "PhaseFieldExternalFEM.h"
+#include "PhaseFieldExternalProcess.h"
+#include "PhaseFieldExternalProcessData.h"
 #include "ProcessLib/Process.h"
 #include "ProcessLib/SmallDeformation/CreateLocalAssemblers.h"
 
@@ -236,7 +235,7 @@ void PhaseFieldExternalProcess<DisplacementDim>::
 
 template <int DisplacementDim>
 void PhaseFieldExternalProcess<DisplacementDim>::preTimestepConcreteProcess(
-    GlobalVector const& x,
+    std::vector<GlobalVector*> const& x,
     double const t,
     double const dt,
     const int process_id)
@@ -245,8 +244,9 @@ void PhaseFieldExternalProcess<DisplacementDim>::preTimestepConcreteProcess(
 
     _process_data.dt = dt;
     _process_data.t = t;
+
     _x_previous_timestep =
-        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+        MathLib::MatrixVectorTraits<GlobalVector>::newInstance(*x[process_id]);
 
     if (process_id != _mechanics_related_process_id)
     {
@@ -254,12 +254,12 @@ void PhaseFieldExternalProcess<DisplacementDim>::preTimestepConcreteProcess(
     }
     GlobalExecutor::executeMemberOnDereferenced(
         &PhaseFieldExternalLocalAssemblerInterface::preTimestep,
-        _local_assemblers, getDOFTable(process_id), x, t, dt);
+        _local_assemblers, getDOFTable(process_id), *x[process_id], t, dt);
 }
 
 template <int DisplacementDim>
 void PhaseFieldExternalProcess<DisplacementDim>::postTimestepConcreteProcess(
-    GlobalVector const& x,
+    std::vector<GlobalVector*> const& x,
     double const t,
     double const dt,
     int const process_id)
@@ -268,7 +268,7 @@ void PhaseFieldExternalProcess<DisplacementDim>::postTimestepConcreteProcess(
 
     GlobalExecutor::executeMemberOnDereferenced(
         &PhaseFieldExternalLocalAssemblerInterface::postTimestep,
-        _local_assemblers, getDOFTable(process_id), x, t, dt);
+        _local_assemblers, getDOFTable(process_id), *x[process_id], t, dt);
 }
 
 template <int DisplacementDim>

@@ -309,9 +309,12 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
 
     if (process_id == _phase_field_process_id)
     {
+        ProcessLib::ProcessVariable const& pv =
+            getProcessVariables(process_id)[0];
+
         GlobalExecutor::executeMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::postTimestep,
-            _local_assemblers, getDOFTable(process_id), x, t, dt);
+            _local_assemblers, getDOFTable(process_id), *x[process_id], t, dt);
 
         _process_data.elastic_energy = 0.0;
         _process_data.surface_energy = 0.0;
@@ -320,7 +323,6 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
 
         std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
             dof_tables;
-
         dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process0_id));
         dof_tables.emplace_back(getDOFTableByProcessID(_mechanics_process1_id));
         dof_tables.emplace_back(
@@ -338,28 +340,27 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
                                       const_cast<GlobalVector&>(u_s));
                 INFO("u_p is superposed for output ");
                 */
-        GlobalExecutor::executeMemberOnDereferenced(
+        GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
-            _local_assemblers, dof_tables, *x[process_id], _process_data.t,
+            _local_assemblers, pv.getActiveElementIDs(), dof_tables, x, t, dt,
             _process_data.elastic_energy, _process_data.surface_energy,
             _process_data.crack_length, _process_data.pressure_work,
-            _use_monolithic_scheme, _coupled_solutions);
+            _coupled_solutions);
 
 #ifdef USE_PETSC
-    double const elastic_energy = _process_data.elastic_energy;
-    MPI_Allreduce(&elastic_energy, &_process_data.elastic_energy, 1, MPI_DOUBLE,
-                  MPI_SUM, PETSC_COMM_WORLD);
-    double const surface_energy = _process_data.surface_energy;
-    MPI_Allreduce(&surface_energy, &_process_data.surface_energy, 1, MPI_DOUBLE,
-                  MPI_SUM, PETSC_COMM_WORLD);
-    double const crack_length = _process_data.crack_length;
-    MPI_Allreduce(&crack_length, &_process_data.crack_length, 1, MPI_DOUBLE,
-                  MPI_SUM, PETSC_COMM_WORLD);
-    double const pressure_work = _process_data.pressure_work;
-    MPI_Allreduce(&pressure_work, &_process_data.pressure_work, 1, MPI_DOUBLE,
-                  MPI_SUM, PETSC_COMM_WORLD);
+        double const elastic_energy = _process_data.elastic_energy;
+        MPI_Allreduce(&elastic_energy, &_process_data.elastic_energy, 1,
+                      MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+        double const surface_energy = _process_data.surface_energy;
+        MPI_Allreduce(&surface_energy, &_process_data.surface_energy, 1,
+                      MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
+        double const crack_length = _process_data.crack_length;
+        MPI_Allreduce(&crack_length, &_process_data.crack_length, 1, MPI_DOUBLE,
+                      MPI_SUM, PETSC_COMM_WORLD);
+        double const pressure_work = _process_data.pressure_work;
+        MPI_Allreduce(&pressure_work, &_process_data.pressure_work, 1,
+                      MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD);
 #endif
-
 
         INFO("Elastic energy: %g Surface energy: %g Pressure work: %g ",
              _process_data.elastic_energy, _process_data.crack_length,
@@ -374,6 +375,8 @@ void PhaseFieldInSituProcess<
                                                          double const /*dt*/,
                                                          const int process_id)
 {
+    ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
+
     if (process_id == _mechanics_process0_id)
     {
         _process_data.crack_volume0 = 0.0;
@@ -387,10 +390,10 @@ void PhaseFieldInSituProcess<
             "PostNonLinearSolver crack volume computation for "
             "mechanics_process0.");
 
-        GlobalExecutor::executeMemberOnDereferenced(
+        GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeCrackIntegral,
-            _local_assemblers, dof_tables, x, t, _process_data.crack_volume0,
-            _use_monolithic_scheme, _coupled_solutions, _mechanics_process0_id);
+            _local_assemblers, pv.getActiveElementIDs(), dof_tables, x, t,
+            _process_data.crack_volume0, _coupled_solutions);
 #ifdef USE_PETSC
         double const crack_volume = _process_data.crack_volume0;
         MPI_Allreduce(&crack_volume, &_process_data.crack_volume0, 1,
@@ -413,10 +416,10 @@ void PhaseFieldInSituProcess<
             "PostNonLinearSolver crack volume computation for "
             "mechanics_process0.");
 
-        GlobalExecutor::executeMemberOnDereferenced(
+        GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeCrackIntegral,
-            _local_assemblers, dof_tables, x, t, _process_data.crack_volume1,
-            _use_monolithic_scheme, _coupled_solutions, _mechanics_process1_id);
+            _local_assemblers, pv.getActiveElementIDs(), dof_tables, x, t,
+            _process_data.crack_volume1, _coupled_solutions);
 #ifdef USE_PETSC
         double const crack_volume = _process_data.crack_volume1;
         MPI_Allreduce(&crack_volume, &_process_data.crack_volume1, 1,
