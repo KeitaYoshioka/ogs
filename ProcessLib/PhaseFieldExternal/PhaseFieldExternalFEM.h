@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 
+#include "LocalAssemblerInterface.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropic.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
 #include "MaterialLib/SolidModels/SelectSolidConstitutiveRelation.h"
@@ -19,12 +20,10 @@
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
 #include "ParameterLib/SpatialPosition.h"
+#include "PhaseFieldExternalProcessData.h"
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
 #include "ProcessLib/Deformation/LinearBMatrix.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
-
-#include "LocalAssemblerInterface.h"
-#include "PhaseFieldExternalProcessData.h"
 
 namespace ProcessLib
 {
@@ -83,12 +82,13 @@ struct IntegrationPointData final
 
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
-        auto const lambda = linear_elastic_mp.lambda(t,x);
+        auto const lambda = linear_elastic_mp.lambda(t, x);
         if (split == 0)
         {
             C_compressive = BMatricesType::KelvinMatrixType::Zero(
                 kelvin_vector_size, kelvin_vector_size);
 
+            // TODO: check simga, it's probalby no sigma_eff!!!
             std::tie(sigma_eff, sigma_eff_tensile, C_tensile,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::
@@ -100,15 +100,22 @@ struct IntegrationPointData final
             std::tie(sigma_eff, sigma_eff_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps,reg_param);
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps,
+                                     reg_param);
         }
         else if (split == 2)
         {
             std::tie(sigma_eff, sigma_eff_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
-                MaterialLib::Solids::Phasefield::
-                    calculateDegradedStressMiehe<DisplacementDim>(
-                        degradation, lambda, mu, eps, reg_param);
+                MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
+        }
+        else if (split == 3)
+        {
+            std::tie(sigma_eff, sigma_eff_tensile, C_tensile, C_compressive,
+                     strain_energy_tensile, elastic_energy) =
+                MaterialLib::Solids::Phasefield::calculateDegradedStressMasonry<
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -353,8 +360,6 @@ private:
     MeshLib::Element const& _element;
     SecondaryData<typename ShapeMatrices::ShapeType> _secondary_data;
     bool const _is_axially_symmetric;
-
-
 
     /// ID of the processes that contains mechanical process.
     int const _mechanics_related_process_id;

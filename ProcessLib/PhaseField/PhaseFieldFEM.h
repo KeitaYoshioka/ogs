@@ -13,6 +13,7 @@
 #include <memory>
 #include <vector>
 
+#include "LocalAssemblerInterface.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropic.h"
 #include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
 #include "MaterialLib/SolidModels/SelectSolidConstitutiveRelation.h"
@@ -20,12 +21,10 @@
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
 #include "ParameterLib/SpatialPosition.h"
+#include "PhaseFieldProcessData.h"
 #include "ProcessLib/Deformation/BMatrixPolicy.h"
 #include "ProcessLib/Deformation/LinearBMatrix.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
-
-#include "LocalAssemblerInterface.h"
-#include "PhaseFieldProcessData.h"
 
 namespace ProcessLib
 {
@@ -116,7 +115,7 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMasonry<
-                    DisplacementDim>(degradation, lambda, mu, eps);
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
         history_variable =
             std::max(history_variable_prev, strain_energy_tensile);

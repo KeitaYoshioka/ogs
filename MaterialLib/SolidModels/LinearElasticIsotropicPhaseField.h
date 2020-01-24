@@ -12,6 +12,7 @@
 #include <Eigen/Eigenvalues>
 #include <array>
 #include <boost/math/special_functions/pow.hpp>
+
 #include "BaseLib/quicksort.h"
 #include "MathLib/KelvinVector.h"
 
@@ -166,7 +167,8 @@ std::tuple<MathLib::KelvinVector::KelvinVectorType<
            >
 calculateDegradedStressMasonry(
     double const degradation, double const lambda, double const mu,
-    MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& eps)
+    MathLib::KelvinVector::KelvinVectorType<DisplacementDim> const& eps,
+    double const reg_param)
 {
     using KelvinVector =
         MathLib::KelvinVector::KelvinVectorType<DisplacementDim>;
@@ -188,13 +190,13 @@ calculateDegradedStressMasonry(
     std::array<std::array<double, 3>, 3> beta = {
         {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
 
- /*   Eigen::Matrix<double, 3, 1> principal_strain_temp,
-        principal_strain_tensile_temp, principal_strain_compressive_temp;
-    std::array<std::array<double, 3>, 3> alpha_temp = {
-        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
-    std::array<std::array<double, 3>, 3> beta_temp = {
-        {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
-*/
+    /*   Eigen::Matrix<double, 3, 1> principal_strain_temp,
+           principal_strain_tensile_temp, principal_strain_compressive_temp;
+       std::array<std::array<double, 3>, 3> alpha_temp = {
+           {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+       std::array<std::array<double, 3>, 3> beta_temp = {
+           {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+   */
     double nu = lambda / (2 * (lambda + mu));
     KelvinVector sigma_tensile = KelvinVector::Zero();
     KelvinVector sigma_compressive = KelvinVector::Zero();
@@ -206,7 +208,7 @@ calculateDegradedStressMasonry(
             principal_strain[i] = 0.0;
     }
 
-//    principal_strain_temp = principal_strain;
+    //    principal_strain_temp = principal_strain;
 
     // sort eigenvalues and eigenvectors
     std::array<std::size_t, 3> permutation = {0, 1, 2};
@@ -215,6 +217,7 @@ calculateDegradedStressMasonry(
                        permutation.data());
     principal_strain = -1 * principal_strain;
 
+    /*
     if (principal_strain[DisplacementDim - 1] >= 0.0)
     {
         principal_strain_tensile = principal_strain;
@@ -237,15 +240,14 @@ calculateDegradedStressMasonry(
     {
         principal_strain_tensile = {
             principal_strain[0] +
-                nu / (1 - nu) *
-                    (principal_strain[1] + principal_strain[2]),
+                nu / (1 - nu) * (principal_strain[1] + principal_strain[2]),
             0.0, 0.0};
         alpha = {{{1.0, nu / (1 - nu), nu / (1 - nu)},
-                       {0.0, 0.0, 0.0},
-                       {0.0, 0.0, 0.0}}};
+                  {0.0, 0.0, 0.0},
+                  {0.0, 0.0, 0.0}}};
         beta = {{{0.0, -nu / (1 - nu), -nu / (1 - nu)},
-                      {0.0, 1.0, 0.0},
-                      {0.0, 0.0, 1.0}}};
+                 {0.0, 1.0, 0.0},
+                 {0.0, 0.0, 1.0}}};
         //        INFO("Uniaxial tension");
     }
     else
@@ -264,11 +266,51 @@ calculateDegradedStressMasonry(
         beta = {{{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
         //        INFO("zero strain");
     }
+*/
+    // Alternative way to define the principal_strain_tensile using Heaviside
+    // function
+    double a1, a2, a3;
+    double H1, H2, H3;
+    double alpha_11, alpha_12, alpha_13, alpha_21, alpha_22, alpha_23, alpha_31,
+        alpha_32, alpha_33;
 
+    auto hs = [&](double const v) {
+        return reg_param < 0.0 ? Heaviside(v) : Heaviside_reg(v, reg_param);
+    };
 
+    H1 = hs(principal_strain[DisplacementDim - 1]);
+    H2 = hs(principal_strain[1] + nu * principal_strain[2]);
+    H3 = hs((1 - nu) * principal_strain[0] +
+            nu * (principal_strain[1] + principal_strain[2]));
 
-    principal_strain_compressive =
-        principal_strain - principal_strain_tensile;
+    a1 = principal_strain[0] * H1 +
+         (principal_strain[0] + nu * principal_strain[2]) * (1 - H1) * H2 +
+         ((1 - nu) * principal_strain[0] +
+          nu * (principal_strain[1] + principal_strain[2])) /
+             (1 - nu) * (1 - H1) * (1 - H2) * H3;
+    a2 = principal_strain[1] * H1 +
+         (principal_strain[1] + nu * principal_strain[2]) * (1 - H1) * H2;
+    a3 = principal_strain[2] * H1;
+
+    alpha_11 = H1 + (1 - H1) * H2 + (1 - H1) * (1 - H2) * H3;
+    alpha_12 = nu / (1 - nu) * (1 - H1) * (1 - H2) * H3;
+    alpha_13 = nu * (1 - H1) * H2 + nu / (1 - nu) * (1 - H1) * (1 - H2) * H3;
+    alpha_21 = 0.0;
+    alpha_22 = H1 + (1 - H1) * H2;
+    alpha_23 = nu * (1 - H1) * H2;
+    alpha_31 = 0.0;
+    alpha_32 = 0.0;
+    alpha_33 = H1;
+
+    principal_strain_tensile = {a1, a2, a3};
+    alpha = {{{alpha_11, alpha_12, alpha_13},
+              {alpha_21, alpha_22, alpha_23},
+              {alpha_31, alpha_32, alpha_33}}};
+    beta = {{{1.0 - alpha_11, -alpha_12, -alpha_13},
+             {-alpha_21, 1.0 - alpha_22, -alpha_23},
+             {-alpha_31, -alpha_32, 1.0 - alpha_33}}};
+
+    principal_strain_compressive = principal_strain - principal_strain_tensile;
 
     double const sum_strain_tensile = principal_strain_tensile.sum();
     double const sum_strain_compressive = principal_strain_compressive.sum();

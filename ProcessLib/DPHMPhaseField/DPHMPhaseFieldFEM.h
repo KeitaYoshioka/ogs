@@ -116,7 +116,7 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMasonry<
-                    DisplacementDim>(degradation, lambda, mu, eps);
+                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
