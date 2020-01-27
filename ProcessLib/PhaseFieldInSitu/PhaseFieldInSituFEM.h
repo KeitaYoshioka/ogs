@@ -142,7 +142,9 @@ private:
     static constexpr int phasefield_size = ShapeFunction::NPOINTS;
     static constexpr int displacement_size =
         ShapeFunction::NPOINTS * DisplacementDim;
-    static constexpr int displacement_index = 2 * ShapeFunction::NPOINTS;
+    static constexpr int displacement0_index = phasefield_size;
+    static constexpr int displacement1_index =
+        phasefield_size + displacement_size;
 
 public:
     using ShapeMatricesType =
@@ -277,7 +279,7 @@ public:
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& x, double const t, double& crack_volume,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) const override;
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs, int process_id) const override;
 
     void computeEnergy(
         std::size_t mesh_item_id,

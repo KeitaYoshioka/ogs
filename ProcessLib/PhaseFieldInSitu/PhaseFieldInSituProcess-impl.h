@@ -342,10 +342,10 @@ void PhaseFieldInSituProcess<DisplacementDim>::postTimestepConcreteProcess(
                 */
         GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeEnergy,
-            _local_assemblers, pv.getActiveElementIDs(), dof_tables, *x[process_id], t, dt,
-            _process_data.elastic_energy, _process_data.surface_energy,
-            _process_data.crack_length, _process_data.pressure_work,
-            _coupled_solutions);
+            _local_assemblers, pv.getActiveElementIDs(), dof_tables,
+            *x[process_id], t, dt, _process_data.elastic_energy,
+            _process_data.surface_energy, _process_data.crack_length,
+            _process_data.pressure_work, _coupled_solutions);
 
 #ifdef USE_PETSC
         double const elastic_energy = _process_data.elastic_energy;
@@ -393,7 +393,8 @@ void PhaseFieldInSituProcess<
         GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeCrackIntegral,
             _local_assemblers, pv.getActiveElementIDs(), dof_tables, x, t,
-            _process_data.crack_volume0, _coupled_solutions);
+            _process_data.crack_volume0, _coupled_solutions,
+            _mechanics_process0_id);
 #ifdef USE_PETSC
         double const crack_volume = _process_data.crack_volume0;
         MPI_Allreduce(&crack_volume, &_process_data.crack_volume0, 1,
@@ -419,7 +420,8 @@ void PhaseFieldInSituProcess<
         GlobalExecutor::executeSelectedMemberOnDereferenced(
             &PhaseFieldInSituLocalAssemblerInterface::computeCrackIntegral,
             _local_assemblers, pv.getActiveElementIDs(), dof_tables, x, t,
-            _process_data.crack_volume1, _coupled_solutions);
+            _process_data.crack_volume1, _coupled_solutions,
+            _mechanics_process1_id);
 #ifdef USE_PETSC
         double const crack_volume = _process_data.crack_volume1;
         MPI_Allreduce(&crack_volume, &_process_data.crack_volume1, 1,

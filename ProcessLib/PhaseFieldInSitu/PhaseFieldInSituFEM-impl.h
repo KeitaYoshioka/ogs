@@ -61,13 +61,13 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size);
+           phasefield_size + 2*displacement_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
         &local_coupled_solutions.local_coupled_xs[phasefield_index],
         phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
+        &local_coupled_solutions.local_coupled_xs[displacement0_index],
         displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
@@ -172,13 +172,13 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size);
+           phasefield_size + 2*displacement_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
         &local_coupled_solutions.local_coupled_xs[phasefield_index],
         phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
+        &local_coupled_solutions.local_coupled_xs[displacement1_index],
         displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
@@ -281,7 +281,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         &local_coupled_solutions.local_coupled_xs[phasefield_index],
         phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
+        &local_coupled_solutions.local_coupled_xs[displacement0_index],
         displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
@@ -428,7 +428,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         GlobalVector const& /*x*/, double const /*t*/, double& crack_volume,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs) const
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs, int process_id) const
 {
     assert(cpl_xs != nullptr);
 
@@ -442,12 +442,19 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == displacement_size + phasefield_size);
+    assert(local_coupled_xs.size() == 2*displacement_size + phasefield_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
         &local_coupled_xs[phasefield_index], phasefield_size);
+
+    int disp_index;
+    if (process_id == _mechanics_process0_id)
+        disp_index = displacement0_index;
+    else if (process_id == _mechanics_process1_id)
+        disp_index = displacement1_index;
+
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[displacement_index], displacement_size);
+        &local_coupled_xs[disp_index], displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -518,7 +525,7 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
     auto const d = Eigen::Map<PhaseFieldVector const>(
         &local_coupled_xs[phasefield_index], phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[displacement_index], displacement_size);
+        &local_coupled_xs[displacement0_index], displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
