@@ -72,32 +72,32 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size + frac_pressure_size +
-               pore_pressure_size);
+           _phasefield_size + _displacement_size + _frac_pressure_size +
+               _pore_pressure_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement_index],
+        _displacement_size);
     auto const p_p = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        pore_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs[pore_pressure_index],
-        pore_pressure_size);
+        _pore_pressure_size> const>(
+        &local_coupled_solutions.local_coupled_xs[_pore_pressure_index],
+        _pore_pressure_size);
     auto const p_f = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        frac_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs[frac_pressure_index],
-        frac_pressure_size);
+        _frac_pressure_size> const>(
+        &local_coupled_solutions.local_coupled_xs[_frac_pressure_index],
+        _frac_pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<displacement_size,
-                                                        displacement_size>>(
-        local_Jac_data, displacement_size, displacement_size);
+        typename ShapeMatricesType::template MatrixType<_displacement_size,
+                                                        _displacement_size>>(
+        local_Jac_data, _displacement_size, _displacement_size);
 
     auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<displacement_size>>(
-        local_b_data, displacement_size);
+        typename ShapeMatricesType::template VectorType<_displacement_size>>(
+        local_b_data, _displacement_size);
 
     double const& reg_param = _process_data.reg_param;
 
@@ -162,14 +162,14 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& C_compressive = _ip_data[ip].C_compressive;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         auto const& b = _process_data.specific_body_force;
@@ -203,43 +203,43 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size + frac_pressure_size +
-               pore_pressure_size);
+           _phasefield_size + _displacement_size + _frac_pressure_size +
+               _pore_pressure_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
 
     auto const p_f = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        frac_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs[frac_pressure_index],
-        frac_pressure_size);
+        _frac_pressure_size> const>(
+        &local_coupled_solutions.local_coupled_xs[_frac_pressure_index],
+        _frac_pressure_size);
 
     auto const p_f0 =
         Eigen::Map<typename ShapeMatricesType::template VectorType<
-            frac_pressure_size> const>(
-            &local_coupled_solutions.local_coupled_xs0[frac_pressure_index],
-            frac_pressure_size);
+            _frac_pressure_size> const>(
+            &local_coupled_solutions.local_coupled_xs0[_frac_pressure_index],
+            _frac_pressure_size);
 
     auto p_f_dot = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        frac_pressure_size> const>(local_xdot.data(), frac_pressure_size);
+        _frac_pressure_size> const>(local_xdot.data(), _frac_pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<frac_pressure_size,
-                                                        frac_pressure_size>>(
-        local_Jac_data, frac_pressure_size, frac_pressure_size);
+        typename ShapeMatricesType::template MatrixType<_frac_pressure_size,
+                                                        _frac_pressure_size>>(
+        local_Jac_data, _frac_pressure_size, _frac_pressure_size);
 
     auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<frac_pressure_size>>(
-        local_b_data, frac_pressure_size);
+        typename ShapeMatricesType::template VectorType<_frac_pressure_size>>(
+        local_b_data, _frac_pressure_size);
 
     typename ShapeMatricesType::NodalMatrixType mass =
-        ShapeMatricesType::NodalMatrixType::Zero(frac_pressure_size,
-                                                 frac_pressure_size);
+        ShapeMatricesType::NodalMatrixType::Zero(_frac_pressure_size,
+                                                 _frac_pressure_size);
 
     typename ShapeMatricesType::NodalMatrixType laplace =
-        ShapeMatricesType::NodalMatrixType::Zero(frac_pressure_size,
-                                                 frac_pressure_size);
+        ShapeMatricesType::NodalMatrixType::Zero(_frac_pressure_size,
+                                                 _frac_pressure_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -340,43 +340,43 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size + frac_pressure_size +
-               pore_pressure_size);
+           _phasefield_size + _displacement_size + _frac_pressure_size +
+               _pore_pressure_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
 
     auto const p_p = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        pore_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs[pore_pressure_index],
-        pore_pressure_size);
+        _pore_pressure_size> const>(
+        &local_coupled_solutions.local_coupled_xs[_pore_pressure_index],
+        _pore_pressure_size);
 
     auto const p_p0 =
         Eigen::Map<typename ShapeMatricesType::template VectorType<
-            pore_pressure_size> const>(
-            &local_coupled_solutions.local_coupled_xs0[pore_pressure_index],
-            pore_pressure_size);
+            _pore_pressure_size> const>(
+            &local_coupled_solutions.local_coupled_xs0[_pore_pressure_index],
+            _pore_pressure_size);
 
     auto p_p_dot = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        pore_pressure_size> const>(local_xdot.data(), pore_pressure_size);
+        _pore_pressure_size> const>(local_xdot.data(), _pore_pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<pore_pressure_size,
-                                                        pore_pressure_size>>(
-        local_Jac_data, pore_pressure_size, pore_pressure_size);
+        typename ShapeMatricesType::template MatrixType<_pore_pressure_size,
+                                                        _pore_pressure_size>>(
+        local_Jac_data, _pore_pressure_size, _pore_pressure_size);
 
     auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<pore_pressure_size>>(
-        local_b_data, pore_pressure_size);
+        typename ShapeMatricesType::template VectorType<_pore_pressure_size>>(
+        local_b_data, _pore_pressure_size);
 
     typename ShapeMatricesType::NodalMatrixType mass =
-        ShapeMatricesType::NodalMatrixType::Zero(pore_pressure_size,
-                                                 pore_pressure_size);
+        ShapeMatricesType::NodalMatrixType::Zero(_pore_pressure_size,
+                                                 _pore_pressure_size);
 
     typename ShapeMatricesType::NodalMatrixType laplace =
-        ShapeMatricesType::NodalMatrixType::Zero(pore_pressure_size,
-                                                 pore_pressure_size);
+        ShapeMatricesType::NodalMatrixType::Zero(_pore_pressure_size,
+                                                 _pore_pressure_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -482,28 +482,28 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size + frac_pressure_size +
-               pore_pressure_size);
+           _phasefield_size + _displacement_size + _frac_pressure_size +
+               _pore_pressure_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement_index],
+        _displacement_size);
     auto const p_f = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        frac_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs[frac_pressure_index],
-        frac_pressure_size);
+        _frac_pressure_size> const>(
+        &local_coupled_solutions.local_coupled_xs[_frac_pressure_index],
+        _frac_pressure_size);
     auto const p_p = Eigen::Map<typename ShapeMatricesType::template VectorType<
-        pore_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs[pore_pressure_index],
-        pore_pressure_size);
+        _pore_pressure_size> const>(
+        &local_coupled_solutions.local_coupled_xs[_pore_pressure_index],
+        _pore_pressure_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
-        local_Jac_data, phasefield_size, phasefield_size);
+        local_Jac_data, _phasefield_size, _phasefield_size);
     auto local_rhs = MathLib::createZeroedVector<PhaseFieldVector>(
-        local_b_data, phasefield_size);
+        local_b_data, _phasefield_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -558,14 +558,14 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         ip_data.strain_energy_tensile = strain_energy_tensile;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         // For AT2
@@ -627,14 +627,14 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == phasefield_size + displacement_size +
-                                          frac_pressure_size +
-                                          pore_pressure_size);
+    assert(local_coupled_xs.size() == _phasefield_size + _displacement_size +
+                                          _frac_pressure_size +
+                                          _pore_pressure_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_xs[phasefield_index], phasefield_size);
+        &local_coupled_xs[_phasefield_index], _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[displacement_index], displacement_size);
+        &local_coupled_xs[_displacement_index], _displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -662,15 +662,15 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             auto const& dNdx = _ip_data[ip].dNdx;
 
             typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                            displacement_size>
+                                                            _displacement_size>
                 N_u = ShapeMatricesType::template MatrixType<
                     DisplacementDim,
-                    displacement_size>::Zero(DisplacementDim,
-                                             displacement_size);
+                    _displacement_size>::Zero(DisplacementDim,
+                                             _displacement_size);
 
             for (int i = 0; i < DisplacementDim; ++i)
-                N_u.template block<1, displacement_size / DisplacementDim>(
-                       i, i * displacement_size / DisplacementDim)
+                N_u.template block<1, _displacement_size / DisplacementDim>(
+                       i, i * _displacement_size / DisplacementDim)
                     .noalias() = N;
 
             ele_grad_d += dNdx * d;

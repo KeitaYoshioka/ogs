@@ -138,13 +138,13 @@ class PhaseFieldInSituLocalAssembler
     : public PhaseFieldInSituLocalAssemblerInterface
 {
 private:
-    static constexpr int phasefield_index = 0;
-    static constexpr int phasefield_size = ShapeFunction::NPOINTS;
-    static constexpr int displacement_size =
+    static constexpr int _displacement0_index = 0;
+    static constexpr int _displacement_size =
         ShapeFunction::NPOINTS * DisplacementDim;
-    static constexpr int displacement0_index = phasefield_size;
-    static constexpr int displacement1_index =
-        phasefield_size + displacement_size;
+    static constexpr int _displacement1_index =
+        _displacement_size;
+    static constexpr int _phasefield_index = 2*_displacement_size;
+    static constexpr int _phasefield_size = ShapeFunction::NPOINTS;
 
 public:
     using ShapeMatricesType =
@@ -159,12 +159,12 @@ public:
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
 
     using DeformationVector =
-        typename ShapeMatricesType::template VectorType<displacement_size>;
+        typename ShapeMatricesType::template VectorType<_displacement_size>;
     using PhaseFieldVector =
-        typename ShapeMatricesType::template VectorType<phasefield_size>;
+        typename ShapeMatricesType::template VectorType<_phasefield_size>;
     using PhaseFieldMatrix =
-        typename ShapeMatricesType::template MatrixType<phasefield_size,
-                                                        phasefield_size>;
+        typename ShapeMatricesType::template MatrixType<_phasefield_size,
+                                                        _phasefield_size>;
 
     PhaseFieldInSituLocalAssembler(PhaseFieldInSituLocalAssembler const&) =
         delete;

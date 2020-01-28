@@ -139,16 +139,15 @@ class DPHMPhaseFieldLocalAssembler
     : public DPHMPhaseFieldLocalAssemblerInterface
 {
 private:
-    static const int frac_pressure_index = 0 * ShapeFunction::NPOINTS;
-    static const int frac_pressure_size = ShapeFunction::NPOINTS;
-    static const int pore_pressure_index = 1 * ShapeFunction::NPOINTS;
-    static const int pore_pressure_size = ShapeFunction::NPOINTS;
-    static const int phasefield_index = 2 * ShapeFunction::NPOINTS;
-    static const int phasefield_size = ShapeFunction::NPOINTS;
-    static const int displacement_index = 3 * ShapeFunction::NPOINTS;
-    static const int displacement_size =
+    static const int _frac_pressure_index = 0;
+    static const int _frac_pressure_size = ShapeFunction::NPOINTS;
+    static const int _pore_pressure_index = _frac_pressure_size;
+    static const int _pore_pressure_size = ShapeFunction::NPOINTS;
+    static const int _displacement_index = _frac_pressure_size + _pore_pressure_size;
+    static const int _displacement_size =
         ShapeFunction::NPOINTS * DisplacementDim;
-
+    static const int _phasefield_index = _frac_pressure_size + _pore_pressure_size + _displacement_size ;
+    static const int _phasefield_size = ShapeFunction::NPOINTS;
 public:
     using ShapeMatricesType =
         ShapeMatrixPolicyType<ShapeFunction, DisplacementDim>;
@@ -162,16 +161,16 @@ public:
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
 
     using DeformationVector =
-        typename ShapeMatricesType::template VectorType<displacement_size>;
+        typename ShapeMatricesType::template VectorType<_displacement_size>;
     using FracPressureVector =
-        typename ShapeMatricesType::template VectorType<frac_pressure_size>;
+        typename ShapeMatricesType::template VectorType<_frac_pressure_size>;
     using PorePressureVector =
-        typename ShapeMatricesType::template VectorType<pore_pressure_size>;
+        typename ShapeMatricesType::template VectorType<_pore_pressure_size>;
     using PhaseFieldVector =
-        typename ShapeMatricesType::template VectorType<phasefield_size>;
+        typename ShapeMatricesType::template VectorType<_phasefield_size>;
     using PhaseFieldMatrix =
-        typename ShapeMatricesType::template MatrixType<phasefield_size,
-                                                        phasefield_size>;
+        typename ShapeMatricesType::template MatrixType<_phasefield_size,
+                                                        _phasefield_size>;
 
     DPHMPhaseFieldLocalAssembler(DPHMPhaseFieldLocalAssembler const&) = delete;
     DPHMPhaseFieldLocalAssembler(DPHMPhaseFieldLocalAssembler&&) = delete;

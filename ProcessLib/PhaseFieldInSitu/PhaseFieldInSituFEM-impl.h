@@ -61,23 +61,23 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + 2*displacement_size);
+           _phasefield_size + 2 * _displacement_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement0_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement0_index],
+        _displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<displacement_size,
-                                                        displacement_size>>(
-        local_Jac_data, displacement_size, displacement_size);
+        typename ShapeMatricesType::template MatrixType<_displacement_size,
+                                                        _displacement_size>>(
+        local_Jac_data, _displacement_size, _displacement_size);
 
     auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<displacement_size>>(
-        local_b_data, displacement_size);
+        typename ShapeMatricesType::template VectorType<_displacement_size>>(
+        local_b_data, _displacement_size);
 
     double const& reg_param = _process_data.reg_param;
 
@@ -135,14 +135,14 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& C_compressive = _ip_data[ip].C_compressive;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         auto rho_s = _process_data.solid_density(t, x_position)[0];
@@ -172,23 +172,23 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + 2*displacement_size);
+           _phasefield_size + 2 * _displacement_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement1_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement1_index],
+        _displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<
-        typename ShapeMatricesType::template MatrixType<displacement_size,
-                                                        displacement_size>>(
-        local_Jac_data, displacement_size, displacement_size);
+        typename ShapeMatricesType::template MatrixType<_displacement_size,
+                                                        _displacement_size>>(
+        local_Jac_data, _displacement_size, _displacement_size);
 
     auto local_rhs = MathLib::createZeroedVector<
-        typename ShapeMatricesType::template VectorType<displacement_size>>(
-        local_b_data, displacement_size);
+        typename ShapeMatricesType::template VectorType<_displacement_size>>(
+        local_b_data, _displacement_size);
 
     double const& reg_param = _process_data.reg_param;
 
@@ -242,14 +242,14 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& C_compressive = _ip_data[ip].C_compressive;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         auto rho_s = _process_data.solid_density(t, x_position)[0];
@@ -278,16 +278,16 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement0_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement0_index],
+        _displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
-        local_Jac_data, phasefield_size, phasefield_size);
+        local_Jac_data, _phasefield_size, _phasefield_size);
     auto local_rhs = MathLib::createZeroedVector<PhaseFieldVector>(
-        local_b_data, phasefield_size);
+        local_b_data, _phasefield_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -353,14 +353,14 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         ip_data.strain_energy_tensile = strain_energy_tensile;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         // For AT2
@@ -421,14 +421,14 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
-                              DisplacementDim>::
-    computeCrackIntegral(
-        std::size_t mesh_item_id,
-        std::vector<
-            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
-            dof_tables,
-        GlobalVector const& /*x*/, double const /*t*/, double& crack_volume,
-        CoupledSolutionsForStaggeredScheme const* const cpl_xs, int process_id) const
+                                    DisplacementDim>::
+    computeCrackIntegral(std::size_t mesh_item_id,
+                         std::vector<std::reference_wrapper<
+                             NumLib::LocalToGlobalIndexMap>> const& dof_tables,
+                         GlobalVector const& /*x*/, double const /*t*/,
+                         double& crack_volume,
+                         CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+                         int process_id) const
 {
     assert(cpl_xs != nullptr);
 
@@ -442,19 +442,19 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == 2*displacement_size + phasefield_size);
+    assert(local_coupled_xs.size() == 2 * _displacement_size + _phasefield_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_xs[phasefield_index], phasefield_size);
+        &local_coupled_xs[_phasefield_index], _phasefield_size);
 
     int disp_index;
     if (process_id == _mechanics_process0_id)
-        disp_index = displacement0_index;
+        disp_index = _displacement0_index;
     else if (process_id == _mechanics_process1_id)
-        disp_index = displacement1_index;
+        disp_index = _displacement1_index;
 
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[disp_index], displacement_size);
+        &local_coupled_xs[disp_index], _displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -469,14 +469,14 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         ele_crack_vol += (N_u * u).dot(dNdx * d) * w;
@@ -499,12 +499,13 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
-                              DisplacementDim>::
+                                    DisplacementDim>::
     computeEnergy(std::size_t mesh_item_id,
                   std::vector<std::reference_wrapper<
                       NumLib::LocalToGlobalIndexMap>> const& dof_tables,
-                  GlobalVector const& /*x*/, double const t, double const /*dt*/,
-                  double& elastic_energy, double& surface_energy, double& crack_length,
+                  GlobalVector const& /*x*/, double const t,
+                  double const /*dt*/, double& elastic_energy,
+                  double& surface_energy, double& crack_length,
                   double& pressure_work,
                   CoupledSolutionsForStaggeredScheme const* const cpl_xs)
 {
@@ -520,12 +521,12 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto const local_coupled_xs =
         getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == displacement_size + phasefield_size);
+    assert(local_coupled_xs.size() == _displacement_size + _phasefield_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_xs[phasefield_index], phasefield_size);
+        &local_coupled_xs[_phasefield_index], _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[displacement0_index], displacement_size);
+        &local_coupled_xs[_displacement0_index], _displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -545,14 +546,14 @@ void PhaseFieldInSituLocalAssembler<ShapeFunction, IntegrationMethod,
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
 
         elastic_energy += _ip_data[ip].elastic_energy * w;

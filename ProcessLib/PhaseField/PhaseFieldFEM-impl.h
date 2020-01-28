@@ -56,24 +56,24 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     using DeformationMatrix =
-        typename ShapeMatricesType::template MatrixType<displacement_size,
-                                                        displacement_size>;
+        typename ShapeMatricesType::template MatrixType<_displacement_size,
+                                                        _displacement_size>;
 
     assert(local_coupled_solutions.local_coupled_xs.size() ==
-           phasefield_size + displacement_size);
+           _phasefield_size + _displacement_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement_index],
+        _displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<DeformationMatrix>(
-        local_Jac_data, displacement_size, displacement_size);
+        local_Jac_data, _displacement_size, _displacement_size);
 
     auto local_rhs = MathLib::createZeroedVector<DeformationVector>(
-        local_b_data, displacement_size);
+        local_b_data, _displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -136,15 +136,15 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& C_compressive = _ip_data[ip].C_compressive;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
         }
 
@@ -174,16 +174,16 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_solutions.local_coupled_xs[phasefield_index],
-        phasefield_size);
+        &local_coupled_solutions.local_coupled_xs[_phasefield_index],
+        _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_solutions.local_coupled_xs[displacement_index],
-        displacement_size);
+        &local_coupled_solutions.local_coupled_xs[_displacement_index],
+        _displacement_size);
 
     auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
-        local_Jac_data, phasefield_size, phasefield_size);
+        local_Jac_data, _phasefield_size, _phasefield_size);
     auto local_rhs = MathLib::createZeroedVector<PhaseFieldVector>(
-        local_b_data, phasefield_size);
+        local_b_data, _phasefield_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -256,15 +256,15 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         ip_data.strain_energy_tensile = strain_energy_tensile;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
         }
 
@@ -350,12 +350,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto local_coupled_xs =
         getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == displacement_size + phasefield_size);
+    assert(local_coupled_xs.size() == _displacement_size + _phasefield_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_xs[phasefield_index], phasefield_size);
+        &local_coupled_xs[_phasefield_index], _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[displacement_index], displacement_size);
+        &local_coupled_xs[_displacement_index], _displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -370,15 +370,15 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
         }
 
@@ -421,12 +421,12 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto const local_coupled_xs =
         getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
-    assert(local_coupled_xs.size() == displacement_size + phasefield_size);
+    assert(local_coupled_xs.size() == _displacement_size + _phasefield_size);
 
     auto const d = Eigen::Map<PhaseFieldVector const>(
-        &local_coupled_xs[phasefield_index], phasefield_size);
+        &local_coupled_xs[_phasefield_index], _phasefield_size);
     auto const u = Eigen::Map<DeformationVector const>(
-        &local_coupled_xs[displacement_index], displacement_size);
+        &local_coupled_xs[_displacement_index], _displacement_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -447,15 +447,15 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
-                                                        displacement_size>
+                                                        _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
-                DisplacementDim, displacement_size>::Zero(DisplacementDim,
-                                                          displacement_size);
+                DisplacementDim, _displacement_size>::Zero(DisplacementDim,
+                                                          _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
-            N_u.template block<1, displacement_size / DisplacementDim>(
-                   i, i * displacement_size / DisplacementDim)
+            N_u.template block<1, _displacement_size / DisplacementDim>(
+                   i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
         }
 

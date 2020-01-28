@@ -139,12 +139,12 @@ template <typename ShapeFunction, typename IntegrationMethod,
 class PhaseFieldLocalAssembler : public PhaseFieldLocalAssemblerInterface
 {
 private:
-    static constexpr int displacement_index = 0;
-    static constexpr int displacement_size =
+    static constexpr int _displacement_index = 0;
+    static constexpr int _displacement_size =
         ShapeFunction::NPOINTS * DisplacementDim;
-    static constexpr int phasefield_index =
-        displacement_index + displacement_size;
-    static constexpr int phasefield_size = ShapeFunction::NPOINTS;
+    static constexpr int _phasefield_index =
+        _displacement_index + _displacement_size;
+    static constexpr int _phasefield_size = ShapeFunction::NPOINTS;
 
 public:
     using ShapeMatricesType =
@@ -157,12 +157,12 @@ public:
     using NodalForceVectorType = typename BMatricesType::NodalForceVectorType;
 
     using DeformationVector =
-        typename ShapeMatricesType::template VectorType<displacement_size>;
+        typename ShapeMatricesType::template VectorType<_displacement_size>;
     using PhaseFieldVector =
-        typename ShapeMatricesType::template VectorType<phasefield_size>;
+        typename ShapeMatricesType::template VectorType<_phasefield_size>;
     using PhaseFieldMatrix =
-        typename ShapeMatricesType::template MatrixType<phasefield_size,
-                                                        phasefield_size>;
+        typename ShapeMatricesType::template MatrixType<_phasefield_size,
+                                                        _phasefield_size>;
 
     PhaseFieldLocalAssembler(PhaseFieldLocalAssembler const&) = delete;
     PhaseFieldLocalAssembler(PhaseFieldLocalAssembler&&) = delete;
