@@ -15,11 +15,10 @@
 #include "MaterialLib/SolidModels/CreateConstitutiveRelation.h"
 #include "MaterialLib/SolidModels/MechanicsBase.h"
 #include "ParameterLib/Utils.h"
-#include "ProcessLib/Output/CreateSecondaryVariables.h"
-#include "ProcessLib/Utils/ProcessUtils.h"
-
 #include "PhaseFieldProcess.h"
 #include "PhaseFieldProcessData.h"
+#include "ProcessLib/Output/CreateSecondaryVariables.h"
+#include "ProcessLib/Utils/ProcessUtils.h"
 
 namespace ProcessLib
 {
@@ -186,9 +185,7 @@ std::unique_ptr<Process> createPhaseFieldProcess(
     const bool propagating_crack =
         (crack_scheme && (*crack_scheme == "propagating"));
     const bool crack_pressure =
-        (crack_scheme &&
-         ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
-
+        (crack_scheme && (*crack_scheme == "propagating"));
 
     auto const crack_vol_scheme =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__crack_vol_scheme}
