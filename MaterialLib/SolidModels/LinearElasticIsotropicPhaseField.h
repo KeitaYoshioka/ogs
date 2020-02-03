@@ -384,35 +384,21 @@ calculateDegradedStressMasonry(
         }
     }
 
-    KelvinMatrix C_eff = KelvinMatrix::Zero();
-    C_eff = C_tensile + C_compressive;
+    // C_eff for checking
+    /*KelvinMatrix C_eff = KelvinMatrix::Zero();
+    C_eff = C_tensile + C_compressive;*/
     double const elastic_energy =
         degradation * strain_energy_tensile + strain_energy_compressive;
 
-    KelvinVector const sigma_real =
-        degradation * sigma_tensile + sigma_compressive;
-    /*
-        static int const KelvinVectorSize =
-            MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
-        using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
+    KelvinVector sigma_real;
+    //        (reg_param < -998.0) ? (sigma_tensile + sigma_compressive)
+    //                             : (degradation * sigma_tensile +
+    //                             sigma_compressive);
+    if (reg_param < -998)
+        sigma_real = sigma_tensile + sigma_compressive;
+    else
+        sigma_real = degradation * sigma_tensile + sigma_compressive;
 
-        double bulk_modulus = lambda + 2 / 3 * mu;
-        auto const& P_dev = Invariants::deviatoric_projection;
-        KelvinVector const epsd_curr = P_dev * eps;
-        double const eps_curr_trace = Invariants::trace(eps);
-        sigma_tensile = bulk_modulus * eps_curr_trace * Invariants::identity2 +
-                        2 * mu * epsd_curr;
-        C_tensile = KelvinMatrix::Zero();
-        C_tensile.template topLeftCorner<3, 3>().setConstant(bulk_modulus);
-        C_tensile.noalias() += 2 * mu * P_dev * KelvinMatrix::Identity();
-        KelvinVector const sigma_real = degradation * sigma_tensile;
-        double const strain_energy_tensile =
-            bulk_modulus / 2 * eps_curr_trace * eps_curr_trace +
-            mu * epsd_curr.transpose() * epsd_curr;
-        double const strain_energy_compressive = 0.0;
-        double const elastic_energy =
-            degradation * strain_energy_tensile + strain_energy_compressive;
-    */
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);
 }
@@ -529,13 +515,21 @@ calculateDegradedStressMiehe(
                 mu * evaluateHCompMiehe(i, j, principal_strain) *
                 aOdotB<DisplacementDim>(M_kelvin[i], M_kelvin[j]);
     }
-    KelvinMatrix C_eff = KelvinMatrix::Zero();
-    C_eff = C_tensile + C_compressive;
+
+    // C_eff for checking
+    /*KelvinMatrix C_eff = KelvinMatrix::Zero();
+    C_eff = C_tensile + C_compressive;*/
     double const elastic_energy =
         degradation * strain_energy_tensile + strain_energy_compressive;
 
-    KelvinVector const sigma_real =
-        degradation * sigma_tensile + sigma_compressive;
+    KelvinVector sigma_real;
+    //        (reg_param < -998.0) ? (sigma_tensile + sigma_compressive)
+    //                             : (degradation * sigma_tensile +
+    //                             sigma_compressive);
+    if (reg_param < -998)
+        sigma_real = sigma_tensile + sigma_compressive;
+    else
+        sigma_real = degradation * sigma_tensile + sigma_compressive;
 
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);
@@ -623,8 +617,14 @@ calculateDegradedStressAmor(
     double const elastic_energy =
         degradation * strain_energy_tensile + strain_energy_compressive;
 
-    KelvinVector const sigma_real =
-        degradation * sigma_tensile + sigma_compressive;
+    KelvinVector sigma_real;
+    //        (reg_param < -998.0) ? (sigma_tensile + sigma_compressive)
+    //                             : (degradation * sigma_tensile +
+    //                             sigma_compressive);
+    if (reg_param < -998)
+        sigma_real = sigma_tensile + sigma_compressive;
+    else
+        sigma_real = degradation * sigma_tensile + sigma_compressive;
 
     return std::make_tuple(sigma_real, sigma_tensile, C_tensile, C_compressive,
                            strain_energy_tensile, elastic_energy);

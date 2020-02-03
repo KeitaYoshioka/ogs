@@ -129,7 +129,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
             reg_param);
-        if (_element.getID() == 1 && ip == 0)
+        if (_element.getID() == 6 && ip == 0)
             DBUG("something");
         auto& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -139,7 +139,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
@@ -156,8 +156,13 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
              local_pressure * N_u.transpose() * dNdx * d) *
             w;
 
-        local_Jac.noalias() +=
-            B.transpose() * (degradation * C_tensile + C_compressive) * B * w;
+        if (_process_data.reg_param < -998)
+            local_Jac.noalias() += B.transpose() * degradation *
+                                   (C_tensile + C_compressive) * B * w;
+        else
+            local_Jac.noalias() += B.transpose() *
+                                   (degradation * C_tensile + C_compressive) *
+                                   B * w;
     }
 }
 
@@ -259,7 +264,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
@@ -268,7 +273,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
         }
 
-        //double history_variable = _ip_data[ip].history_variable;
+        // double history_variable = _ip_data[ip].history_variable;
 
         // For AT2
         if (_process_data.at_param == 2)
@@ -373,7 +378,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
@@ -450,7 +455,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
         {
