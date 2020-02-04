@@ -11,14 +11,13 @@
 #include "Process.h"
 
 #include "BaseLib/Functional.h"
+#include "CoupledSolutionsForStaggeredScheme.h"
 #include "NumLib/DOF/ComputeSparsityPattern.h"
 #include "NumLib/Extrapolation/LocalLinearLeastSquaresExtrapolator.h"
 #include "NumLib/ODESolver/ConvergenceCriterionPerComponent.h"
 #include "ParameterLib/Parameter.h"
 #include "ProcessLib/Output/GlobalVectorFromNamedFunction.h"
-
 #include "ProcessVariable.h"
-#include "CoupledSolutionsForStaggeredScheme.h"
 
 namespace ProcessLib
 {
@@ -362,12 +361,13 @@ void Process::finishNamedFunctionsInitialization()
         auto const& name = named_function.getName();
         _secondary_variables.addSecondaryVariable(
             name,
-            {1, BaseLib::easyBind(
-                    &GlobalVectorFromNamedFunction::call,
-                    GlobalVectorFromNamedFunction(
-                        _named_function_caller.getSpecificFunctionCaller(name),
-                        _mesh, getSingleComponentDOFTable(),
-                        _secondary_variable_context)),
+            {1,
+             BaseLib::easyBind(
+                 &GlobalVectorFromNamedFunction::call,
+                 GlobalVectorFromNamedFunction(
+                     _named_function_caller.getSpecificFunctionCaller(name),
+                     _mesh, getSingleComponentDOFTable(),
+                     _secondary_variable_context)),
              nullptr});
     }
 }
@@ -406,6 +406,9 @@ void Process::postNonLinearSolver(GlobalVector const& x, const double t,
 {
     MathLib::LinAlg::setLocalAccessibleVector(x);
     postNonLinearSolverConcreteProcess(x, t, dt, process_id);
+
+    _boundary_conditions[process_id].postNonLinearSolver(t, x, process_id,
+                                                         _coupled_solutions);
 }
 
 void Process::computeSecondaryVariable(const double t, GlobalVector const& x,

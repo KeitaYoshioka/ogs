@@ -11,7 +11,7 @@
 #pragma once
 
 #include "NumLib/NumericsConfig.h"
-
+#include "ProcessLib/CoupledSolutionsForStaggeredScheme.h"
 namespace MeshLib
 {
 class Mesh;
@@ -22,7 +22,7 @@ namespace NumLib
 class LocalToGlobalIndexMap;
 template <typename>
 struct IndexValueVector;
-}
+}  // namespace NumLib
 namespace ParameterLib
 {
 struct ParameterBase;
@@ -61,6 +61,12 @@ public:
         // A hook added for solution dependent dirichlet
     }
 
+    virtual void postNonLinearSolver(
+        const double /*t*/, GlobalVector const& /*x*/, int const /*process_id*/,
+        CoupledSolutionsForStaggeredScheme const* const /*cpl_xs*/)
+    {
+        // A hook added for solution dependent dirichlet
+    }
     virtual ~BoundaryCondition() = default;
 };
 

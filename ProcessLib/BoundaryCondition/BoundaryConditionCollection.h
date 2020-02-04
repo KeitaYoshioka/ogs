@@ -10,10 +10,9 @@
 
 #pragma once
 
+#include "BoundaryCondition.h"
 #include "NumLib/IndexValueVector.h"
 #include "ProcessLib/ProcessVariable.h"
-
-#include "BoundaryCondition.h"
 
 namespace ProcessLib
 {
@@ -34,7 +33,8 @@ public:
     getKnownSolutions(double const t, GlobalVector const& x) const
     {
         auto const n_bcs = _boundary_conditions.size();
-        for (std::size_t i=0; i<n_bcs; ++i) {
+        for (std::size_t i = 0; i < n_bcs; ++i)
+        {
             auto const& bc = *_boundary_conditions[i];
             auto& dirichlet_storage = _dirichlet_bcs[i];
             bc.getEssentialBCValues(t, x, dirichlet_storage);
@@ -62,8 +62,19 @@ public:
         }
     }
 
+    void postNonLinearSolver(
+        const double t, GlobalVector const& x, int const process_id,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs)
+    {
+        for (auto const& bc_ptr : _boundary_conditions)
+        {
+            bc_ptr->postNonLinearSolver(t, x, process_id, cpl_xs);
+        }
+    }
+
 private:
-    mutable std::vector<NumLib::IndexValueVector<GlobalIndexType>> _dirichlet_bcs;
+    mutable std::vector<NumLib::IndexValueVector<GlobalIndexType>>
+        _dirichlet_bcs;
     std::vector<std::unique_ptr<BoundaryCondition>> _boundary_conditions;
     std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const&
         _parameters;

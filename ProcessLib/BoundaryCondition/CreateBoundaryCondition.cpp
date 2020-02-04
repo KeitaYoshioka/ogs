@@ -10,6 +10,7 @@
 
 #include "CreateBoundaryCondition.h"
 
+#include "BaseLib/TimeInterval.h"
 #include "BoundaryCondition.h"
 #include "BoundaryConditionConfig.h"
 #include "ConstraintDirichletBoundaryCondition.h"
@@ -19,10 +20,9 @@
 #include "NeumannBoundaryCondition.h"
 #include "NormalTractionBoundaryCondition.h"
 #include "PhaseFieldIrreversibleDamageOracleBoundaryCondition.h"
+#include "PhaseFieldDependentHydroBoundaryCondition.h"
 #include "RobinBoundaryCondition.h"
 #include "VariableDependentNeumannBoundaryCondition.h"
-
-#include "BaseLib/TimeInterval.h"
 
 #ifdef OGS_USE_PYTHON
 #include "Python/PythonBoundaryCondition.h"
@@ -127,6 +127,15 @@ std::unique_ptr<BoundaryCondition> createBoundaryCondition(
         return ProcessLib::
             createPhaseFieldIrreversibleDamageOracleBoundaryCondition(
                 //! \ogs_file_param_special{prj__process_variables__process_variable__boundary_conditions__boundary_condition__PhaseFieldIrreversibleDamageOracleBoundaryCondition}
+                config.config, dof_table, bulk_mesh, variable_id,
+                *config.component_id);
+    }
+    if (type == "PhaseFieldDependentHydroBoundaryCondition")
+    {
+        return ProcessLib::
+            createPhaseFieldDependentHydroBoundaryCondition(
+                //! \ogs_file_param_special{prj__process_variables__process_variable__boundary_conditions__boundary_condition__PhaseFieldDependentHydro
+                //! \BoundaryCondition}
                 config.config, dof_table, bulk_mesh, variable_id,
                 *config.component_id);
     }
