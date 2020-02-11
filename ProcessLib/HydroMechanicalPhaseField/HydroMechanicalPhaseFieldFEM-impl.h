@@ -150,7 +150,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
             N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -200,7 +200,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto const p0 = Eigen::Map<
         typename ShapeMatricesType::template VectorType<_pressure_size> const>(
-        &local_coupled_solutions.local_coupled_xs0[_pressure_index], _pressure_size);
+        &local_coupled_solutions.local_coupled_xs0[_pressure_index],
+        _pressure_size);
 
     auto p_dot = Eigen::Map<
         typename ShapeMatricesType::template VectorType<_pressure_size> const>(
@@ -216,10 +217,12 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         local_b_data, _pressure_size);
 
     typename ShapeMatricesType::NodalMatrixType mass =
-        ShapeMatricesType::NodalMatrixType::Zero(_pressure_size, _pressure_size);
+        ShapeMatricesType::NodalMatrixType::Zero(_pressure_size,
+                                                 _pressure_size);
 
     typename ShapeMatricesType::NodalMatrixType laplace =
-        ShapeMatricesType::NodalMatrixType::Zero(_pressure_size, _pressure_size);
+        ShapeMatricesType::NodalMatrixType::Zero(_pressure_size,
+                                                 _pressure_size);
 
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
@@ -292,16 +295,18 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             alpha * alpha / Kd * d_ip * d_ip +
             m_inv * (1 - d_ip * d_ip) * (1 - pf_fixed_strs);
 
-        local_rhs.noalias() +=
-            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt) * N * w;
-
-        mass.noalias() += ((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
+        mass.noalias() += 0.0*((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
                            d_ip * d_ip * alpha * alpha / Kd) *
                           N.transpose() * N * w;
 
-        local_rhs.noalias() += ele_source * grad_d_norm * N * w;
-
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
+
+        local_rhs.noalias() +=
+            (-modulus_rm * dp_dt*0.0 + d_ip * d_ip * alpha * dv_dt*0.0 +
+             ele_source * grad_d_norm) *
+            N * w;
+
+        //     local_rhs.noalias() += ele_source * grad_d_norm * N * w;
 
         if (d_ip > 0.0 && d_ip < 0.99)
         {
@@ -309,15 +314,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             auto norm_gamma = (dNdx * d).normalized();
             decltype(dNdx) const dNdx_gamma =
                 (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
-
-            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
             double const frac_trans = 4 * pow(width, 3) / (12 * mu);
+
+            mass.noalias() +=
+                (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
 
             laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
                                   dNdx_gamma * grad_d_norm) *
                                  w;
-            mass.noalias() +=
-                (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
+            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
         }
 
         // For debugging purpose
@@ -415,7 +420,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
             N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -519,7 +524,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 N_u = ShapeMatricesType::template MatrixType<
                     DisplacementDim,
                     _displacement_size>::Zero(DisplacementDim,
-                                             _displacement_size);
+                                              _displacement_size);
 
             for (int i = 0; i < DisplacementDim; ++i)
                 N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -753,6 +758,12 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             neighbor_ele =
                 current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
+
+            if(neighbor_ele == nullptr)
+            {
+                DBUG("neighbor not found");
+                break;
+            }
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
@@ -836,6 +847,12 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             neighbor_ele =
                 current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
+            if(neighbor_ele == nullptr)
+            {
+                DBUG("neighbor not found");
+                break;
+            }
+
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
