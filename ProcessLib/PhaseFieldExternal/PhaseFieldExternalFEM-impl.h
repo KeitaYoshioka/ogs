@@ -9,9 +9,8 @@
  */
 #pragma once
 
-#include "PhaseFieldExternalFEM.h"
-
 #include "NumLib/DOF/DOFTableUtil.h"
+#include "PhaseFieldExternalFEM.h"
 #include "ProcessLib/CoupledSolutionsForStaggeredScheme.h"
 
 namespace ProcessLib
@@ -84,14 +83,6 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     x_position.setElementID(_element.getID());
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
-    double ele_d = 0.0;
-    for (int ip = 0; ip < n_integration_points; ip++)
-    {
-        auto const& N = _ip_data[ip].N;
-        ele_d += N.dot(d);
-    }
-
-    ele_d = ele_d / n_integration_points;
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -99,6 +90,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
+        double const d_ip = N.dot(d);
 
         auto const x_coord =
             interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
@@ -110,11 +102,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                 dNdx, N, x_coord, _is_axially_symmetric);
 
         auto& eps = _ip_data[ip].eps;
-
-        auto const& C_tensile = _ip_data[ip].C_tensile;
-        auto const& C_compressive = _ip_data[ip].C_compressive;
-
-        auto const& sigma_eff = _ip_data[ip].sigma_eff;
+        eps.noalias() = B * u;
 
         double const k = _process_data.residual_stiffness(t, x_position)[0];
         double rho_sr = _process_data.solid_density(t, x_position)[0];
@@ -133,19 +121,24 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         // calculate real density
         double const rho_s = rho_sr / (1 + 3 * alpha * delta_T);
 
-        double const degradation = ele_d * ele_d * (1 - k) + k;
+        double const degradation = d_ip * d_ip * (1 - k) + k;
 
-        auto const C_eff = degradation * C_tensile + C_compressive;
-        eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, alpha, delta_T, degradation,
             _process_data.split_method, reg_param);
+
+        auto const& C_tensile = _ip_data[ip].C_tensile;
+        auto const& C_compressive = _ip_data[ip].C_compressive;
+
+        auto const& sigma = _ip_data[ip].sigma;
+        auto const C_eff = degradation * C_tensile + C_compressive;
+        eps.noalias() = B * u;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
             N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -155,7 +148,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         local_Jac.noalias() += B.transpose() * C_eff * B * w;
 
         local_rhs.noalias() -=
-            (B.transpose() * (sigma_eff - ele_d * beta * P_ext * identity2) -
+            (B.transpose() * (sigma - d_ip * beta * P_ext * identity2) -
              N_u.transpose() * rho_s * b - P_ext * N_u.transpose() * dNdx * d) *
             w;
     }
@@ -185,7 +178,6 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     auto local_rhs = MathLib::createZeroedVector<PhaseFieldVector>(
         local_b_data, _phasefield_size);
 
-
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
 
@@ -210,7 +202,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
             N_u.template block<1, _displacement_size / DisplacementDim>(
