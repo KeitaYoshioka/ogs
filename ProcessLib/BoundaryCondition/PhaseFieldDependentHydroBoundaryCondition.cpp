@@ -42,7 +42,7 @@ void PhaseFieldDependentHydroBoundaryCondition::preTimestep(
 {
     // phase-field variable is considered irreversible if it loses more than 95%
     // of the stiffness, which is a widely used threshold.
-    double activeDamage = 0.99;
+    double activeDamage = 2.0;
     double currentValue = 0.0;
 
     _bc_values.ids.clear();
@@ -81,7 +81,7 @@ void PhaseFieldDependentHydroBoundaryCondition::postNonLinearSolver(
     int const process_id, CoupledSolutionsForStaggeredScheme const* const cpl_xs)
 {    
 
-    double activeDamage = 0.99;
+    double activeDamage = 2.0;
     double currentValue = 0.0;
 
     _bc_values.ids.clear();

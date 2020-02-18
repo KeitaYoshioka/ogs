@@ -165,7 +165,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
             N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -272,6 +272,8 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double const mu = _process_data.fluid_viscosity(t, x_position)[0];
     double const eta = _process_data.residual_stiffness(t, x_position)[0];
 
+    double ele_d = (*_process_data.ele_d)[_element.getID()];
+
     auto const porosity = _process_data.porosity(t, x_position)[0];
 
     double const alpha = (1 - Kd / Ks);
@@ -300,26 +302,22 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         decltype(dNdx) const dNdx_gamma =
             (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
 
-        //        if (grad_d_norm < eta || frac_trans < eta)
-        //        {
-        //            laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx)
-        //            * w;
-
-        //        }
-        //        else
-        //        {
-        laplace.noalias() +=
-            ((frac_trans + perm / mu) * dNdx_gamma.transpose() * dNdx_gamma *
-             (grad_d_norm + eta)) *
-            w;
-        local_rhs.noalias() += (ele_source - dw_dt) * (grad_d_norm)*N * w;
-        //        }
-
+        if (ele_d < 1.e-10)
+        {
+            laplace.noalias() +=
+                (dNdx_gamma.transpose() * dNdx_gamma * (grad_d_norm + eta)) * w;
+        }
         mass.noalias() +=
             (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
 
+        laplace.noalias() +=
+            ((frac_trans)*dNdx_gamma.transpose() * dNdx_gamma * grad_d_norm) *
+            w;
+
+        local_rhs.noalias() += (ele_source - dw_dt) * (grad_d_norm)*N * w;
+
         // For debugging purpose
-        if (_element.getID() == 1 && ip == 0)
+        if (_element.getID() == 1047 && ip == 0)
             DBUG("something");
     }
     local_Jac.noalias() = laplace + mass / dt;
@@ -561,7 +559,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                                                         _displacement_size>
             N_u = ShapeMatricesType::template MatrixType<
                 DisplacementDim, _displacement_size>::Zero(DisplacementDim,
-                                                          _displacement_size);
+                                                           _displacement_size);
 
         for (int i = 0; i < DisplacementDim; ++i)
             N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -666,7 +664,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 N_u = ShapeMatricesType::template MatrixType<
                     DisplacementDim,
                     _displacement_size>::Zero(DisplacementDim,
-                                             _displacement_size);
+                                              _displacement_size);
 
             for (int i = 0; i < DisplacementDim; ++i)
                 N_u.template block<1, _displacement_size / DisplacementDim>(
@@ -894,7 +892,18 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
-            findHostElement(*current_ele, pnt_end, neighbor_ele, probe_offset);
+
+            const MathLib::Point3d pnt_end_copy{
+                {pnt_end[0], pnt_end[1], pnt_end[2]}};
+
+            neighbor_ele =
+                current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
+
+            if (neighbor_ele == nullptr)
+            {
+                DBUG("neighbor not found");
+                break;
+            }
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
@@ -973,7 +982,17 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
-            findHostElement(*current_ele, pnt_end, neighbor_ele, probe_offset);
+            const MathLib::Point3d pnt_end_copy{
+                {pnt_end[0], pnt_end[1], pnt_end[2]}};
+
+            neighbor_ele =
+                current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
+            if (neighbor_ele == nullptr)
+            {
+                DBUG("neighbor not found");
+                break;
+            }
+
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
