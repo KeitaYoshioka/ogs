@@ -113,11 +113,13 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         double const T_ext = _process_data.temperature_ext(t, x_position)[0];
         double const T0 = _process_data.reference_temperature;
         double const P_ext = _process_data.pressure_ext(t, x_position)[0];
+        double const P0 = _process_data.reference_pressure;
         auto const& identity2 = MathLib::KelvinVector::Invariants<
             MathLib::KelvinVector::KelvinVectorDimensions<
                 DisplacementDim>::value>::identity2;
 
         double const delta_T = T_ext - T0;
+        double const delta_P = P_ext - P0;
         // calculate real density
         double const rho_s = rho_sr / (1 + 3 * alpha * delta_T);
 
@@ -148,8 +150,9 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         local_Jac.noalias() += B.transpose() * C_eff * B * w;
 
         local_rhs.noalias() -=
-            (B.transpose() * (sigma - d_ip * beta * P_ext * identity2) -
-             N_u.transpose() * rho_s * b - P_ext * N_u.transpose() * dNdx * d) *
+            (B.transpose() * (sigma - d_ip * beta * delta_P * identity2) -
+             N_u.transpose() * rho_s * b -
+             delta_P * N_u.transpose() * dNdx * d) *
             w;
     }
 }
@@ -159,7 +162,7 @@ template <typename ShapeFunction, typename IntegrationMethod,
 void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                                       DisplacementDim>::
     assembleWithJacobianForPhaseFieldEquations(
-        double const t, double const /*dt*/,
+        double const t, double const dt,
         std::vector<double> const& /*local_xdot*/, const double /*dxdot_dx*/,
         const double /*dx_dx*/, std::vector<double>& /*local_M_data*/,
         std::vector<double>& /*local_K_data*/,
@@ -181,6 +184,8 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
 
+    double const& reg_param = _process_data.reg_param;
+
     int const n_integration_points = _integration_method.getNumberOfPoints();
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -188,15 +193,45 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
+        double const d_ip = N.dot(d);
 
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
+        double const k = _process_data.residual_stiffness(t, x_position)[0];
+        double const alpha = _process_data.linear_thermal_expansion_coefficient(
+            t, x_position)[0];
+        double const T_ext = _process_data.temperature_ext(t, x_position)[0];
+        double const T0 = _process_data.reference_temperature;
         double const P_ext = _process_data.pressure_ext(t, x_position)[0];
+        double const P0 = _process_data.reference_pressure;
 
+        double const delta_T = T_ext - T0;
+        double const delta_P = P_ext - P0;
+        double degradation;
+
+        // KKL
+        if (_process_data.at_param == 3)
+            degradation = (4 * pow(d_ip, 3) - 3 * pow(d_ip, 4)) * (1 - k) + k;
+        // ATn
+        else
+            degradation =
+                d_ip * d_ip * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
+
+        auto& eps = _ip_data[ip].eps;
+        auto const x_coord =
+            interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
+                                                                     N);
+        auto const& B =
+            LinearBMatrix::computeBMatrix<DisplacementDim,
+                                          ShapeFunction::NPOINTS,
+                                          typename BMatricesType::BMatrixType>(
+                dNdx, N, x_coord, _is_axially_symmetric);
+
+        eps.noalias() = B * u;
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, alpha, delta_T, degradation,
+            _process_data.split_method, reg_param);
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
-
-        auto& ip_data = _ip_data[ip];
-        ip_data.strain_energy_tensile = strain_energy_tensile;
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                         _displacement_size>
@@ -222,7 +257,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                  gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
                            d -
                        N.transpose() / ls) -
-                 P_ext * dNdx.transpose() * N_u * u) *
+                 delta_P * dNdx.transpose() * N_u * u) *
                 w;
         }
         // For AT1
@@ -237,7 +272,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                 (N.transpose() * N * d * 2 * strain_energy_tensile +
                  gc * (-0.375 * N.transpose() / ls +
                        0.75 * dNdx.transpose() * dNdx * ls * d) -
-                 P_ext * dNdx.transpose() * N_u * u) *
+                 delta_P * dNdx.transpose() * N_u * u) *
                 w;
         }
     }

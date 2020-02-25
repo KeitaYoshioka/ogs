@@ -46,6 +46,7 @@ struct PhaseFieldExternalProcessData
         ParameterLib::Parameter<double> const& temperature_ext_,
         ParameterLib::Parameter<double> const& biot_coefficient_,
         double const reference_temperature_,
+            double const reference_pressure_,
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         int const split_method_,double const reg_param_, double const pf_irrv_, int const at_param_)
         : material_ids(material_ids_),
@@ -60,6 +61,7 @@ struct PhaseFieldExternalProcessData
           temperature_ext(temperature_ext_),
           biot_coefficient(biot_coefficient_),
           reference_temperature(reference_temperature_),
+          reference_pressure(reference_pressure_),
           specific_body_force(specific_body_force_),
           split_method(split_method_),
           reg_param(reg_param_),
@@ -95,6 +97,7 @@ struct PhaseFieldExternalProcessData
     ParameterLib::Parameter<double> const& temperature_ext;
     ParameterLib::Parameter<double> const& biot_coefficient;
     double const reference_temperature;
+    double const reference_pressure;
     Eigen::Matrix<double, DisplacementDim, 1> const specific_body_force;
     double dt;
     double t;

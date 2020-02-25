@@ -13,11 +13,10 @@
 
 #include "MaterialLib/SolidModels/CreateConstitutiveRelation.h"
 #include "MaterialLib/SolidModels/MechanicsBase.h"
-#include "ProcessLib/Output/CreateSecondaryVariables.h"
-#include "ProcessLib/Utils/ProcessUtils.h"
-
 #include "PhaseFieldExternalProcess.h"
 #include "PhaseFieldExternalProcessData.h"
+#include "ProcessLib/Output/CreateSecondaryVariables.h"
+#include "ProcessLib/Utils/ProcessUtils.h"
 
 namespace ProcessLib
 {
@@ -163,6 +162,11 @@ std::unique_ptr<Process> createPhaseFieldExternalProcess(
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD_EXTERNAL__reference_temperature}
         config.getConfigParameter<double>("reference_temperature");
 
+    // Reference pressure
+    const double reference_pressure =
+        //! \ogs_file_param{prj__processes__process__PHASE_FIELD_EXTERNAL__reference_pressure}
+        config.getConfigParameter<double>("reference_pressure");
+
     // Specific body force
     Eigen::Matrix<double, DisplacementDim, 1> specific_body_force;
     {
@@ -232,6 +236,7 @@ std::unique_ptr<Process> createPhaseFieldExternalProcess(
         temperature_ext,
         biot_coefficient,
         reference_temperature,
+        reference_pressure,
         specific_body_force,
         split_method,
         reg_param,
