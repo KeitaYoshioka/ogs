@@ -205,14 +205,14 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     }
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
-    double ele_d = 0.0;
-    //    double ele_strain_energy_tensile = 0.0;
-    for (int ip = 0; ip < n_integration_points; ip++)
-    {
-        auto const& N = _ip_data[ip].N;
-        ele_d += N.dot(d);
-    }
-    ele_d = ele_d / n_integration_points;
+    /*    double ele_d = 0.0;
+        //    double ele_strain_energy_tensile = 0.0;
+        for (int ip = 0; ip < n_integration_points; ip++)
+        {
+            auto const& N = _ip_data[ip].N;
+            ele_d += N.dot(d);
+        }
+        ele_d = ele_d / n_integration_points;*/
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -224,37 +224,36 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         double const gc = _process_data.crack_resistance(t, x_position)[0];
         double const ls = _process_data.crack_length_scale(t, x_position)[0];
+        double const k = _process_data.residual_stiffness(t, x_position)[0];
+
+        double degradation;
+
+        // KKL
+        if (_process_data.at_param == 3)
+            degradation = (4 * pow(d_ip, 3) - 3 * pow(d_ip, 4)) * (1 - k) + k;
+        // ATn
+        else
+            degradation =
+                d_ip * d_ip * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
+
         auto& eps = _ip_data[ip].eps;
-        // for hydraulically propagating crack, u is rescaled.
-        if (_process_data.propagating_crack)
-        {
-            double const k = _process_data.residual_stiffness(t, x_position)[0];
-            double degradation;
+        auto const x_coord =
+            interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(_element,
+                                                                     N);
+        auto const& B =
+            LinearBMatrix::computeBMatrix<DisplacementDim,
+                                          ShapeFunction::NPOINTS,
+                                          typename BMatricesType::BMatrixType>(
+                dNdx, N, x_coord, _is_axially_symmetric);
 
-            // KKL
-            if (_process_data.at_param == 3)
-                degradation =
-                    (4 * pow(ele_d, 3) - 3 * pow(ele_d, 4)) * (1 - k) + k;
-            // ATn
-            else
-                degradation =
-                    d_ip * d_ip * (1 - k) + k;  // ele_d * ele_d * (1 - k) + k;
+        eps.noalias() = B * u;
+        _ip_data[ip].updateConstitutiveRelation(
+            t, x_position, dt, u, degradation, _process_data.split_method,
+            reg_param);
 
-            auto const x_coord =
-                interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(
-                    _element, N);
-            auto const& B = LinearBMatrix::computeBMatrix<
-                DisplacementDim, ShapeFunction::NPOINTS,
-                typename BMatricesType::BMatrixType>(dNdx, N, x_coord,
-                                                     _is_axially_symmetric);
-
-            eps.noalias() = B * u;
-            _ip_data[ip].updateConstitutiveRelation(
-                t, x_position, dt, u, degradation, _process_data.split_method,
-                reg_param);
-        }
         if (_element.getID() == 1 && ip == 0)
             DBUG("something");
+
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 
         auto& ip_data = _ip_data[ip];
@@ -313,9 +312,9 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             double Cv = 0.7165753;
             double coef = strain_energy_tensile - gc / (4 * Cv * ls);
 
-            f = 12 * ele_d * ele_d * (1 - ele_d) * coef;
+            f = 12 * d_ip * d_ip * (1 - d_ip) * coef;
 
-            dfdv = 12 * ele_d * (2 - 3 * ele_d) * coef;
+            dfdv = 12 * d_ip * (2 - 3 * d_ip) * coef;
 
             local_Jac.noalias() +=
                 (dfdv * N.transpose() * N +
