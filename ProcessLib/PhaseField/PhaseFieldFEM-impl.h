@@ -94,10 +94,10 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         ele_d += N.dot(d);
     }
     ele_d = ele_d / n_integration_points;
-
+    double const k = _process_data.residual_stiffness(t, x_position)[0];
+    auto const rho_sr = _process_data.solid_density(t, x_position)[0];
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
@@ -115,7 +115,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         auto& eps = _ip_data[ip].eps;
         eps.noalias() = B * u;
-        double const k = _process_data.residual_stiffness(t, x_position)[0];
 
         double degradation;
         // KKL
@@ -148,7 +147,6 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 .noalias() = N;
         }
 
-        auto const rho_sr = _process_data.solid_density(t, x_position)[0];
         auto const& b = _process_data.specific_body_force;
 
         local_rhs.noalias() -=
@@ -213,18 +211,16 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             ele_d += N.dot(d);
         }
         ele_d = ele_d / n_integration_points;*/
+    double const gc = _process_data.crack_resistance(t, x_position)[0];
+    double const ls = _process_data.crack_length_scale(t, x_position)[0];
+    double const k = _process_data.residual_stiffness(t, x_position)[0];
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
-
-        double const gc = _process_data.crack_resistance(t, x_position)[0];
-        double const ls = _process_data.crack_length_scale(t, x_position)[0];
-        double const k = _process_data.residual_stiffness(t, x_position)[0];
 
         double degradation;
 
@@ -361,14 +357,10 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     auto const u = Eigen::Map<DeformationVector const>(
         &local_coupled_xs[_displacement_index], _displacement_size);
 
-    ParameterLib::SpatialPosition x_position;
-    x_position.setElementID(_element.getID());
-
     int const n_integration_points = _integration_method.getNumberOfPoints();
     double ele_crack_vol = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
@@ -439,16 +431,17 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double ele_surface_energy = 0.0;
     double ele_pressure_work = 0.0;
 
+//    double const gc = _process_data.crack_resistance(t, x_position)[0];
+    double const ls = _process_data.crack_length_scale(t, x_position)[0];
+    double const k = _process_data.residual_stiffness(t, x_position)[0];
+
     int const n_integration_points = _integration_method.getNumberOfPoints();
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
-        double const gc = _process_data.crack_resistance(t, x_position)[0];
-        double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
         typename ShapeMatricesType::template MatrixType<DisplacementDim,
                                                         _displacement_size>
@@ -464,7 +457,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         }
 
         auto& eps = _ip_data[ip].eps;
-        double const k = _process_data.residual_stiffness(t, x_position)[0];
+
         double const& reg_param = _process_data.reg_param;
         double degradation;
         // KKL
