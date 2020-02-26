@@ -494,7 +494,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         // For AT2
         if (_process_data.at_param == 2)
         {
-            ele_surface_energy += 0.5 * gc *
+            ele_surface_energy += 0.5 *
                                   ((1 - d_ip) * (1 - d_ip) / ls +
                                    (dNdx * d).dot((dNdx * d)) * ls) *
                                   w;
@@ -503,8 +503,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         else
         {
             ele_surface_energy +=
-                0.375 * gc *
-                ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
+                0.375 * ((1 - d_ip) / ls + (dNdx * d).dot((dNdx * d)) * ls) * w;
         }
 
         //        if (_process_data.crack_pressure)
