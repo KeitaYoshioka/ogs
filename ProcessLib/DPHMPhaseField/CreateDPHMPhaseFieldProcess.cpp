@@ -48,26 +48,11 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
     auto const pv_config = config.getConfigSubtree("process_variables");
     std::vector<std::vector<std::reference_wrapper<ProcessVariable>>>
         process_variables;
-    int frac_hydro_process_id = 0;
-    int pore_hydro_process_id = 1;
-    int mechanics_related_process_id = 2;
-    int phase_field_process_id = 3;
 
-    auto process_variable_p_f = findProcessVariables(
-        variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__frac_pressure}
-         "frac_pressure"});
-    process_variables.push_back(std::move(process_variable_p_f));
-    ProcessVariable* variable_p_f =
-        &process_variables[process_variables.size() - 1][0].get();
-
-    auto process_variable_p_p = findProcessVariables(
-        variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__pore_pressure}
-         "pore_pressure"});
-    process_variables.push_back(std::move(process_variable_p_p));
-    ProcessVariable* variable_p_p =
-        &process_variables[process_variables.size() - 1][0].get();
+    int mechanics_related_process_id = 0;
+    int phase_field_process_id = 1;
+    int frac_hydro_process_id = 2;
+    int pore_hydro_process_id = 3;
 
     auto process_variable_u = findProcessVariables(
         variables, pv_config,
@@ -85,30 +70,23 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
     ProcessVariable* variable_ph =
         &process_variables[process_variables.size() - 1][0].get();
 
+    auto process_variable_p_f = findProcessVariables(
+        variables, pv_config,
+        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__frac_pressure}
+         "frac_pressure"});
+    process_variables.push_back(std::move(process_variable_p_f));
+    ProcessVariable* variable_p_f =
+        &process_variables[process_variables.size() - 1][0].get();
+
+    auto process_variable_p_p = findProcessVariables(
+        variables, pv_config,
+        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__pore_pressure}
+         "pore_pressure"});
+    process_variables.push_back(std::move(process_variable_p_p));
+    ProcessVariable* variable_p_p =
+        &process_variables[process_variables.size() - 1][0].get();
     DBUG("Associate fracture pressure with process variable '%s'.",
          variable_p_f->getName().c_str());
-    if (variable_p_f->getNumberOfComponents() != 1)
-    {
-        OGS_FATAL(
-            "Fracture pressure process variable '%s' is not a scalar variable "
-            "but "
-            "has "
-            "%d components.",
-            variable_p_f->getName().c_str(),
-            variable_p_f->getNumberOfComponents());
-    }
-
-    DBUG("Associate pore pressure with process variable '%s'.",
-         variable_p_p->getName().c_str());
-    if (variable_p_p->getNumberOfComponents() != 1)
-    {
-        OGS_FATAL(
-            "Pore pressure process variable '%s' is not a scalar variable but "
-            "has "
-            "%d components.",
-            variable_p_p->getName().c_str(),
-            variable_p_p->getNumberOfComponents());
-    }
 
     DBUG("Associate displacement with process variable '%s'.",
          variable_u->getName().c_str());
@@ -133,6 +111,29 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
             variable_ph->getName().c_str(),
             variable_ph->getNumberOfComponents());
     }
+    if (variable_p_f->getNumberOfComponents() != 1)
+    {
+        OGS_FATAL(
+            "Fracture pressure process variable '%s' is not a scalar variable "
+            "but "
+            "has "
+            "%d components.",
+            variable_p_f->getName().c_str(),
+            variable_p_f->getNumberOfComponents());
+    }
+
+    DBUG("Associate pore pressure with process variable '%s'.",
+         variable_p_p->getName().c_str());
+    if (variable_p_p->getNumberOfComponents() != 1)
+    {
+        OGS_FATAL(
+            "Pore pressure process variable '%s' is not a scalar variable but "
+            "has "
+            "%d components.",
+            variable_p_p->getName().c_str(),
+            variable_p_p->getNumberOfComponents());
+    }
+
 
     auto solid_constitutive_relations =
         MaterialLib::Solids::createConstitutiveRelations<DisplacementDim>(

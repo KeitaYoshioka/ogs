@@ -139,15 +139,19 @@ class DPHMPhaseFieldLocalAssembler
     : public DPHMPhaseFieldLocalAssemblerInterface
 {
 private:
-    static const int _frac_pressure_index = 0;
-    static const int _frac_pressure_size = ShapeFunction::NPOINTS;
-    static const int _pore_pressure_index = _frac_pressure_size;
-    static const int _pore_pressure_size = ShapeFunction::NPOINTS;
-    static const int _displacement_index = _frac_pressure_size + _pore_pressure_size;
     static const int _displacement_size =
         ShapeFunction::NPOINTS * DisplacementDim;
-    static const int _phasefield_index = _frac_pressure_size + _pore_pressure_size + _displacement_size ;
     static const int _phasefield_size = ShapeFunction::NPOINTS;
+    static const int _frac_pressure_size = ShapeFunction::NPOINTS;
+    static const int _pore_pressure_size = ShapeFunction::NPOINTS;
+
+    static const int _displacement_index = 0;
+    static const int _phasefield_index = _displacement_size;
+    static const int _frac_pressure_index =
+        _displacement_size + _phasefield_size;
+    static const int _pore_pressure_index =
+        _displacement_size + _phasefield_size + _frac_pressure_size;
+
 public:
     using ShapeMatricesType =
         ShapeMatrixPolicyType<ShapeFunction, DisplacementDim>;
@@ -159,6 +163,7 @@ public:
     using NodalForceVectorType = typename BMatricesType::NodalForceVectorType;
 
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
+    using GlobalDimMatrixType = typename ShapeMatricesType::GlobalDimMatrixType;
 
     using DeformationVector =
         typename ShapeMatricesType::template VectorType<_displacement_size>;
@@ -462,6 +467,7 @@ private:
 
     /// ID of pore hydro process.
     int const _pore_hydro_process_id;
+
 };
 
 }  // namespace DPHMPhaseField

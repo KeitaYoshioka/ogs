@@ -270,11 +270,12 @@ void DPHMPhaseFieldProcess<DisplacementDim>::
             "the staggered scheme.");
     }
     setCoupledSolutionsOfPreviousTimeStep();
-    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
-    dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
+
     dof_tables.emplace_back(
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
 
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assembleWithJacobian,
@@ -330,15 +331,18 @@ void DPHMPhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
 {
     std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
         dof_tables;
-    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
-    dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
+
     dof_tables.emplace_back(
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
-    
+    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
+
     const bool use_monolithic_scheme = false;
     if (process_id == _phase_field_process_id)
     {
+        _process_data.width_comp_visited =
+            std::vector(_mesh.getNumberOfElements(), false);
         INFO("Fracture width computation");
         GlobalExecutor::executeMemberOnDereferenced(
             &DPHMPhaseFieldLocalAssemblerInterface::computeFractureNormal,
@@ -389,11 +393,11 @@ void DPHMPhaseFieldProcess<
     DisplacementDim>::setCoupledSolutionsOfPreviousTimeStep()
 {
     _coupled_solutions->coupled_xs_t0.resize(4);
-    setCoupledSolutionsOfPreviousTimeStepPerProcess(_frac_hydro_process_id);
-    setCoupledSolutionsOfPreviousTimeStepPerProcess(_pore_hydro_process_id);
     setCoupledSolutionsOfPreviousTimeStepPerProcess(
         _mechanics_related_process_id);
     setCoupledSolutionsOfPreviousTimeStepPerProcess(_phase_field_process_id);
+    setCoupledSolutionsOfPreviousTimeStepPerProcess(_frac_hydro_process_id);
+    setCoupledSolutionsOfPreviousTimeStepPerProcess(_pore_hydro_process_id);
 }
 
 }  // namespace DPHMPhaseField

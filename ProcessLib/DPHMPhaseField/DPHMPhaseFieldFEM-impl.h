@@ -123,7 +123,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
@@ -256,13 +255,13 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double ele_source = 0.0;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        //        auto const& N = _ip_data[ip].N;
+        auto const& N = _ip_data[ip].N;
         //        auto const& dNdx = _ip_data[ip].dNdx;
-        //       ele_d += N.dot(d);
+        //        ele_d += N.dot(d);
         //       ele_grad_d_norm += (dNdx * d).norm();
         ele_source += _ip_data[ip].reg_source;
     }
-    //  ele_d = ele_d / n_integration_points;
+    //    ele_d = ele_d / n_integration_points;
     //  ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
     ele_source = ele_source / n_integration_points;
 
@@ -271,6 +270,9 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
     double const mu = _process_data.fluid_viscosity(t, x_position)[0];
     double const eta = _process_data.residual_stiffness(t, x_position)[0];
+    double const ls = _process_data.crack_length_scale(t, x_position)[0];
+
+    double const k = _process_data.residual_stiffness(t, x_position)[0];
 
     double ele_d = (*_process_data.ele_d)[_element.getID()];
 
@@ -280,11 +282,10 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
-        //        double const d_ip = N.dot(d);
+        double const d_ip = N.dot(d);
         double const p_f0_ip = N.dot(p_f0);
 
         double const p_fr =
@@ -295,30 +296,51 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             _process_data.getFluidDensity(t, x_position, p_fr);
         double const beta_p = _process_data.getFluidCompressibility(p_fr);
 
-        double const grad_d_norm = (dNdx * d).norm();
+        //        double const grad_d_norm = (dNdx * d).norm();
+        double pf_scaling;
+        if (_process_data.at_param == 1)
+            pf_scaling = 3 * (1 - d_ip) / (4 * ls);
+        else
+            pf_scaling = (1 - d_ip) * (1 - d_ip) / ls;
+
         double const dw_dt = (width - width_prev) / dt;
         double const frac_trans = 4 * pow(width, 3) / (12 * mu);
-        auto norm_gamma = (dNdx * d).normalized();
+
+        GlobalDimVectorType norm_gamma =
+            GlobalDimVectorType::Zero(DisplacementDim);
+        if ((dNdx * d).norm() > 1.e-20)
+            norm_gamma = (dNdx * d).normalized();
+
         decltype(dNdx) const dNdx_gamma =
-            (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
-
-        if (ele_d < 1.e-10)
-        {
-            laplace.noalias() +=
-                (dNdx_gamma.transpose() * dNdx_gamma * (grad_d_norm + eta)) * w;
-        }
-        mass.noalias() +=
-            (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
-
-        laplace.noalias() +=
-            ((frac_trans)*dNdx_gamma.transpose() * dNdx_gamma * grad_d_norm) *
-            w;
-
-        local_rhs.noalias() += (ele_source - dw_dt) * (grad_d_norm)*N * w;
+            (GlobalDimMatrixType::Identity(DisplacementDim, DisplacementDim) -
+             norm_gamma * norm_gamma.transpose()) *
+            dNdx;
 
         // For debugging purpose
-        if (_element.getID() == 1047 && ip == 0)
+
+        if (_element.getID() == 4851 && ip == 0)
             DBUG("something");
+        if (_element.getID() == 4950 && ip == 0)
+            DBUG("something");
+        if (_element.getID() == 5049 && ip == 0)
+            DBUG("something");
+        if (_element.getID() == 5148 && ip == 0)
+            DBUG("something");
+        if (_element.getID() == 5247 && ip == 0)
+            DBUG("something");
+        if (_element.getID() == 5346 && ip == 0)
+            DBUG("something");
+
+        laplace.noalias() +=
+            (dNdx_gamma.transpose() * dNdx_gamma * frac_trans * pf_scaling) * w;
+        mass.noalias() +=
+            (width * beta_p / rho_fr * pf_scaling) * N.transpose() * N * w;
+
+        //        laplace.noalias() +=
+        //            ((frac_trans)*dNdx_gamma.transpose() * dNdx_gamma *
+        //            pf_scaling) * w;
+
+        local_rhs.noalias() += (ele_source - dw_dt) * (pf_scaling)*N * w;
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -412,7 +434,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
@@ -526,7 +547,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-        x_position.setIntegrationPoint(ip);
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
@@ -655,7 +675,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     {
         for (int ip = 0; ip < n_integration_points; ip++)
         {
-            x_position.setIntegrationPoint(ip);
             auto const& N = _ip_data[ip].N;
             auto const& dNdx = _ip_data[ip].dNdx;
 
@@ -835,7 +854,12 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
     double temporal = 0.0;
-    if (0.0 < elem_d && elem_d < 0.99)
+    std::vector<int> elem_list;
+    if (_element.getID() == 4554)
+        DBUG("something");
+
+    if (0.0 < elem_d && elem_d < 0.99 &&
+        _process_data.width_comp_visited[_element.getID()] == false)
     {
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
         indices_of_processes.reserve(dof_tables.size());
@@ -888,6 +912,8 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         current_ele_grad_d = ref_ele_grad_d;
         int count_i = 0;
         int count_frac_elem = 0;
+        elem_list.push_back(current_ele->getID());
+
         while (elem_d < 0.99 && deviation >= 0.0)
         {
             // find the host element at the end of integral
@@ -898,7 +924,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             neighbor_ele =
                 current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
-
             if (neighbor_ele == nullptr)
             {
                 DBUG("neighbor not found");
@@ -916,6 +941,11 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             }
             //            if (mesh_item_id == 2652 && count_i == 1)
             //                DBUG("here");
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            if (std::find(elem_list.begin(), elem_list.end(),
+                          neighbor_ele->getID()) == elem_list.end() &&
+                elem_d < 0.99)
+                elem_list.push_back(neighbor_ele->getID());
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -953,7 +983,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             }
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
-            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
@@ -992,7 +1021,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("neighbor not found");
                 break;
             }
-
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
@@ -1002,6 +1030,12 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
+
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            if (std::find(elem_list.begin(), elem_list.end(),
+                          neighbor_ele->getID()) == elem_list.end() &&
+                elem_d < 0.99)
+                elem_list.push_back(neighbor_ele->getID());
 
             //            if (mesh_item_id == 2652 && count_i == 1)
             //                DBUG("here");
@@ -1042,7 +1076,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
-            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
@@ -1057,10 +1090,13 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
         temporal = deviation;
+        for (std::size_t i = 0; i < elem_list.size(); i++)
+        {
+            (*_process_data.width)[elem_list[i]] = width;
+            (*_process_data.cum_grad_d)[elem_list[i]] = cumul_grad_d;
+            _process_data.width_comp_visited[elem_list[i]] = true;
+        }
     }
-
-    (*_process_data.width)[_element.getID()] = width;
-    (*_process_data.cum_grad_d)[_element.getID()] = cumul_grad_d;
 }
 
 }  // namespace DPHMPhaseField
