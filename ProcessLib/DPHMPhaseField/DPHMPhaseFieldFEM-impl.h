@@ -853,10 +853,8 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double width = 0.0;
     double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
-    double temporal = 0.0;
     std::vector<int> elem_list;
-    if (_element.getID() == 4554)
-        DBUG("something");
+    double temporal = -1.0;
 
     if (0.0 < elem_d && elem_d < 0.99 &&
         _process_data.width_comp_visited[_element.getID()] == false)
@@ -903,9 +901,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         Eigen::Vector3d delta_l = ref_ele_grad_d.normalized() * li_inc;
         double dist = delta_l.norm();
 
-        /*        if (_element.getID() == 1921)
-                    DBUG("something");
-        */
         // integral in positive direction
         pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
         current_ele = &_element;
@@ -939,8 +934,6 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
-            //            if (mesh_item_id == 2652 && count_i == 1)
-            //                DBUG("here");
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
             if (std::find(elem_list.begin(), elem_list.end(),
                           neighbor_ele->getID()) == elem_list.end() &&
@@ -983,6 +976,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             }
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
+          //  temporal = std::min(abs(deviation), temporal);
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
@@ -1030,15 +1024,11 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
-
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
             if (std::find(elem_list.begin(), elem_list.end(),
                           neighbor_ele->getID()) == elem_list.end() &&
                 elem_d < 0.99)
                 elem_list.push_back(neighbor_ele->getID());
-
-            //            if (mesh_item_id == 2652 && count_i == 1)
-            //                DBUG("here");
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -1076,26 +1066,31 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
+            temporal = std::max(deviation, temporal);
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
                 0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
-            //                cumul_ele_grad_d + 0.5 * dist *
-            //                                       (old_ele_grad_d.normalized()
-            //                                       +
-            //                                        current_ele_grad_d.normalized());
         }
-        if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
+        if (width < 0.0 || cumul_ele_grad_d.norm()  > CutOff  /*temporal < CutOff*/ ||
             count_frac_elem > 10)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
-        temporal = deviation;
-        for (std::size_t i = 0; i < elem_list.size(); i++)
+
+        if (count_frac_elem <= 10 && width > 0.0)
         {
-            (*_process_data.width)[elem_list[i]] = width;
-            (*_process_data.cum_grad_d)[elem_list[i]] = cumul_grad_d;
-            _process_data.width_comp_visited[elem_list[i]] = true;
+            for (std::size_t i = 0; i < elem_list.size(); i++)
+            {
+                if ((*_process_data.ele_d)[elem_list[i]] < 1.e-16)
+                {
+                    (*_process_data.width)[elem_list[i]] = width;
+                    (*_process_data.cum_grad_d)[elem_list[i]] = temporal;
+                }
+                //                _process_data.width_comp_visited[elem_list[i]]
+            }
         }
+        (*_process_data.width)[_element.getID()] = width;
+        (*_process_data.cum_grad_d)[_element.getID()] = temporal;
     }
 }
 
