@@ -21,10 +21,12 @@ class PhaseFieldDependentHydroBoundaryCondition final : public BoundaryCondition
 {
 public:
     PhaseFieldDependentHydroBoundaryCondition(
+        ParameterLib::Parameter<double> const& parameter,
         NumLib::LocalToGlobalIndexMap const& dof_table,
         MeshLib::Mesh const& mesh, int const variable_id,
         int const component_id)
-        : _dof_table(dof_table),
+        : _parameter(parameter),
+          _dof_table(dof_table),
           _mesh(mesh),
           _variable_id(variable_id),
           _component_id(component_id)
@@ -50,10 +52,11 @@ public:
         const double t, GlobalVector const& x, int const process_id,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
-    void preTimestep(const double t, std::vector<GlobalVector*> const& x,
-                     int const process_id) override;
+    /*    void preTimestep(const double t, std::vector<GlobalVector*> const& x,
+                         int const process_id) override;*/
 
 private:
+    ParameterLib::Parameter<double> const& _parameter;
     NumLib::LocalToGlobalIndexMap const& _dof_table;
     MeshLib::Mesh const& _mesh;
     int const _variable_id;
@@ -66,6 +69,8 @@ std::unique_ptr<PhaseFieldDependentHydroBoundaryCondition>
 createPhaseFieldDependentHydroBoundaryCondition(
     BaseLib::ConfigTree const& config,
     NumLib::LocalToGlobalIndexMap const& dof_table, MeshLib::Mesh const& mesh,
-    int const variable_id, int const component_id);
+    int const variable_id, int const component_id,
+    const std::vector<std::unique_ptr<ParameterLib::ParameterBase>>&
+        parameters);
 
 }  // namespace ProcessLib

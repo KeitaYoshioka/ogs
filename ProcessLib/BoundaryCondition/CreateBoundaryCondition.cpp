@@ -137,7 +137,7 @@ std::unique_ptr<BoundaryCondition> createBoundaryCondition(
                 //! \ogs_file_param_special{prj__process_variables__process_variable__boundary_conditions__boundary_condition__PhaseFieldDependentHydro
                 //! \BoundaryCondition}
                 config.config, dof_table, bulk_mesh, variable_id,
-                *config.component_id);
+                *config.component_id, parameters);
     }
     OGS_FATAL("Unknown boundary condition type: `%s'.", type.c_str());
 }

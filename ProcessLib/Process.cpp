@@ -407,8 +407,11 @@ void Process::postNonLinearSolver(GlobalVector const& x, const double t,
     MathLib::LinAlg::setLocalAccessibleVector(x);
     postNonLinearSolverConcreteProcess(x, t, dt, process_id);
 
-    _boundary_conditions[process_id].postNonLinearSolver(t, x, process_id,
+    if(process_id == 1)
+    {
+    _boundary_conditions[3].postNonLinearSolver(t, x, 3,
                                                          _coupled_solutions);
+    }
 }
 
 void Process::computeSecondaryVariable(const double t, GlobalVector const& x,
