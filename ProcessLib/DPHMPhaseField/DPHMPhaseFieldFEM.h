@@ -147,10 +147,10 @@ private:
 
     static const int _displacement_index = 0;
     static const int _phasefield_index = _displacement_size;
-    static const int _frac_pressure_index =
-        _displacement_size + _phasefield_size;
     static const int _pore_pressure_index =
-        _displacement_size + _phasefield_size + _frac_pressure_size;
+        _displacement_size + _phasefield_size;
+    static const int _frac_pressure_index =
+        _displacement_size + _phasefield_size + _pore_pressure_size;
 
 public:
     using ShapeMatricesType =

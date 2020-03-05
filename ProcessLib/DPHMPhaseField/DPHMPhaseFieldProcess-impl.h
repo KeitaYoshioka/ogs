@@ -274,8 +274,8 @@ void DPHMPhaseFieldProcess<DisplacementDim>::
     dof_tables.emplace_back(
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
-    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
 
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assembleWithJacobian,
@@ -335,8 +335,8 @@ void DPHMPhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
     dof_tables.emplace_back(
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
-    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_pore_hydro_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_frac_hydro_process_id));
 
     const bool use_monolithic_scheme = false;
     if (process_id == _phase_field_process_id)

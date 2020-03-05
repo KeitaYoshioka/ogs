@@ -311,36 +311,29 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         if ((dNdx * d).norm() > 1.e-20)
             norm_gamma = (dNdx * d).normalized();
 
+
         decltype(dNdx) const dNdx_gamma =
             (GlobalDimMatrixType::Identity(DisplacementDim, DisplacementDim) -
              norm_gamma * norm_gamma.transpose()) *
             dNdx;
 
-        // For debugging purpose
+        /* For debugging purpose
 
-        if (_element.getID() == 4851 && ip == 0)
-            DBUG("something");
-        if (_element.getID() == 4950 && ip == 0)
-            DBUG("something");
-        if (_element.getID() == 5049 && ip == 0)
-            DBUG("something");
-        if (_element.getID() == 5148 && ip == 0)
-            DBUG("something");
-        if (_element.getID() == 5247 && ip == 0)
-            DBUG("something");
-        if (_element.getID() == 5346 && ip == 0)
-            DBUG("something");
+        if (_element.getID() == 897 && ip == 0)
+            DBUG("something");*/
 
         laplace.noalias() +=
             (dNdx_gamma.transpose() * dNdx_gamma * frac_trans * pf_scaling) * w;
         mass.noalias() +=
             (width * beta_p / rho_fr * pf_scaling) * N.transpose() * N * w;
 
-        //        laplace.noalias() +=
-        //            ((frac_trans)*dNdx_gamma.transpose() * dNdx_gamma *
-        //            pf_scaling) * w;
-
         local_rhs.noalias() += (ele_source - dw_dt) * (pf_scaling)*N * w;
+
+//        if (pf_scaling > 1.e-16)
+//        {
+//            laplace.noalias() +=
+//                (dNdx_gamma.transpose() * dNdx_gamma * frac_trans * pf_scaling) * w;
+//        }
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -479,9 +472,9 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
-        // For debugging purpose
+        /* For debugging purpose
         if (_element.getID() == 1 && ip == 0)
-            DBUG("something");
+            DBUG("something");*/
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -976,7 +969,7 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             }
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
-          //  temporal = std::min(abs(deviation), temporal);
+            //  temporal = std::min(abs(deviation), temporal);
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
@@ -1072,7 +1065,8 @@ void DPHMPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 cumul_ele_grad_d +
                 0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
         }
-        if (width < 0.0 || cumul_ele_grad_d.norm()  > CutOff  /*temporal < CutOff*/ ||
+        if (width < 0.0 ||
+            cumul_ele_grad_d.norm() > CutOff /*temporal < CutOff*/ ||
             count_frac_elem > 10)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();

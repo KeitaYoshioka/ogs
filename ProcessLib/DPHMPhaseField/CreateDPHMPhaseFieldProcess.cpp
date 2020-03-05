@@ -51,8 +51,8 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
 
     int mechanics_related_process_id = 0;
     int phase_field_process_id = 1;
-    int frac_hydro_process_id = 2;
-    int pore_hydro_process_id = 3;
+    int pore_hydro_process_id = 2;
+    int frac_hydro_process_id = 3;
 
     auto process_variable_u = findProcessVariables(
         variables, pv_config,
@@ -70,13 +70,7 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
     ProcessVariable* variable_ph =
         &process_variables[process_variables.size() - 1][0].get();
 
-    auto process_variable_p_f = findProcessVariables(
-        variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__frac_pressure}
-         "frac_pressure"});
-    process_variables.push_back(std::move(process_variable_p_f));
-    ProcessVariable* variable_p_f =
-        &process_variables[process_variables.size() - 1][0].get();
+
 
     auto process_variable_p_p = findProcessVariables(
         variables, pv_config,
@@ -85,6 +79,16 @@ std::unique_ptr<Process> createDPHMPhaseFieldProcess(
     process_variables.push_back(std::move(process_variable_p_p));
     ProcessVariable* variable_p_p =
         &process_variables[process_variables.size() - 1][0].get();
+
+    auto process_variable_p_f = findProcessVariables(
+        variables, pv_config,
+        {//! \ogs_file_param_special{prj__processes__process__DPHM_PHASE_FIELD__process_variables__frac_pressure}
+         "frac_pressure"});
+    process_variables.push_back(std::move(process_variable_p_f));
+
+    ProcessVariable* variable_p_f =
+        &process_variables[process_variables.size() - 1][0].get();
+
     DBUG("Associate fracture pressure with process variable '%s'.",
          variable_p_f->getName().c_str());
 
