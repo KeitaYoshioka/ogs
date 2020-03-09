@@ -361,6 +361,8 @@ void HydroMechanicalPhaseFieldProcess<
 
     if (process_id == _phase_field_process_id)
     {
+        _process_data.width_comp_visited =
+            std::vector(_mesh.getNumberOfElements(), false);
         INFO("Fracture width computation");
         GlobalExecutor::executeMemberOnDereferenced(
             &HydroMechanicalPhaseFieldLocalAssemblerInterface::

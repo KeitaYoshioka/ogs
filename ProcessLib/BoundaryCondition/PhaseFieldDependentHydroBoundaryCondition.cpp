@@ -134,7 +134,7 @@ void PhaseFieldDependentHydroBoundaryCondition::postNonLinearSolver(
     auto const& width =
         _mesh.getProperties().getPropertyVector<double>("width");
 
-    for (auto const* e : elems)
+/*    for (auto const* e : elems)
     {
         std::size_t elem_id = e->getID();
         if ((*width)[elem_id] > 0.0)
@@ -142,6 +142,8 @@ void PhaseFieldDependentHydroBoundaryCondition::postNonLinearSolver(
             for (int i = 0; i < e->getNumberOfNodes(); i++)
             {
                 std::size_t node_id = e->getNode(i)->getID();
+                if(node_id == 3097)
+                    DBUG("here");
 
                 if (std::find(comp_nodes.begin(), comp_nodes.end(), node_id) ==
                         comp_nodes.end() &&
@@ -174,7 +176,29 @@ void PhaseFieldDependentHydroBoundaryCondition::postNonLinearSolver(
                 }
             }
         }
+    }*/
+
+    for (auto const* e : elems)
+    {
+        std::size_t elem_id = e->getID();
+        if ((*width)[elem_id] < 1.e-20)
+        {
+            for (int i = 0; i < e->getNumberOfNodes(); i++)
+            {
+                std::size_t node_id = e->getNode(i)->getID();
+                pos.setNodeID(node_id);
+                currentValue = _parameter(t, pos)[0];
+
+                if (std::find(_bc_values.ids.begin(), _bc_values.ids.end(),
+                              node_id) == _bc_values.ids.end())
+                {
+                    _bc_values.ids.emplace_back(node_id);
+                    _bc_values.values.emplace_back(currentValue);
+                }
+            }
+        }
     }
+
     INFO("Pressure BC is updated.");
 
     /*

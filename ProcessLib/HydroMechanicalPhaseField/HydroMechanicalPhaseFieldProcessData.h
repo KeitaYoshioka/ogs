@@ -10,7 +10,6 @@
 #pragma once
 
 #include <Eigen/Eigen>
-
 #include <memory>
 #include <utility>
 
@@ -124,6 +123,7 @@ struct HydroMechanicalPhaseFieldProcessData
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* width_prev = nullptr;
     MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
+    std::vector<bool> width_comp_visited;
     FluidType::Fluid_Type const fluid_type;
     double const fluid_compressibility =
         std::numeric_limits<double>::quiet_NaN();
