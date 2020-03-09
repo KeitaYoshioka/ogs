@@ -407,24 +407,10 @@ void Process::postNonLinearSolver(GlobalVector const& x, const double t,
     MathLib::LinAlg::setLocalAccessibleVector(x);
     postNonLinearSolverConcreteProcess(x, t, dt, process_id);
 
-    if (name == "DPHMPhaseField")
-    {
-        if (process_id == 1)
-        {
-            _boundary_conditions[3].postNonLinearSolver(t, x, 3,
-                                                        _coupled_solutions);
-        }
-        else
-        {
-            _boundary_conditions[process_id].postNonLinearSolver(
-                t, x, process_id, _coupled_solutions);
-        }
-    }
-    else
-    {
-        _boundary_conditions[process_id].postNonLinearSolver(
-            t, x, process_id, _coupled_solutions);
-    }
+    if (name == "DPHMPhaseField" && process_id == 1)
+
+        _boundary_conditions[3].postNonLinearSolver(t, x, 3,
+                                                    _coupled_solutions);
 }
 
 void Process::computeSecondaryVariable(const double t, GlobalVector const& x,

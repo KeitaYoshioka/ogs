@@ -293,14 +293,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             alpha * alpha / Kd * d_ip * d_ip +
             m_inv * (1 - d_ip * d_ip) * (1 - pf_fixed_strs);
 
-        mass.noalias() += 0.0*((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
+        mass.noalias() += ((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
                            d_ip * d_ip * alpha * alpha / Kd) *
                           N.transpose() * N * w;
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
         local_rhs.noalias() +=
-            (-modulus_rm * dp_dt*0.0 + d_ip * d_ip * alpha * dv_dt*0.0 +
+            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt +
              ele_source * grad_d_norm) *
             N * w;
 
