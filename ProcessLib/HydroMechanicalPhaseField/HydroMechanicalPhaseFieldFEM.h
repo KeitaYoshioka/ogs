@@ -144,9 +144,9 @@ private:
     static constexpr int _displacement_index = _pressure_size;
     static constexpr int _displacement_size =
         ShapeFunction::NPOINTS * DisplacementDim;
-    static constexpr int _phasefield_index = _pressure_size + _displacement_size;
+    static constexpr int _phasefield_index =
+        _pressure_size + _displacement_size;
     static constexpr int _phasefield_size = ShapeFunction::NPOINTS;
-
 
 public:
     using ShapeMatricesType =
@@ -253,9 +253,22 @@ public:
                 _process_data.crack_length_scale(0.0, x_position)[0];
             static constexpr double pi = boost::math::constants::pi<double>();
             if (DisplacementDim == 2)
-                ip_data.reg_source = _process_data.source *
-                                     std::exp(-distance_from_source / ls) /
-                                     (2 * pi * std::pow(ls, 2));
+            {
+                //                ip_data.reg_source = _process_data.source *
+                //                                     std::exp(-distance_from_source
+                //                                     / ls) / (2 * pi *
+                //                                     std::pow(ls, 2));
+                if (distance_from_source < 2 * ls)
+                {
+                    ip_data.reg_source = _process_data.source * 0.75 / ls *
+                                         (1 - distance_from_source / (2 * ls)) *
+                                         (1 - distance_from_source / (2 * ls));
+                }
+                else
+                {
+                    ip_data.reg_source = 0.0;
+                }
+            }
             else if (DisplacementDim == 3)
                 ip_data.reg_source = _process_data.source *
                                      std::exp(-distance_from_source / ls) /

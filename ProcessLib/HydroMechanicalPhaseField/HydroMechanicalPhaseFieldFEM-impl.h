@@ -252,6 +252,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double const Ks = _process_data.grain_modulus(t, x_position)[0];
     double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
     double const mu = _process_data.fluid_viscosity(t, x_position)[0];
+    double const ls = _process_data.crack_length_scale(t, x_position)[0];
 
     auto const porosity = _process_data.porosity(t, x_position)[0];
 
@@ -300,14 +301,19 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
         local_rhs.noalias() +=
-            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt +
-             ele_source * grad_d_norm) *
+            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt ) *
             N * w;
 
-        //     local_rhs.noalias() += ele_source * grad_d_norm * N * w;
+             local_rhs.noalias() += ele_source * N * w;
+        double pf_scaling;
+        if (_process_data.at_param == 1)
+            pf_scaling = 3 * (1 - d_ip) / (4 * ls);
+        else
+            pf_scaling = (1 - d_ip) * (1 - d_ip) / ls;
 
         if (d_ip > 0.0 && d_ip < 0.99)
         {
+//            pf_scaling = grad_d_norm;
             double const dw_dt = (width - width_prev) / dt;
             auto norm_gamma = (dNdx * d).normalized();
             decltype(dNdx) const dNdx_gamma =
@@ -315,16 +321,16 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             double const frac_trans = 4 * pow(width, 3) / (12 * mu);
 
             mass.noalias() +=
-                (width * beta_p / rho_fr * grad_d_norm) * N.transpose() * N * w;
+                (width * beta_p / rho_fr * pf_scaling) * N.transpose() * N * w;
 
             laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
-                                  dNdx_gamma * grad_d_norm) *
+                                  dNdx_gamma * pf_scaling) *
                                  w;
-            local_rhs.noalias() -= (dw_dt * grad_d_norm) * N * w;
+            local_rhs.noalias() -= (dw_dt * pf_scaling) * N * w;
         }
 
         // For debugging purpose
-        if (_element.getID() == 1 && ip == 0)
+        if (_element.getID() == 2518 && ip == 0)
             DBUG("something");
     }
     local_Jac.noalias() = laplace + mass / dt;
@@ -670,7 +676,6 @@ void findHostElement(MeshLib::Element const& current_ele,
         }
     }
 }
-
 template <typename ShapeFunction, typename IntegrationMethod,
           int DisplacementDim>
 void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
@@ -687,8 +692,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double width = 0.0;
     double cumul_grad_d = 0.0;
     double elem_d = (*_process_data.ele_d)[_element.getID()];
-    double temporal = 0.0;
-    if (0.0 < elem_d && elem_d < 0.99)
+    std::vector<int> elem_list;
+    double temporal = -1.0;
+
+    if (0.0 < elem_d && elem_d < 0.99 &&
+        _process_data.width_comp_visited[_element.getID()] == false)
     {
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
         indices_of_processes.reserve(dof_tables.size());
@@ -732,15 +740,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         Eigen::Vector3d delta_l = ref_ele_grad_d.normalized() * li_inc;
         double dist = delta_l.norm();
 
-        /*        if (_element.getID() == 1921)
-                    DBUG("something");
-        */
         // integral in positive direction
         pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
         current_ele = &_element;
         current_ele_grad_d = ref_ele_grad_d;
         int count_i = 0;
         int count_frac_elem = 0;
+        elem_list.push_back(current_ele->getID());
+
         while (elem_d < 0.99 && deviation >= 0.0)
         {
             // find the host element at the end of integral
@@ -751,8 +758,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             neighbor_ele =
                 current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
-
-            if(neighbor_ele == nullptr)
+            if (neighbor_ele == nullptr)
             {
                 DBUG("neighbor not found");
                 break;
@@ -767,8 +773,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
-            //            if (mesh_item_id == 2652 && count_i == 1)
-            //                DBUG("here");
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            if (std::find(elem_list.begin(), elem_list.end(),
+                          neighbor_ele->getID()) == elem_list.end() &&
+                elem_d < 0.99)
+                elem_list.push_back(neighbor_ele->getID());
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -806,7 +815,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             }
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
-            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            //  temporal = std::min(abs(deviation), temporal);
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
@@ -840,12 +849,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             neighbor_ele =
                 current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
-            if(neighbor_ele == nullptr)
+            if (neighbor_ele == nullptr)
             {
                 DBUG("neighbor not found");
                 break;
             }
-
             if (current_ele->getID() == neighbor_ele->getID())
                 count_i++;
             else
@@ -855,9 +863,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DBUG("count exceeded");
                 break;
             }
-
-            //            if (mesh_item_id == 2652 && count_i == 1)
-            //                DBUG("here");
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            if (std::find(elem_list.begin(), elem_list.end(),
+                          neighbor_ele->getID()) == elem_list.end() &&
+                elem_d < 0.99)
+                elem_list.push_back(neighbor_ele->getID());
 
             // check the normal vector
             auto old_norm = current_norm;
@@ -895,25 +905,32 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
             delta_l = search_dir * current_norm * li_inc;
             deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
-            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            temporal = std::max(deviation, temporal);
 
             cumul_ele_grad_d =
                 cumul_ele_grad_d +
                 0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
-            //                cumul_ele_grad_d + 0.5 * dist *
-            //                                       (old_ele_grad_d.normalized()
-            //                                       +
-            //                                        current_ele_grad_d.normalized());
         }
         if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
-            count_frac_elem > 10)
+            /* temporal > -0.6 || */ count_frac_elem > 10)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
-        temporal = deviation;
-    }
 
-    (*_process_data.width)[_element.getID()] = width;
-    (*_process_data.cum_grad_d)[_element.getID()] = cumul_grad_d;
+        if (count_frac_elem <= 10 && width > 0.0)
+        {
+            for (std::size_t i = 0; i < elem_list.size(); i++)
+            {
+                if ((*_process_data.ele_d)[elem_list[i]] < 1.e-16)
+                {
+                    (*_process_data.width)[elem_list[i]] = width;
+                    (*_process_data.cum_grad_d)[elem_list[i]] = temporal;
+                }
+                //                _process_data.width_comp_visited[elem_list[i]]
+            }
+        }
+        (*_process_data.width)[_element.getID()] = width;
+        (*_process_data.cum_grad_d)[_element.getID()] = temporal;
+    }
 }
 
 }  // namespace HydroMechanicalPhaseField
