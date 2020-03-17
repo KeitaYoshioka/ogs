@@ -42,13 +42,14 @@ struct HydroMechanicalPhaseFieldProcessData
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         int split_method_, double const reg_param_, double const pf_irrv_,
         double const li_disc_, double const cum_grad_d_CutOff_,
-        int const at_param_,
+        int const at_param_, double const theta_,
         ParameterLib::Parameter<double> const& intrinsic_permeability_,
         ParameterLib::Parameter<double> const& fluid_viscosity_,
         ParameterLib::Parameter<double> const& fluid_density_,
         ParameterLib::Parameter<double> const& grain_modulus_,
         ParameterLib::Parameter<double> const& drained_modulus_,
         ParameterLib::Parameter<double> const& porosity_,
+        double const geostatic_pressure_,
         FluidType::Fluid_Type const fluid_type_,
         double const fluid_compressibility_,
         double const specific_gas_constant_,
@@ -67,12 +68,14 @@ struct HydroMechanicalPhaseFieldProcessData
           li_disc(li_disc_),
           cum_grad_d_CutOff(cum_grad_d_CutOff_),
           at_param(at_param_),
+          theta(theta_),
           intrinsic_permeability(intrinsic_permeability_),
           fluid_viscosity(fluid_viscosity_),
           fluid_density(fluid_density_),
           grain_modulus(grain_modulus_),
           drained_modulus(drained_modulus_),
           porosity(porosity_),
+          geostatic_pressure(geostatic_pressure_),
           fluid_type(fluid_type_),
           fluid_compressibility(fluid_compressibility_),
           specific_gas_constant(specific_gas_constant_),
@@ -111,6 +114,7 @@ struct HydroMechanicalPhaseFieldProcessData
     double const li_disc = 60;
     double cum_grad_d_CutOff = 0.5;
     int const at_param = 2;
+    double const theta = 0.0;
     ParameterLib::Parameter<double> const& intrinsic_permeability;
     ParameterLib::Parameter<double> const& fluid_viscosity;
     ParameterLib::Parameter<double> const& fluid_density;
@@ -123,6 +127,8 @@ struct HydroMechanicalPhaseFieldProcessData
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* width_prev = nullptr;
     MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
+    double const geostatic_pressure;
+
     std::vector<bool> width_comp_visited;
     FluidType::Fluid_Type const fluid_type;
     double const fluid_compressibility =
@@ -138,6 +144,7 @@ struct HydroMechanicalPhaseFieldProcessData
     double pressure_work = 0.0;
     double dt;
     double t;
+
 
     /// will be removed after linking with MPL
     double getFluidDensity(double const& t,

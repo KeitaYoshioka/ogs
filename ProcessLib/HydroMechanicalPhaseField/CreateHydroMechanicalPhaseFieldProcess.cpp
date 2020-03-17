@@ -9,14 +9,13 @@
 
 #include "CreateHydroMechanicalPhaseFieldProcess.h"
 
+#include "HydroMechanicalPhaseFieldProcess.h"
+#include "HydroMechanicalPhaseFieldProcessData.h"
 #include "MaterialLib/SolidModels/CreateConstitutiveRelation.h"
 #include "MaterialLib/SolidModels/MechanicsBase.h"
 #include "ParameterLib/Utils.h"
 #include "ProcessLib/Output/CreateSecondaryVariables.h"
 #include "ProcessLib/Utils/ProcessUtils.h"
-
-#include "HydroMechanicalPhaseFieldProcess.h"
-#include "HydroMechanicalPhaseFieldProcessData.h"
 
 namespace ProcessLib
 {
@@ -190,13 +189,14 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "fluid_density", parameters, 1);
     DBUG("Use '%s' as fluid density parameter.", fluid_density.name.c_str());
 
-//    // Biot coefficient
-//    auto& biot_coefficient = ParameterLib::findParameter<double>(
-//        config,
-//        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_coefficient}
-//        "biot_coefficient", parameters, 1);
-//    DBUG("Use '%s' as Biot coefficient parameter.",
-//         biot_coefficient.name.c_str());
+    //    // Biot coefficient
+    //    auto& biot_coefficient = ParameterLib::findParameter<double>(
+    //        config,
+    //        //!
+    //        \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__biot_coefficient}
+    //        "biot_coefficient", parameters, 1);
+    //    DBUG("Use '%s' as Biot coefficient parameter.",
+    //         biot_coefficient.name.c_str());
 
     // Grain modulus
     auto& grain_modulus = ParameterLib::findParameter<double>(
@@ -216,6 +216,11 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__porosity}
         "porosity", parameters, 1);
     DBUG("Use '%s' as porosity parameter.", porosity.name.c_str());
+
+    // Geostatic pressure
+    const double geostatic_pressure =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__geostatic_pressure}
+        config.getConfigParameter<double>("geostatic_pressure");
 
     auto const fluid_type = FluidType::strToFluidType(
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_type}
@@ -266,7 +271,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     }();
 
     auto source_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__source}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__source}
         config.getConfigParameterOptional<double>("source");
 
     double source;
@@ -276,7 +281,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         source = 0.0;
 
     auto reg_param_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__reg_param}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__reg_param}
         config.getConfigParameterOptional<double>("reg_param");
 
     double reg_param;
@@ -286,7 +291,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         reg_param = 0.01;
 
     auto pf_irrv_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__pf_irrv}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__pf_irrv}
         config.getConfigParameterOptional<double>("pf_irrv");
 
     double pf_irrv;
@@ -295,8 +300,18 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         pf_irrv = 0.05;
 
+    auto theta_read =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__theta}
+        config.getConfigParameterOptional<double>("theta");
+
+    double theta;
+    if (theta_read)
+        theta = *theta_read;
+    else
+        theta = 0.0;
+
     auto li_disc_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__li_disc}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__li_disc}
         config.getConfigParameterOptional<double>("li_disc");
 
     double li_disc;
@@ -306,7 +321,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         li_disc = 60;
 
     auto cut_off_read =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__cut_off}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__cut_off}
         config.getConfigParameterOptional<double>("cut_off");
 
     double cut_off;
@@ -316,7 +331,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         cut_off = 60;
 
     auto at_num =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__at_num}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__at_num}
         config.getConfigParameterOptional<int>("at_num");
 
     int at_param;
@@ -326,7 +341,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         at_param = 2;
 
     auto split =
-        //! \ogs_file_param{prj__processes__process__PHASE_FIELD__split_method}
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__split_method}
         config.getConfigParameterOptional<int>("split_method");
 
     int split_method;
@@ -353,12 +368,14 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         li_disc,
         cut_off,
         at_param,
+        theta,
         intrinsic_permeability,
         fluid_viscosity,
         fluid_density,
         grain_modulus,
         drained_modulus,
         porosity,
+        geostatic_pressure,
         fluid_type,
         fluid_compressibility,
         reference_temperature,
