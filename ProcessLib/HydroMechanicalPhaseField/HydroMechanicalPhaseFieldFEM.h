@@ -241,7 +241,7 @@ public:
             ip_data.strain_energy_tensile = 0.0;
             ip_data.elastic_energy = 0.0;
             ip_data.pressure = 0.0;
-            ip_data.pressureNL = 0.0;
+            ip_data.pressureNL = _process_data.geostatic_pressure;
             _secondary_data.N[ip] = shape_matrices[ip].N;
             ip_data.N = shape_matrices[ip].N;
             ip_data.dNdx = shape_matrices[ip].dNdx;

@@ -76,6 +76,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         typename ShapeMatricesType::template VectorType<_pressure_size> const>(
         &local_coupled_solutions.local_coupled_xs[_pressure_index],
         _pressure_size);
+    double const p_geo = _process_data.geostatic_pressure;
 
     auto local_Jac = MathLib::createZeroedMatrix<
         typename ShapeMatricesType::template MatrixType<_displacement_size,
@@ -92,13 +93,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     x_position.setElementID(_element.getID());
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
-    double ele_d = 0.0;
-    for (int ip = 0; ip < n_integration_points; ip++)
-    {
-        auto const& N = _ip_data[ip].N;
-        ele_d += N.dot(d);
-    }
-    ele_d = ele_d / n_integration_points;
 
     double const k = _process_data.residual_stiffness(t, x_position)[0];
     double const Kd = _process_data.drained_modulus(t, x_position)[0];
@@ -127,6 +121,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         eps.noalias() = B * u;
 
         double const p_ip = N.dot(p);
+        double const delta_p = p_ip - p_geo;
         double const p_fr =
             (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
                 ? p_ip
@@ -166,8 +161,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 DisplacementDim>::value>::identity2;
 
         local_rhs.noalias() -=
-            (B.transpose() * (sigma - d_ip * alpha * p_ip * identity2) -
-             N_u.transpose() * rho * b - p_ip * N_u.transpose() * dNdx * d) *
+            (B.transpose() * (sigma - d_ip * alpha * delta_p * identity2) -
+             N_u.transpose() * rho * b - delta_p * N_u.transpose() * dNdx * d) *
             w;
 
         local_Jac.noalias() += B.transpose() * C_eff * B * w;
@@ -233,20 +228,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
 
-    //    double ele_d = 0.0;
-    //    double ele_grad_d_norm = 0.0;
-    double ele_source = 0.0;
-    for (int ip = 0; ip < n_integration_points; ip++)
-    {
-        //        auto const& N = _ip_data[ip].N;
-        //        auto const& dNdx = _ip_data[ip].dNdx;
-        //       ele_d += N.dot(d);
-        //       ele_grad_d_norm += (dNdx * d).norm();
-        ele_source += _ip_data[ip].reg_source;
-    }
-    //  ele_d = ele_d / n_integration_points;
-    //  ele_grad_d_norm = ele_grad_d_norm / n_integration_points;
-    ele_source = ele_source / n_integration_points;
 
     double const Kd = _process_data.drained_modulus(t, x_position)[0];
     double const Ks = _process_data.grain_modulus(t, x_position)[0];
@@ -257,7 +238,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     auto const porosity = _process_data.porosity(t, x_position)[0];
 
     double const alpha = (1 - Kd / Ks);
-
+    double const theta = _process_data.theta;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& w = _ip_data[ip].integration_weight;
@@ -265,9 +246,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
         double const p0_ip = N.dot(p0);
+        double const p_ip = N.dot(p);
 
         auto& pressure = _ip_data[ip].pressure;
         auto& pressureNL = _ip_data[ip].pressureNL;
+
+
+        auto& reg_source = _ip_data[ip].reg_source;
+
         pressure = N.dot(p);
 
         double const p_fr =
@@ -277,43 +263,41 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const rho_fr =
             _process_data.getFluidDensity(t, x_position, p_fr);
         double const beta_p = _process_data.getFluidCompressibility(p_fr);
-        double m_inv =
-            porosity * beta_p + (alpha - porosity) * (1 - alpha) / Ks;
+        double m_inv = porosity * beta_p + (alpha - porosity) / Ks;
 
         auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
         auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
-        double const dp_dt = (pressureNL - p0_ip) / dt;
-        // pf_fixed_strs = 1.0 -> no pf fixed stress
-        //               = 0.0 -> pf_fixed stress
-        double const pf_fixed_strs = 0.0;
+//        double const dp_dt = (p_ip - p0_ip) / dt;
+        double const dp_dt = (pressureNL - p0_ip)/dt;
+        // theta = 0.0 -> no pf modified fixed stress
+        //               = 1.0 -> pf modified fixed stress
 
         double const grad_d_norm = (dNdx * d).norm();
 
-        double const modulus_rm =
-            alpha * alpha / Kd * d_ip * d_ip +
-            m_inv * (1 - d_ip * d_ip) * (1 - pf_fixed_strs);
+        double const modulus_rm = (1 - d_ip * d_ip) * theta * m_inv +
+                                  d_ip * d_ip * alpha * alpha / Kd;
 
-        mass.noalias() += ((1 + pf_fixed_strs * (d_ip * d_ip - 1)) * m_inv +
+        mass.noalias() += ((theta + (1 - theta) * d_ip * d_ip) * m_inv +
                            d_ip * d_ip * alpha * alpha / Kd) *
                           N.transpose() * N * w;
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
         local_rhs.noalias() +=
-            (-modulus_rm * dp_dt + d_ip * d_ip * alpha * dv_dt ) *
-            N * w;
+            (modulus_rm * dp_dt - d_ip * d_ip * alpha * dv_dt) * N * w;
 
-             local_rhs.noalias() += ele_source * N * w;
+        local_rhs.noalias() += reg_source * N * w;
         double pf_scaling;
         if (_process_data.at_param == 1)
             pf_scaling = 3 * (1 - d_ip) / (4 * ls);
         else
             pf_scaling = (1 - d_ip) * (1 - d_ip) / ls;
 
+//        pf_scaling = 0.0;
         if (d_ip > 0.0 && d_ip < 0.99)
         {
-//            pf_scaling = grad_d_norm;
+            //            pf_scaling = grad_d_norm;
             double const dw_dt = (width - width_prev) / dt;
             auto norm_gamma = (dNdx * d).normalized();
             decltype(dNdx) const dNdx_gamma =
@@ -326,11 +310,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
                                   dNdx_gamma * pf_scaling) *
                                  w;
-            local_rhs.noalias() -= (dw_dt * pf_scaling) * N * w;
+            local_rhs.noalias() += -(dw_dt * pf_scaling) * N * w;
         }
 
         // For debugging purpose
-        if (_element.getID() == 2518 && ip == 0)
+        if (_element.getID() == 973 && ip == 0)
             DBUG("something");
     }
     local_Jac.noalias() = laplace + mass / dt;
@@ -363,6 +347,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         typename ShapeMatricesType::template VectorType<_pressure_size> const>(
         &local_coupled_solutions.local_coupled_xs[_pressure_index],
         _pressure_size);
+    double const p_geo = _process_data.geostatic_pressure;
 
     auto local_Jac = MathLib::createZeroedMatrix<PhaseFieldMatrix>(
         local_Jac_data, _phasefield_size, _phasefield_size);
@@ -397,6 +382,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
 
         double const p_ip = N.dot(p);
+        double const delta_p = p_ip - p_geo;
 
         double const degradation = ele_d * ele_d * (1 - k) + k;
         auto const x_coord =
@@ -443,8 +429,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                  gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
                            d -
                        N.transpose() / ls) -
-                 p_ip * dNdx.transpose() * N_u * u -
-                 N.transpose() * alpha * p_ip) *
+                 delta_p * dNdx.transpose() * N_u * u -
+                 N.transpose() * alpha * delta_p) *
                 w;
         }
         // For AT1
@@ -459,8 +445,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 (N.transpose() * N * d * 2 * strain_energy_tensile +
                  gc * (-0.375 * N.transpose() / ls +
                        0.75 * dNdx.transpose() * dNdx * ls * d) -
-                 p_ip * dNdx.transpose() * N_u * u -
-                 N.transpose() * alpha * p_ip) *
+                 delta_p * dNdx.transpose() * N_u * u -
+                 N.transpose() * alpha * delta_p) *
                 w;
         }
     }
