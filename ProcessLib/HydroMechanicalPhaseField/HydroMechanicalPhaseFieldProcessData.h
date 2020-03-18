@@ -42,7 +42,7 @@ struct HydroMechanicalPhaseFieldProcessData
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         int split_method_, double const reg_param_, double const pf_irrv_,
         double const li_disc_, double const cum_grad_d_CutOff_,
-        int const at_param_, double const theta_,
+        int const at_param_, double const theta_, bool poroelastic_coupling_,
         ParameterLib::Parameter<double> const& intrinsic_permeability_,
         ParameterLib::Parameter<double> const& fluid_viscosity_,
         ParameterLib::Parameter<double> const& fluid_density_,
@@ -69,6 +69,7 @@ struct HydroMechanicalPhaseFieldProcessData
           cum_grad_d_CutOff(cum_grad_d_CutOff_),
           at_param(at_param_),
           theta(theta_),
+          poroelastic_coupling(poroelastic_coupling_),
           intrinsic_permeability(intrinsic_permeability_),
           fluid_viscosity(fluid_viscosity_),
           fluid_density(fluid_density_),
@@ -115,6 +116,7 @@ struct HydroMechanicalPhaseFieldProcessData
     double cum_grad_d_CutOff = 0.5;
     int const at_param = 2;
     double const theta = 0.0;
+    bool poroelastic_coupling = true;
     ParameterLib::Parameter<double> const& intrinsic_permeability;
     ParameterLib::Parameter<double> const& fluid_viscosity;
     ParameterLib::Parameter<double> const& fluid_density;

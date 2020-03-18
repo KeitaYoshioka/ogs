@@ -354,6 +354,12 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         split_method = 0;
 
+    auto poroelastic_coupling =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__poroelastic_coupling}
+        config.getConfigParameter<bool>("poroelastic_coupling",
+                                            true);
+
+
     HydroMechanicalPhaseFieldProcessData<DisplacementDim> process_data{
         materialIDs(mesh),
         std::move(solid_constitutive_relations),
@@ -369,6 +375,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         cut_off,
         at_param,
         theta,
+        poroelastic_coupling,
         intrinsic_permeability,
         fluid_viscosity,
         fluid_density,

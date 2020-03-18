@@ -100,7 +100,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     auto const porosity = _process_data.porosity(t, x_position)[0];
     auto rho_sr = _process_data.solid_density(t, x_position)[0];
 
-    auto const alpha = (1 - Kd / Ks);
+    double alpha = 0.0;
+    if (_process_data.poroelastic_coupling)
+        alpha = (1 - Kd / Ks);
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -228,7 +230,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
 
-
     double const Kd = _process_data.drained_modulus(t, x_position)[0];
     double const Ks = _process_data.grain_modulus(t, x_position)[0];
     double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
@@ -237,7 +238,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
     auto const porosity = _process_data.porosity(t, x_position)[0];
 
-    double const alpha = (1 - Kd / Ks);
+    double alpha = 0.0;
+    if (_process_data.poroelastic_coupling)
+        alpha = (1 - Kd / Ks);
     double const theta = _process_data.theta;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
@@ -251,14 +254,13 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto& pressure = _ip_data[ip].pressure;
         auto& pressureNL = _ip_data[ip].pressureNL;
 
-
         auto& reg_source = _ip_data[ip].reg_source;
 
         pressure = N.dot(p);
 
         double const p_fr =
             (_process_data.fluid_type == FluidType::Fluid_Type::IDEAL_GAS)
-                ? pressure * 2.e6
+                ? pressure
                 : std::numeric_limits<double>::quiet_NaN();
         double const rho_fr =
             _process_data.getFluidDensity(t, x_position, p_fr);
@@ -268,8 +270,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const vol_strain = Invariants::trace(_ip_data[ip].eps);
         auto const vol_strain_prev = Invariants::trace(_ip_data[ip].eps_prev);
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
-//        double const dp_dt = (p_ip - p0_ip) / dt;
-        double const dp_dt = (pressureNL - p0_ip)/dt;
+        //        double const dp_dt = (p_ip - p0_ip) / dt;
+        double const dp_dt = (pressureNL - p0_ip) / dt;
         // theta = 0.0 -> no pf modified fixed stress
         //               = 1.0 -> pf modified fixed stress
 
@@ -294,7 +296,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         else
             pf_scaling = (1 - d_ip) * (1 - d_ip) / ls;
 
-//        pf_scaling = 0.0;
+        //        pf_scaling = 0.0;
         if (d_ip > 0.0 && d_ip < 0.99)
         {
             //            pf_scaling = grad_d_norm;
