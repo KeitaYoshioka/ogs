@@ -423,7 +423,43 @@ private:
 
         return cache;
     }
+    virtual std::vector<double> const& getIntPtDarcyVelocity(
+        const double t,
+       LocalCoupledSolutions const& local_coupled_solutions,
+            NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& cache) const override
+    {
+        auto const num_intpts = _ip_data.size();
 
+        cache.clear();
+        auto cache_matrix = MathLib::createZeroedMatrix<Eigen::Matrix<
+            double, DisplacementDim, Eigen::Dynamic, Eigen::RowMajor>>(
+            cache, DisplacementDim, num_intpts);
+
+        auto const p = Eigen::Map<
+            typename ShapeMatricesType::template VectorType<_pressure_size> const>(
+            &local_coupled_solutions.local_coupled_xs[_pressure_index],
+            _pressure_size);
+
+        unsigned const n_integration_points =
+            _integration_method.getNumberOfPoints();
+
+        ParameterLib::SpatialPosition x_position;
+        x_position.setElementID(_element.getID());
+
+        double width = (*_process_data.width)[_element.getID()];
+        double const mu = _process_data.fluid_viscosity(t, x_position)[0];
+        double const perm =
+            _process_data.intrinsic_permeability(t, x_position)[0];
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            // Compute the velocity
+            auto const& dNdx = _ip_data[ip].dNdx;
+            cache_matrix.col(ip).noalias() = -perm / mu * dNdx * p;
+        }
+
+        return cache;
+    }
     void assembleWithJacobianForDeformationEquations(
         double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,

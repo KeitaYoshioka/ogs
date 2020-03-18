@@ -170,13 +170,12 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
                          &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                              getIntPtEpsilon));
 
-    /*    _secondary_variables.addSecondaryVariable(
-            "velocity",
-            makeExtrapolator(mesh.getDimension(), getExtrapolator(),
-                             _local_assemblers,
-                             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                                 getIntPtDarcyVelocity));
-                                 */
+    _secondary_variables.addSecondaryVariable(
+        "velocity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
+                         _local_assemblers,
+                         &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                             getIntPtDarcyVelocity));
 
     _process_data.ele_d = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,

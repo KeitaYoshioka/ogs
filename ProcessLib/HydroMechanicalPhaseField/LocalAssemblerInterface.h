@@ -36,11 +36,11 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& cache) const = 0;
 
-    //   virtual std::vector<double> const& getIntPtDarcyVelocity(
-    //       const double /*t*/,
-    //       GlobalVector const& /*current_solution,
-    //       NumLib::LocalToGlobalIndexMap const& /*dof_table,
-    //        std::vector<double>& cache) const = 0;
+    virtual std::vector<double> const& getIntPtDarcyVelocity(
+        const double /*t*/,
+        LocalCoupledSolutions const& local_coupled_solutions,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& cache) const = 0;
 
     virtual void computeFractureWidth(
         std::size_t mesh_item_id,
@@ -56,7 +56,6 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
             std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
             dof_tables,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
-
 
     /*    virtual void computeEnergy(
             std::size_t mesh_item_id,
