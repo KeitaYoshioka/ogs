@@ -18,6 +18,7 @@
 #include "MaterialLib/SolidModels/LinearElasticIsotropicPhaseField.h"
 #include "MaterialLib/SolidModels/SelectSolidConstitutiveRelation.h"
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
+#include "NumLib/DOF/DOFTableUtil.h"
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
 #include "NumLib/Fem/ShapeMatrixPolicy.h"
 #include "ParameterLib/SpatialPosition.h"
@@ -425,21 +426,26 @@ private:
     }
     virtual std::vector<double> const& getIntPtDarcyVelocity(
         const double t,
-       LocalCoupledSolutions const& local_coupled_solutions,
-            NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        GlobalVector const& current_solution,
+        NumLib::LocalToGlobalIndexMap const& dof_table,
         std::vector<double>& cache) const override
     {
         auto const num_intpts = _ip_data.size();
+
+        auto const indices = NumLib::getIndices(_element.getID(), dof_table);
+        assert(!indices.empty());
+        auto const local_x = current_solution.get(indices);
+
 
         cache.clear();
         auto cache_matrix = MathLib::createZeroedMatrix<Eigen::Matrix<
             double, DisplacementDim, Eigen::Dynamic, Eigen::RowMajor>>(
             cache, DisplacementDim, num_intpts);
 
-        auto const p = Eigen::Map<
-            typename ShapeMatricesType::template VectorType<_pressure_size> const>(
-            &local_coupled_solutions.local_coupled_xs[_pressure_index],
-            _pressure_size);
+        auto const p =
+            Eigen::Map<typename ShapeMatricesType::template VectorType<
+                _pressure_size> const>(local_x.data() + _pressure_index,
+                                       _pressure_size);
 
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();

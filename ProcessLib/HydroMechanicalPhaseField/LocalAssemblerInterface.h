@@ -38,7 +38,7 @@ struct HydroMechanicalPhaseFieldLocalAssemblerInterface
 
     virtual std::vector<double> const& getIntPtDarcyVelocity(
         const double /*t*/,
-        LocalCoupledSolutions const& local_coupled_solutions,
+        GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& cache) const = 0;
 
