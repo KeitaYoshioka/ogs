@@ -174,7 +174,8 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__hydro_crack_scheme}
         config.getConfigParameterOptional<std::string>("hydro_crack_scheme");
     if (crack_scheme &&
-        ((*crack_scheme != "propagating") && (*crack_scheme != "static")))
+        ((*crack_scheme != "propagating") && (*crack_scheme != "static") &&
+         (*crack_scheme != "dry")))
     {
         OGS_FATAL(
             "hydro_crack_scheme must be 'propagating' or 'static' but "
