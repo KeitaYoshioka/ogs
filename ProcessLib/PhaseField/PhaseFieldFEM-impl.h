@@ -431,7 +431,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double ele_surface_energy = 0.0;
     double ele_pressure_work = 0.0;
 
-//    double const gc = _process_data.crack_resistance(t, x_position)[0];
+    //    double const gc = _process_data.crack_resistance(t, x_position)[0];
     double const ls = _process_data.crack_length_scale(t, x_position)[0];
     double const k = _process_data.residual_stiffness(t, x_position)[0];
 
@@ -527,5 +527,343 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     surface_energy += ele_surface_energy;
     pressure_work += ele_pressure_work;
 }
+
+template <typename ShapeFunction, typename IntegrationMethod,
+          int DisplacementDim>
+void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
+                              DisplacementDim>::
+    computeFractureNormal(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs)
+{
+    assert(cpl_xs != nullptr);
+
+    std::vector<std::vector<GlobalIndexType>> indices_of_processes;
+    indices_of_processes.reserve(dof_tables.size());
+    std::transform(dof_tables.begin(), dof_tables.end(),
+                   std::back_inserter(indices_of_processes),
+                   [&](NumLib::LocalToGlobalIndexMap const& dof_table) {
+                       return NumLib::getIndices(mesh_item_id, dof_table);
+                   });
+
+    auto local_coupled_xs =
+        getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
+    assert(local_coupled_xs.size() == _phasefield_size + _displacement_size);
+
+    auto const d = Eigen::Map<PhaseFieldVector const>(
+        &local_coupled_xs[_phasefield_index], _phasefield_size);
+    auto const u = Eigen::Map<DeformationVector const>(
+        &local_coupled_xs[_displacement_index], _displacement_size);
+
+    int const n_integration_points = _integration_method.getNumberOfPoints();
+
+    double ele_d = 0.0;
+    double ele_u_dot_grad_d = 0.0;
+    GlobalDimVectorType ele_grad_d = GlobalDimVectorType::Zero(DisplacementDim);
+
+    for (int ip = 0; ip < n_integration_points; ip++)
+    {
+        auto const& N = _ip_data[ip].N;
+
+        ele_d += N.dot(d);
+    }
+    ele_d = ele_d / n_integration_points;
+
+    if (ele_d > 0.0 && ele_d < 1.0)
+    {
+        for (int ip = 0; ip < n_integration_points; ip++)
+        {
+            auto const& N = _ip_data[ip].N;
+            auto const& dNdx = _ip_data[ip].dNdx;
+
+            typename ShapeMatricesType::template MatrixType<DisplacementDim,
+                                                            _displacement_size>
+                N_u = ShapeMatricesType::template MatrixType<
+                    DisplacementDim,
+                    _displacement_size>::Zero(DisplacementDim,
+                                              _displacement_size);
+
+            for (int i = 0; i < DisplacementDim; ++i)
+                N_u.template block<1, _displacement_size / DisplacementDim>(
+                       i, i * _displacement_size / DisplacementDim)
+                    .noalias() = N;
+
+            ele_grad_d += dNdx * d;
+            ele_u_dot_grad_d += (N_u * u).dot(dNdx * d);
+        }
+        ele_grad_d = ele_grad_d / n_integration_points;
+        ele_u_dot_grad_d = ele_u_dot_grad_d / n_integration_points;
+    }
+    else
+    {
+        ele_grad_d.setZero();
+        ele_u_dot_grad_d = 0.0;
+    }
+    (*_process_data.ele_d)[_element.getID()] = ele_d;
+    (*_process_data.ele_u_dot_grad_d)[_element.getID()] = ele_u_dot_grad_d;
+    for (int i = 0; i < DisplacementDim; ++i)
+        _process_data.ele_grad_d->getComponent(_element.getID(), i) =
+            ele_grad_d[i];
+}
+
+template <typename ShapeFunction, typename IntegrationMethod,
+          int DisplacementDim>
+void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
+                              DisplacementDim>::
+    computeFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        double const t,
+        CoupledSolutionsForStaggeredScheme const* const /*cpl_xs*/,
+        MeshLib::Mesh const& /*mesh*/)
+{
+    double width = 0.0;
+    double cumul_grad_d = 0.0;
+    double elem_d = (*_process_data.ele_d)[_element.getID()];
+    std::vector<int> elem_list;
+    double temporal = -1.0;
+
+    if (0.0 < elem_d && elem_d < 0.99)
+    {
+        std::vector<std::vector<GlobalIndexType>> indices_of_processes;
+        indices_of_processes.reserve(dof_tables.size());
+        std::transform(dof_tables.begin(), dof_tables.end(),
+                       std::back_inserter(indices_of_processes),
+                       [&](NumLib::LocalToGlobalIndexMap const& dof_table) {
+                           return NumLib::getIndices(mesh_item_id, dof_table);
+                       });
+
+        ParameterLib::SpatialPosition x_position;
+        x_position.setElementID(_element.getID());
+
+        double const li_inc =
+            _process_data.crack_length_scale(t, x_position)[0] /
+            _process_data.li_disc;
+        double const probe_offset =
+            _process_data.crack_length_scale(t, x_position)[0] *
+            _process_data.li_disc;
+
+        double CutOff = 0.8;  //_process_data.cum_grad_d_CutOff;
+
+        double deviation = 1.0;
+        double cod_start = 0.0, cod_end = 0.0;
+        double search_dir = 1.0;
+
+        auto node_ref = _element.getCenterOfGravity();
+        auto ref_ele_grad_d_head =
+            Eigen::Map<typename ShapeMatricesType::template VectorType<
+                DisplacementDim> const>(
+                &_process_data.ele_grad_d->getComponent(_element.getID(), 0),
+                DisplacementDim);
+        Eigen::Vector3d ref_ele_grad_d = Eigen::Vector3d::Zero();
+        ref_ele_grad_d.head(DisplacementDim) = ref_ele_grad_d_head;
+        auto current_ele_grad_d = ref_ele_grad_d;
+        Eigen::Vector3d cumul_ele_grad_d = Eigen::Vector3d::Zero();
+        auto current_norm = ref_ele_grad_d.normalized();
+
+        Eigen::Vector3d pnt_start, pnt_end;
+        MeshLib::Element const* current_ele;
+        MeshLib::Element const* neighbor_ele;
+        Eigen::Vector3d delta_l = ref_ele_grad_d.normalized() * li_inc;
+        double dist = delta_l.norm();
+
+        // integral in positive direction
+        pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
+        current_ele = &_element;
+        current_ele_grad_d = ref_ele_grad_d;
+        int count_i = 0;
+        int count_frac_elem = 0;
+        elem_list.push_back(current_ele->getID());
+
+        while (elem_d < 0.99 && deviation >= 0.0)
+        {
+            // find the host element at the end of integral
+            pnt_end = pnt_start + delta_l;
+
+            const MathLib::Point3d pnt_end_copy{
+                {pnt_end[0], pnt_end[1], pnt_end[2]}};
+
+            neighbor_ele =
+                current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
+            if (neighbor_ele == nullptr)
+            {
+                DBUG("neighbor not found");
+                break;
+            }
+            if (current_ele->getID() == neighbor_ele->getID())
+                count_i++;
+            else
+                count_i = 1;
+
+            if (count_i > _process_data.li_disc)
+            {
+                DBUG("count exceeded");
+                break;
+            }
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            if (std::find(elem_list.begin(), elem_list.end(),
+                          neighbor_ele->getID()) == elem_list.end() &&
+                elem_d < 0.99)
+                elem_list.push_back(neighbor_ele->getID());
+
+            // check the normal vector
+            auto old_norm = current_norm;
+            auto old_ele_grad_d = current_ele_grad_d;
+            auto current_ele_grad_d_head =
+                Eigen::Map<typename ShapeMatricesType::template VectorType<
+                    DisplacementDim> const>(
+                    &_process_data.ele_grad_d->getComponent(
+                        neighbor_ele->getID(), 0),
+                    DisplacementDim);
+            current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
+            current_norm = current_ele_grad_d.normalized();
+            if (current_ele_grad_d.norm() == 0.0)
+            {
+                current_norm = old_norm;
+                count_frac_elem++;
+                if (count_i == 1)
+                    count_frac_elem++;
+                if (count_frac_elem > 10)
+                    break;
+            }
+
+            // line integral
+            cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
+            cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
+            width += 0.5 * dist * (cod_start + cod_end);
+
+            // for next element search
+            current_ele = neighbor_ele;
+            pnt_start = pnt_end;
+            if (current_norm.dot(old_norm) < 0.0)
+            {
+                search_dir = -1.0 * search_dir;
+                ref_ele_grad_d = -1.0 * ref_ele_grad_d;
+            }
+            delta_l = search_dir * current_norm * li_inc;
+            deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
+            //  temporal = std::min(abs(deviation), temporal);
+
+            cumul_ele_grad_d =
+                cumul_ele_grad_d +
+                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
+            //                cumul_ele_grad_d + 0.5 * dist *
+            //                                       (old_ele_grad_d.normalized()
+            //                                       +
+            //                                        current_ele_grad_d.normalized());
+        }
+
+        // integral in negative direction
+
+        pnt_start = Eigen::Map<Eigen::Vector3d const>(node_ref.getCoords(), 3);
+        current_ele = &_element;
+        elem_d = (*_process_data.ele_d)[_element.getID()];
+        current_ele_grad_d = ref_ele_grad_d;
+        current_norm = current_ele_grad_d.normalized();
+        ref_ele_grad_d = -1.0 * ref_ele_grad_d;
+        delta_l = ref_ele_grad_d.normalized() * li_inc;
+        deviation = -1.0;
+        search_dir = -1.0;
+
+        count_i = 0;
+        count_frac_elem = 0;
+        while (elem_d < 0.99 && deviation <= 0.0)
+        {
+            // find the host element at the end of integral
+            pnt_end = pnt_start + delta_l;
+            const MathLib::Point3d pnt_end_copy{
+                {pnt_end[0], pnt_end[1], pnt_end[2]}};
+
+            neighbor_ele =
+                current_ele->findElementInNeighboursWithPoint(pnt_end_copy);
+            if (neighbor_ele == nullptr)
+            {
+                DBUG("neighbor not found");
+                break;
+            }
+            if (current_ele->getID() == neighbor_ele->getID())
+                count_i++;
+            else
+                count_i = 1;
+            if (count_i > _process_data.li_disc)
+            {
+                DBUG("count exceeded");
+                break;
+            }
+            elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
+            if (std::find(elem_list.begin(), elem_list.end(),
+                          neighbor_ele->getID()) == elem_list.end() &&
+                elem_d < 0.99)
+                elem_list.push_back(neighbor_ele->getID());
+
+            // check the normal vector
+            auto old_norm = current_norm;
+            auto old_ele_grad_d = current_ele_grad_d;
+            auto current_ele_grad_d_head =
+                Eigen::Map<typename ShapeMatricesType::template VectorType<
+                    DisplacementDim> const>(
+                    &_process_data.ele_grad_d->getComponent(
+                        neighbor_ele->getID(), 0),
+                    DisplacementDim);
+            current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
+            current_norm = current_ele_grad_d.normalized();
+            if (current_ele_grad_d.norm() == 0.0)
+            {
+                current_norm = old_norm;
+                if (count_i == 1)
+                    count_frac_elem++;
+                if (count_frac_elem > 10)
+                    break;
+            }
+
+            // line integral
+            cod_start = (*_process_data.ele_u_dot_grad_d)[current_ele->getID()];
+            cod_end = (*_process_data.ele_u_dot_grad_d)[neighbor_ele->getID()];
+            width += 0.5 * dist * (cod_start + cod_end);
+
+            // for next element search
+            current_ele = neighbor_ele;
+            pnt_start = pnt_end;
+            if (current_norm.dot(old_norm) < 0.0)
+            {
+                search_dir = -1.0 * search_dir;
+                ref_ele_grad_d = -1.0 * ref_ele_grad_d;
+            }
+
+            delta_l = search_dir * current_norm * li_inc;
+            deviation = (ref_ele_grad_d.normalized()).dot(current_norm);
+            temporal = std::max(deviation, temporal);
+
+            cumul_ele_grad_d =
+                cumul_ele_grad_d +
+                0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
+        }
+        if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
+            /* temporal > -0.6 || */ count_frac_elem > 10)
+            width = 0.0;
+        cumul_grad_d = cumul_ele_grad_d.norm();
+
+        if (count_frac_elem <= 10 && width > 0.0)
+        {
+            for (std::size_t i = 0; i < elem_list.size(); i++)
+            {
+                if ((*_process_data.ele_d)[elem_list[i]] < 1.e-16)
+                {
+                    (*_process_data.width)[elem_list[i]] = width;
+                    (*_process_data.cum_grad_d)[elem_list[i]] = temporal;
+                }
+                //                _process_data.width_comp_visited[elem_list[i]]
+            }
+        }
+        (*_process_data.width)[_element.getID()] = width;
+        (*_process_data.cum_grad_d)[_element.getID()] = temporal;
+    }
+}
+
 }  // namespace PhaseField
 }  // namespace ProcessLib

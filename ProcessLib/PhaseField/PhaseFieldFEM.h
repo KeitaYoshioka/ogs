@@ -164,6 +164,8 @@ public:
         typename ShapeMatricesType::template MatrixType<_phasefield_size,
                                                         _phasefield_size>;
 
+    using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
+
     PhaseFieldLocalAssembler(PhaseFieldLocalAssembler const&) = delete;
     PhaseFieldLocalAssembler(PhaseFieldLocalAssembler&&) = delete;
 
@@ -294,6 +296,21 @@ public:
         GlobalVector const& x, double const t, double const dt,
         double& elastic_energy, double& surface_energy, double& pressure_work,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
+
+    void computeFractureNormal(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
+
+    void computeFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        MeshLib::Mesh const& mesh) override;
 
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
         const unsigned integration_point) const override

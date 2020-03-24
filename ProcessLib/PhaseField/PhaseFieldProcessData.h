@@ -66,6 +66,13 @@ struct PhaseFieldProcessData
     double surface_energy = 0.0;
     double pressure_work = 0.0;
     int nl_itr = 0;
+    MeshLib::PropertyVector<double>* ele_grad_d = nullptr;
+    MeshLib::PropertyVector<double>* ele_d = nullptr;
+    MeshLib::PropertyVector<double>* ele_u_dot_grad_d = nullptr;
+    MeshLib::PropertyVector<double>* width = nullptr;
+    MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
+    double const li_disc = 60;
+    double cum_grad_d_CutOff = 0.8;
 };
 
 }  // namespace PhaseField

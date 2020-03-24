@@ -188,7 +188,6 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         (crack_scheme &&
          ((*crack_scheme == "propagating") || (*crack_scheme == "static")));
 
-
     auto const crack_vol_scheme =
         //! \ogs_file_param{prj__processes__process__PHASE_FIELD__crack_vol_scheme}
         config.getConfigParameterOptional<std::string>("crack_vol_scheme");
@@ -258,6 +257,26 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         secant_method = 1;
     else
         secant_method = 0;
+
+    auto li_disc_read =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__li_disc}
+        config.getConfigParameterOptional<double>("li_disc");
+
+    double li_disc;
+    if (li_disc_read)
+        li_disc = *li_disc_read;
+    else
+        li_disc = 60;
+
+    auto cut_off_read =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__cut_off}
+        config.getConfigParameterOptional<double>("cut_off");
+
+    double cut_off;
+    if (cut_off_read)
+        cut_off = *cut_off_read;
+    else
+        cut_off = 60;
 
     PhaseFieldProcessData<DisplacementDim> process_data{
         materialIDs(mesh),

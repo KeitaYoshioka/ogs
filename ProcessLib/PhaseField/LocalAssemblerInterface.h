@@ -14,6 +14,7 @@
 
 #include "NumLib/Extrapolation/ExtrapolatableElement.h"
 #include "ProcessLib/LocalAssemblerInterface.h"
+#include "MeshLib/Mesh.h"
 
 namespace ProcessLib
 {
@@ -51,6 +52,22 @@ struct PhaseFieldLocalAssemblerInterface
         GlobalVector const& x, double const t, double const dt,
         double& elastic_energy, double& surface_energy, double& pressure_work,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
+
+    virtual void computeFractureNormal(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) = 0;
+
+    virtual void computeFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        MeshLib::Mesh const& mesh) = 0;
+
 };
 
 }  // namespace PhaseField

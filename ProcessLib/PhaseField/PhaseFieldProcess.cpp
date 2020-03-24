@@ -9,16 +9,15 @@
  */
 
 #include "PhaseFieldProcess.h"
+
 #include <cassert>
 #ifdef USE_PETSC
 #include <petscvec.h>  //TODO: remove this by adding getVectorSum to PETScVector
 #endif
 #include "NumLib/DOF/ComputeSparsityPattern.h"
-
+#include "PhaseFieldFEM.h"
 #include "ProcessLib/Process.h"
 #include "ProcessLib/SmallDeformation/CreateLocalAssemblers.h"
-
-#include "PhaseFieldFEM.h"
 
 namespace ProcessLib
 {
@@ -141,6 +140,26 @@ void PhaseFieldProcess<DisplacementDim>::initializeConcreteProcess(
                          getExtrapolator(), _local_assemblers,
                          &LocalAssemblerInterface::getIntPtEpsilon));
 
+    _process_data.ele_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,
+        1);
+
+    _process_data.ele_u_dot_grad_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "u_dot_grad_d",
+        MeshLib::MeshItemType::Cell, 1);
+
+    _process_data.width = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "width", MeshLib::MeshItemType::Cell,
+        1);
+
+    _process_data.cum_grad_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "cum_grad_d",
+        MeshLib::MeshItemType::Cell, 1);
+
+    _process_data.ele_grad_d = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "grad_damage",
+        MeshLib::MeshItemType::Cell, DisplacementDim);
+
     // Initialize local assemblers after all variables have been set.
     GlobalExecutor::executeMemberOnDereferenced(
         &LocalAssemblerInterface::initialize, _local_assemblers,
@@ -252,7 +271,7 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
              dt);
     }
     else
-    _process_data.injected_volume = t;
+        _process_data.injected_volume = t;
 
     _x_previous_timestep =
         MathLib::MatrixVectorTraits<GlobalVector>::newInstance(*x[process_id]);
@@ -267,7 +286,7 @@ void PhaseFieldProcess<DisplacementDim>::preTimestepConcreteProcess(
 
 template <int DisplacementDim>
 void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
-    std::vector<GlobalVector*> const& /*x*/, const double /*t*/,
+    std::vector<GlobalVector*> const& /*x*/, const double t,
     const double /*delta_t*/, int const process_id)
 {
     if (isPhaseFieldProcess(process_id))
@@ -285,6 +304,14 @@ void PhaseFieldProcess<DisplacementDim>::postTimestepConcreteProcess(
 
         dof_tables.emplace_back(*_local_to_global_index_map);
         dof_tables.emplace_back(*_local_to_global_index_map_single_component);
+
+        INFO("Fracture width computataion after time step for output");
+        GlobalExecutor::executeMemberOnDereferenced(
+            &PhaseFieldLocalAssemblerInterface::computeFractureNormal,
+            _local_assemblers, dof_tables, _coupled_solutions);
+        GlobalExecutor::executeMemberOnDereferenced(
+            &PhaseFieldLocalAssemblerInterface::computeFractureWidth,
+            _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
     }
 }
 
@@ -376,7 +403,6 @@ void PhaseFieldProcess<DisplacementDim>::postNonLinearSolverConcreteProcess(
     _process_data.nl_itr++;
 
     auto update_pressure = [&](double const default_pressure) {
-
         if (_process_data.secant_method == 0)
         {
             return default_pressure;
