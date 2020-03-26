@@ -42,13 +42,15 @@ struct HydroMechanicalPhaseFieldProcessData
         Eigen::Matrix<double, DisplacementDim, 1> const& specific_body_force_,
         int split_method_, double const reg_param_, double const pf_irrv_,
         double const li_disc_, double const cum_grad_d_CutOff_,
-        int const at_param_, double const theta_, bool poroelastic_coupling_,
+        int const at_param_, double const fixed_strs1_,
+        double const fixed_strs2_, bool poroelastic_coupling_,
         ParameterLib::Parameter<double> const& intrinsic_permeability_,
         ParameterLib::Parameter<double> const& fluid_viscosity_,
         ParameterLib::Parameter<double> const& fluid_density_,
         ParameterLib::Parameter<double> const& grain_modulus_,
         ParameterLib::Parameter<double> const& drained_modulus_,
         ParameterLib::Parameter<double> const& porosity_,
+        ParameterLib::Parameter<double> const& width_init_,
         double const geostatic_pressure_,
         FluidType::Fluid_Type const fluid_type_,
         double const fluid_compressibility_,
@@ -68,7 +70,8 @@ struct HydroMechanicalPhaseFieldProcessData
           li_disc(li_disc_),
           cum_grad_d_CutOff(cum_grad_d_CutOff_),
           at_param(at_param_),
-          theta(theta_),
+          fixed_strs1(fixed_strs1_),
+          fixed_strs2(fixed_strs2_),
           poroelastic_coupling(poroelastic_coupling_),
           intrinsic_permeability(intrinsic_permeability_),
           fluid_viscosity(fluid_viscosity_),
@@ -76,6 +79,7 @@ struct HydroMechanicalPhaseFieldProcessData
           grain_modulus(grain_modulus_),
           drained_modulus(drained_modulus_),
           porosity(porosity_),
+          width_init(width_init_),
           geostatic_pressure(geostatic_pressure_),
           fluid_type(fluid_type_),
           fluid_compressibility(fluid_compressibility_),
@@ -115,7 +119,8 @@ struct HydroMechanicalPhaseFieldProcessData
     double const li_disc = 60;
     double cum_grad_d_CutOff = 0.5;
     int const at_param = 2;
-    double const theta = 0.0;
+    double const fixed_strs1 = 0.0;
+    double const fixed_strs2 = 0.0;
     bool poroelastic_coupling = true;
     ParameterLib::Parameter<double> const& intrinsic_permeability;
     ParameterLib::Parameter<double> const& fluid_viscosity;
@@ -123,6 +128,7 @@ struct HydroMechanicalPhaseFieldProcessData
     ParameterLib::Parameter<double> const& grain_modulus;
     ParameterLib::Parameter<double> const& drained_modulus;
     ParameterLib::Parameter<double> const& porosity;
+    ParameterLib::Parameter<double> const& width_init;
     MeshLib::PropertyVector<double>* ele_grad_d = nullptr;
     MeshLib::PropertyVector<double>* ele_d = nullptr;
     MeshLib::PropertyVector<double>* ele_u_dot_grad_d = nullptr;
@@ -146,7 +152,6 @@ struct HydroMechanicalPhaseFieldProcessData
     double pressure_work = 0.0;
     double dt;
     double t;
-
 
     /// will be removed after linking with MPL
     double getFluidDensity(double const& t,

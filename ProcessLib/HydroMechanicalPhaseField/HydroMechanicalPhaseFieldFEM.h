@@ -312,9 +312,13 @@ public:
         LocalCoupledSolutions const& local_coupled_solutions) override;
 
     void preTimestepConcrete(std::vector<double> const& /*local_x*/,
-                             double const /*t*/,
-                             double const /*delta_t*/) override
+                             double const t,
+                             double const dt) override
     {
+        ParameterLib::SpatialPosition x_position;
+        x_position.setElementID(_element.getID());
+        double const width_init = _process_data.width_init(t, x_position)[0];
+
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
 
@@ -322,6 +326,14 @@ public:
         {
             _ip_data[ip].pushBackState();
         }
+
+        if (_element.getID() == 973)
+            DBUG("something");
+
+        if (t == dt && t > 0 && (*_process_data.ele_d)[_element.getID()] < 1.0)
+            (*_process_data.width)[_element.getID()] = width_init;
+
+
         _process_data.width_prev = _process_data.width;
     }
 
@@ -436,7 +448,6 @@ private:
         assert(!indices.empty());
         auto const local_x = current_solution.get(indices);
 
-
         cache.clear();
         auto cache_matrix = MathLib::createZeroedMatrix<Eigen::Matrix<
             double, DisplacementDim, Eigen::Dynamic, Eigen::RowMajor>>(
@@ -461,7 +472,9 @@ private:
         {
             // Compute the velocity
             auto const& dNdx = _ip_data[ip].dNdx;
-            cache_matrix.col(ip).noalias() = -perm / mu * dNdx * p;
+            double trans = (perm + pow(width, 3) / 3) / mu;
+
+            cache_matrix.col(ip).noalias() = -trans * dNdx * p;
         }
 
         return cache;

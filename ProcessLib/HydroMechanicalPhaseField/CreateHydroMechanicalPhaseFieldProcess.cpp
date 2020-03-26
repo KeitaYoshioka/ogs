@@ -217,6 +217,13 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         "porosity", parameters, 1);
     DBUG("Use '%s' as porosity parameter.", porosity.name.c_str());
 
+    // Initial width
+    auto& width_init = ParameterLib::findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__width_init}
+        "width_init", parameters, 1);
+    DBUG("Use '%s' as width_init parameter.", width_init.name.c_str());
+
     // Geostatic pressure
     const double geostatic_pressure =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__geostatic_pressure}
@@ -300,15 +307,26 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         pf_irrv = 0.05;
 
-    auto theta_read =
+    auto fixed_strs1_read =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__theta}
-        config.getConfigParameterOptional<double>("theta");
+        config.getConfigParameterOptional<double>("fixed_strs1");
 
-    double theta;
-    if (theta_read)
-        theta = *theta_read;
+    double fixed_strs1;
+    if (fixed_strs1_read)
+        fixed_strs1 = *fixed_strs1_read;
     else
-        theta = 0.0;
+        fixed_strs1 = 0.0;
+
+    auto fixed_strs2_read =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__theta}
+        config.getConfigParameterOptional<double>("fixed_strs2");
+
+    double fixed_strs2;
+
+    if (fixed_strs2_read)
+        fixed_strs2 = *fixed_strs2_read;
+    else
+        fixed_strs2 = 0.0;
 
     auto li_disc_read =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__li_disc}
@@ -356,9 +374,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
 
     auto poroelastic_coupling =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__poroelastic_coupling}
-        config.getConfigParameter<bool>("poroelastic_coupling",
-                                            true);
-
+        config.getConfigParameter<bool>("poroelastic_coupling", true);
 
     HydroMechanicalPhaseFieldProcessData<DisplacementDim> process_data{
         materialIDs(mesh),
@@ -374,7 +390,8 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         li_disc,
         cut_off,
         at_param,
-        theta,
+        fixed_strs1,
+        fixed_strs2,
         poroelastic_coupling,
         intrinsic_permeability,
         fluid_viscosity,
@@ -382,6 +399,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         grain_modulus,
         drained_modulus,
         porosity,
+        width_init,
         geostatic_pressure,
         fluid_type,
         fluid_compressibility,

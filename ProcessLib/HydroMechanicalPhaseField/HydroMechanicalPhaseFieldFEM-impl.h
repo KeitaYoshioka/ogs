@@ -161,7 +161,9 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& identity2 = MathLib::KelvinVector::Invariants<
             MathLib::KelvinVector::KelvinVectorDimensions<
                 DisplacementDim>::value>::identity2;
-
+        // For debugging purpose
+        if (_element.getID() == 973 && ip == 0)
+            DBUG("dbg in hydro-mech");
         local_rhs.noalias() -=
             (B.transpose() * (sigma - d_ip * alpha * delta_p * identity2) -
              N_u.transpose() * rho * b - delta_p * N_u.transpose() * dNdx * d) *
@@ -223,8 +225,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     ParameterLib::SpatialPosition x_position;
     x_position.setElementID(_element.getID());
 
-    double width = (*_process_data.width)[_element.getID()];
-    double width_prev = (*_process_data.width_prev)[_element.getID()];
     static int const KelvinVectorSize =
         MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value;
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
@@ -235,13 +235,15 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
     double const mu = _process_data.fluid_viscosity(t, x_position)[0];
     double const ls = _process_data.crack_length_scale(t, x_position)[0];
-
-    auto const porosity = _process_data.porosity(t, x_position)[0];
+    double const porosity = _process_data.porosity(t, x_position)[0];
+    double const width = (*_process_data.width)[_element.getID()];
+    double const width_prev = (*_process_data.width_prev)[_element.getID()];
 
     double alpha = 0.0;
     if (_process_data.poroelastic_coupling)
         alpha = (1 - Kd / Ks);
-    double const theta = _process_data.theta;
+    double const fixed_strs1 = _process_data.fixed_strs1;
+    double const fixed_strs2 = _process_data.fixed_strs2;
     for (int ip = 0; ip < n_integration_points; ip++)
     {
         auto const& w = _ip_data[ip].integration_weight;
@@ -272,17 +274,18 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const dv_dt = (vol_strain - vol_strain_prev) / dt;
         //        double const dp_dt = (p_ip - p0_ip) / dt;
         double const dp_dt = (pressureNL - p0_ip) / dt;
-        // theta = 0.0 -> no pf modified fixed stress
+        // fixed_strs1 = 0.0 -> no pf modified fixed stress
         //               = 1.0 -> pf modified fixed stress
 
         double const grad_d_norm = (dNdx * d).norm();
 
-        double const modulus_rm = (1 - d_ip * d_ip) * theta * m_inv +
+        double const modulus_rm = (1 - d_ip * d_ip) * fixed_strs1 * m_inv +
                                   d_ip * d_ip * alpha * alpha / Kd;
 
-        mass.noalias() += ((theta + (1 - theta) * d_ip * d_ip) * m_inv +
-                           d_ip * d_ip * alpha * alpha / Kd) *
-                          N.transpose() * N * w;
+        mass.noalias() +=
+            ((fixed_strs1 + (1 - fixed_strs1) * d_ip * d_ip) * m_inv +
+             d_ip * d_ip * alpha * alpha / Kd) *
+            N.transpose() * N * w;
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
 
@@ -296,9 +299,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         else
             pf_scaling = (1 - d_ip) * (1 - d_ip) / ls;
 
+        // For debugging purpose
+        if (_element.getID() == 973 && ip == 0)
+            DBUG("dbg in hydro");
+
         //        pf_scaling = 0.0;
         if (d_ip > 0.0 && d_ip < 0.99)
         {
+
             //            pf_scaling = grad_d_norm;
             double const dw_dt = (width - width_prev) / dt;
             auto norm_gamma = (dNdx * d).normalized();
@@ -306,18 +314,20 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 (dNdx - norm_gamma * norm_gamma.transpose() * dNdx).eval();
             double const frac_trans = 4 * pow(width, 3) / (12 * mu);
 
-            mass.noalias() +=
-                (width * beta_p / rho_fr * pf_scaling) * N.transpose() * N * w;
+            mass.noalias() += width * beta_p / rho_fr *
+                              (1 + d_ip * d_ip / m_inv / Kd * fixed_strs2) *
+                              pf_scaling * N.transpose() * N * w;
 
             laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
                                   dNdx_gamma * pf_scaling) *
                                  w;
-            local_rhs.noalias() += -(dw_dt * pf_scaling) * N * w;
+            local_rhs.noalias() +=
+                -(dw_dt + dp_dt * d_ip * d_ip / m_inv / Kd * width * beta_p /
+                              rho_fr * fixed_strs2) *
+                pf_scaling * N * w;
         }
 
-        // For debugging purpose
-        if (_element.getID() == 973 && ip == 0)
-            DBUG("something");
+
     }
     local_Jac.noalias() = laplace + mass / dt;
 

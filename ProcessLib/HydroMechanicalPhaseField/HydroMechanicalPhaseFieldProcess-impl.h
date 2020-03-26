@@ -291,6 +291,23 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
 {
     DBUG("PreTimestep HydroMechanicalPhaseFieldProcess.");
 
+    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+        dof_tables;
+
+    dof_tables.emplace_back(getDOFTableByProcessID(_hydro_process_id));
+    dof_tables.emplace_back(
+        getDOFTableByProcessID(_mechanics_related_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
+
+    if (process_id == _phase_field_process_id && t==0)
+    {
+        INFO("Fracture normal computation");
+        GlobalExecutor::executeMemberOnDereferenced(
+            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                computeFractureNormal,
+            _local_assemblers, dof_tables, _coupled_solutions);
+    }
+
     _process_data.dt = dt;
     _process_data.t = t;
     _x_previous_timestep[process_id] =
