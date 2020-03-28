@@ -680,7 +680,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         int count_frac_elem = 0;
         elem_list.push_back(current_ele->getID());
 
-        while (elem_d < 0.99 && deviation >= 0.0)
+        while (elem_d < 0.99 && deviation > -0.05)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
@@ -772,7 +772,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         count_i = 0;
         count_frac_elem = 0;
-        while (elem_d < 0.99 && deviation <= 0.0)
+        while (elem_d < 0.99 && deviation <= 0.05)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
