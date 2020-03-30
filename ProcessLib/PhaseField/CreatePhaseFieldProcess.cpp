@@ -296,7 +296,9 @@ std::unique_ptr<Process> createPhaseFieldProcess(
         secant_method,
         reg_param,
         pf_irrv,
-        at_param};
+        at_param,
+        li_disc,
+        cut_off};
 
     SecondaryVariableCollection secondary_variables;
 

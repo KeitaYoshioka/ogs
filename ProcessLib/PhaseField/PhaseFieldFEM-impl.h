@@ -648,7 +648,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             _process_data.crack_length_scale(t, x_position)[0] *
             _process_data.li_disc;
 
-        double CutOff = 0.8;  //_process_data.cum_grad_d_CutOff;
+        double CutOff = _process_data.cum_grad_d_CutOff;
 
         double deviation = 1.0;
         double cod_start = 0.0, cod_end = 0.0;
@@ -680,7 +680,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         int count_frac_elem = 0;
         elem_list.push_back(current_ele->getID());
 
-        while (elem_d < 0.99 && deviation > -0.05)
+        while (elem_d < 0.99 && deviation >= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
@@ -722,7 +722,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                     DisplacementDim);
             current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
             current_norm = current_ele_grad_d.normalized();
-            if (current_ele_grad_d.norm() == 0.0)
+            if (current_ele_grad_d.norm() == 0.0 || elem_d < 0.05)
             {
                 current_norm = old_norm;
                 count_frac_elem++;
@@ -772,7 +772,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         count_i = 0;
         count_frac_elem = 0;
-        while (elem_d < 0.99 && deviation <= 0.05)
+        while (elem_d < 0.99 && deviation <= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
@@ -812,7 +812,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                     DisplacementDim);
             current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
             current_norm = current_ele_grad_d.normalized();
-            if (current_ele_grad_d.norm() == 0.0)
+            if (current_ele_grad_d.norm() == 0.0 || elem_d < 0.05)
             {
                 current_norm = old_norm;
                 if (count_i == 1)
@@ -843,8 +843,10 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 cumul_ele_grad_d +
                 0.5 * dist * (old_ele_grad_d + current_ele_grad_d);
         }
-        if (width < 0.0 || cumul_ele_grad_d.norm() > CutOff ||
-            /* temporal > -0.6 || */ count_frac_elem > 10)
+        if (width < 0.0 ||
+            cumul_ele_grad_d.norm() > CutOff  // ||
+                                              /*  temporal > -0.6 */
+            || count_frac_elem > 10)
             width = 0.0;
         cumul_grad_d = cumul_ele_grad_d.norm();
 

@@ -53,6 +53,8 @@ struct PhaseFieldProcessData
     double reg_param = -0.01;
     double pf_irrv = 0.05;
     int at_param = 2;
+    double const li_disc = 60;
+    double cum_grad_d_CutOff = 0.8;
 
     double const unity_pressure = 1.0;
     double pressure = 0.0;
@@ -71,8 +73,6 @@ struct PhaseFieldProcessData
     MeshLib::PropertyVector<double>* ele_u_dot_grad_d = nullptr;
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
-    double const li_disc = 60;
-    double cum_grad_d_CutOff = 0.8;
 };
 
 }  // namespace PhaseField
