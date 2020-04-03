@@ -854,7 +854,7 @@ void PhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             for (std::size_t i = 0; i < elem_list.size(); i++)
             {
-                if ((*_process_data.ele_d)[elem_list[i]] < 1.e-16)
+                if ((*_process_data.ele_d)[elem_list[i]] < 0.05)
                 {
                     (*_process_data.width)[elem_list[i]] = width;
                     (*_process_data.cum_grad_d)[elem_list[i]] = temporal;
