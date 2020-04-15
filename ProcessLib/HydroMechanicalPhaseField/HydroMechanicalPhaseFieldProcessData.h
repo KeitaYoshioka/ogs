@@ -135,6 +135,7 @@ struct HydroMechanicalPhaseFieldProcessData
     MeshLib::PropertyVector<double>* width = nullptr;
     MeshLib::PropertyVector<double>* width_prev = nullptr;
     MeshLib::PropertyVector<double>* cum_grad_d = nullptr;
+    MeshLib::PropertyVector<double>* frac_velocity = nullptr;
     double const geostatic_pressure;
 
     std::vector<bool> width_comp_visited;

@@ -170,12 +170,12 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
                          &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                              getIntPtEpsilon));
 
-    _secondary_variables.addSecondaryVariable(
-        "velocity",
-        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
-                         _local_assemblers,
-                         &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                             getIntPtDarcyVelocity));
+//    _secondary_variables.addSecondaryVariable(
+//        "velocity",
+//        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
+//                         _local_assemblers,
+//                         &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+//                             getIntPtFracVelocity));
 
     _process_data.ele_d = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,
@@ -199,6 +199,10 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
 
     _process_data.ele_grad_d = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "grad_damage",
+        MeshLib::MeshItemType::Cell, DisplacementDim);
+
+    _process_data.frac_velocity = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "frac_velocity",
         MeshLib::MeshItemType::Cell, DisplacementDim);
 }
 
@@ -299,7 +303,7 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    if (process_id == _phase_field_process_id && t==0)
+    if (process_id == _phase_field_process_id && t == 0)
     {
         INFO("Fracture normal computation");
         GlobalExecutor::executeMemberOnDereferenced(
@@ -359,6 +363,21 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
              _process_data.elastic_energy, _process_data.surface_energy,
              _process_data.pressure_work);
              */
+    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+        dof_tables;
+    dof_tables.emplace_back(getDOFTableByProcessID(_hydro_process_id));
+    dof_tables.emplace_back(
+        getDOFTableByProcessID(_mechanics_related_process_id));
+    dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
+
+    if (process_id == _phase_field_process_id)
+    {
+        INFO("Fracture velocity computation");
+        GlobalExecutor::executeMemberOnDereferenced(
+            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                computeFractureVelocity,
+            _local_assemblers, dof_tables, _coupled_solutions);
+    }
 }
 
 template <int DisplacementDim>
