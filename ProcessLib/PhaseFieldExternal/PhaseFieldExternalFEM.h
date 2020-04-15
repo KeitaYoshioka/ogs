@@ -72,12 +72,11 @@ struct IntegrationPointData final
                                     ParameterLib::SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
-                                    double const alpha, double const delta_T,
+                                    double const alpha_T, double const delta_T,
+                                    double const alpha_p, double const delta_p,
                                     double const degradation, int split,
                                     double const reg_param)
     {
-        eps_m.noalias() = eps - alpha * delta_T * Invariants::identity2;
-
         auto linear_elastic_mp =
             static_cast<MaterialLib::Solids::LinearElasticIsotropic<
                 DisplacementDim> const&>(solid_material)
@@ -86,6 +85,10 @@ struct IntegrationPointData final
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
         auto const lambda = linear_elastic_mp.lambda(t, x);
+        double const coef = alpha_p / DisplacementDim / bulk_modulus;
+        eps_m.noalias() =
+            eps - (alpha_T * delta_T + alpha_p * delta_p) * Invariants::identity2;
+
         if (split == 0)
         {
             C_compressive = BMatricesType::KelvinMatrixType::Zero(

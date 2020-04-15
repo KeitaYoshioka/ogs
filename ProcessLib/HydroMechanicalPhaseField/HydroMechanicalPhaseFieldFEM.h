@@ -45,6 +45,7 @@ struct IntegrationPointData final
     typename ShapeMatrixType::GlobalDimNodalMatrixType dNdx;
 
     typename BMatricesType::KelvinVectorType eps, eps_prev;
+    typename BMatricesType::KelvinVectorType eps_m;
 
     MaterialLib::Solids::MechanicsBase<DisplacementDim> const& solid_material;
     std::unique_ptr<typename MaterialLib::Solids::MechanicsBase<
@@ -70,13 +71,17 @@ struct IntegrationPointData final
 
     void fixedStressNL() { pressureNL = pressure; }
 
+    using Invariants = MathLib::KelvinVector::Invariants<
+        MathLib::KelvinVector::KelvinVectorDimensions<DisplacementDim>::value>;
+
     template <typename DisplacementVectorType>
     void updateConstitutiveRelation(double const t,
                                     ParameterLib::SpatialPosition const& x,
                                     double const /*dt*/,
                                     DisplacementVectorType const& /*u*/,
                                     double const degradation, int const split,
-                                    double const reg_param)
+                                    double const reg_param, double const alpha,
+                                    double const delta_p)
     {
         auto linear_elastic_mp =
             static_cast<MaterialLib::Solids::LinearElasticIsotropic<
@@ -86,6 +91,9 @@ struct IntegrationPointData final
         auto const bulk_modulus = linear_elastic_mp.bulk_modulus(t, x);
         auto const mu = linear_elastic_mp.mu(t, x);
         auto const lambda = linear_elastic_mp.lambda(t, x);
+        double const coef = alpha / DisplacementDim / bulk_modulus;
+
+        eps_m.noalias() = eps - coef * delta_p * Invariants::identity2;
 
         if (split == 0)
         {
@@ -95,14 +103,14 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, strain_energy_tensile,
                      elastic_energy) = MaterialLib::Solids::Phasefield::
                 calculateIsotropicDegradedStress<DisplacementDim>(
-                    degradation, bulk_modulus, mu, eps);
+                    degradation, bulk_modulus, mu, eps_m);
         }
         else if (split == 1)
         {
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressAmor<
-                    DisplacementDim>(degradation, bulk_modulus, mu, eps,
+                    DisplacementDim>(degradation, bulk_modulus, mu, eps_m,
                                      reg_param);
         }
         else if (split == 2)
@@ -110,14 +118,14 @@ struct IntegrationPointData final
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMiehe<
-                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
+                    DisplacementDim>(degradation, lambda, mu, eps_m, reg_param);
         }
         else if (split == 3)
         {
             std::tie(sigma, sigma_tensile, C_tensile, C_compressive,
                      strain_energy_tensile, elastic_energy) =
                 MaterialLib::Solids::Phasefield::calculateDegradedStressMasonry<
-                    DisplacementDim>(degradation, lambda, mu, eps, reg_param);
+                    DisplacementDim>(degradation, lambda, mu, eps_m, reg_param);
         }
     }
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -234,6 +242,7 @@ public:
                     DisplacementDim>::value;
             ip_data.eps.setZero(kelvin_vector_size);
             ip_data.eps_prev.resize(kelvin_vector_size);
+            ip_data.eps_m.resize(kelvin_vector_size);
             ip_data.C_tensile.setZero(kelvin_vector_size, kelvin_vector_size);
             ip_data.C_compressive.setZero(kelvin_vector_size,
                                           kelvin_vector_size);
@@ -333,7 +342,6 @@ public:
         if (t == dt && t > 0 && (*_process_data.ele_d)[_element.getID()] < 1.0)
             (*_process_data.width)[_element.getID()] = width_init;
 
-
         _process_data.width_prev = _process_data.width;
     }
 
@@ -373,6 +381,13 @@ public:
             dof_tables,
         double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
         MeshLib::Mesh const& mesh) override;
+
+    void computeFractureVelocity(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
     /*    void computeEnergy(
             std::size_t mesh_item_id,
@@ -436,49 +451,54 @@ private:
 
         return cache;
     }
-    virtual std::vector<double> const& getIntPtDarcyVelocity(
-        const double t,
-        GlobalVector const& current_solution,
-        NumLib::LocalToGlobalIndexMap const& dof_table,
-        std::vector<double>& cache) const override
-    {
-        auto const num_intpts = _ip_data.size();
+    //    virtual std::vector<double> const& getIntPtFracVelocity(
+    //        const double t,
+    //        GlobalVector const& current_solution,
+    //        NumLib::LocalToGlobalIndexMap const& dof_table,
+    //        std::vector<double>& cache) const override
+    //    {
+    //        auto const num_intpts = _ip_data.size();
 
-        auto const indices = NumLib::getIndices(_element.getID(), dof_table);
-        assert(!indices.empty());
-        auto const local_x = current_solution.get(indices);
+    //        auto const indices = NumLib::getIndices(_element.getID(),
+    //        dof_table); assert(!indices.empty()); auto const local_x =
+    //        current_solution.get(indices);
 
-        cache.clear();
-        auto cache_matrix = MathLib::createZeroedMatrix<Eigen::Matrix<
-            double, DisplacementDim, Eigen::Dynamic, Eigen::RowMajor>>(
-            cache, DisplacementDim, num_intpts);
+    //        cache.clear();
+    //        auto cache_matrix = MathLib::createZeroedMatrix<Eigen::Matrix<
+    //            double, DisplacementDim, Eigen::Dynamic, Eigen::RowMajor>>(
+    //            cache, DisplacementDim, num_intpts);
 
-        auto const p =
-            Eigen::Map<typename ShapeMatricesType::template VectorType<
-                _pressure_size> const>(local_x.data() + _pressure_index,
-                                       _pressure_size);
+    //        auto const p =
+    //            Eigen::Map<typename ShapeMatricesType::template VectorType<
+    //                _pressure_size> const>(local_x.data() + _pressure_index,
+    //                                       _pressure_size);
 
-        unsigned const n_integration_points =
-            _integration_method.getNumberOfPoints();
+    //        unsigned const n_integration_points =
+    //            _integration_method.getNumberOfPoints();
 
-        ParameterLib::SpatialPosition x_position;
-        x_position.setElementID(_element.getID());
+    //        ParameterLib::SpatialPosition x_position;
+    //        x_position.setElementID(_element.getID());
 
-        double width = (*_process_data.width)[_element.getID()];
-        double const mu = _process_data.fluid_viscosity(t, x_position)[0];
-        double const perm =
-            _process_data.intrinsic_permeability(t, x_position)[0];
-        for (unsigned ip = 0; ip < n_integration_points; ip++)
-        {
-            // Compute the velocity
-            auto const& dNdx = _ip_data[ip].dNdx;
-            double trans = (perm + pow(width, 3) / 3) / mu;
+    //        double damage = (*_process_data.ele_d)[_element.getID()];
+    //        if (damage < 0.05)
+    //        {
+    //            double width = (*_process_data.width)[_element.getID()];
+    //            double const mu = _process_data.fluid_viscosity(t,
+    //            x_position)[0]; double const perm =
+    //                _process_data.intrinsic_permeability(t, x_position)[0];
+    //            for (unsigned ip = 0; ip < n_integration_points; ip++)
+    //            {
+    //                // Compute the velocity
+    //                auto const& dNdx = _ip_data[ip].dNdx;
+    //                double trans = (perm + pow(width, 3) / 3) / mu;
 
-            cache_matrix.col(ip).noalias() = -trans * dNdx * p;
-        }
+    //                cache_matrix.col(ip).noalias() = -trans * dNdx * p;
+    //            }
+    //        }
 
-        return cache;
-    }
+    //        return cache;
+    //    }
+
     void assembleWithJacobianForDeformationEquations(
         double const t, double const dt, std::vector<double> const& local_xdot,
         const double dxdot_dx, const double dx_dx,

@@ -136,7 +136,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const degradation = d_ip * d_ip * (1 - k) + k;
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
-            reg_param);
+            reg_param, alpha, delta_p);
 
         auto const& sigma = _ip_data[ip].sigma;
         auto const& C_tensile = _ip_data[ip].C_tensile;
@@ -165,8 +165,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         if (_element.getID() == 973 && ip == 0)
             DBUG("dbg in hydro-mech");
         local_rhs.noalias() -=
-            (B.transpose() * (sigma - d_ip * alpha * delta_p * identity2) -
-             N_u.transpose() * rho * b - delta_p * N_u.transpose() * dNdx * d) *
+            (B.transpose() * sigma - N_u.transpose() * rho * b -
+             delta_p * N_u.transpose() * dNdx * d) *
             w;
 
         local_Jac.noalias() += B.transpose() * C_eff * B * w;
@@ -306,7 +306,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         //        pf_scaling = 0.0;
         if (d_ip > 0.0 && d_ip < 0.99)
         {
-
             //            pf_scaling = grad_d_norm;
             double const dw_dt = (width - width_prev) / dt;
             auto norm_gamma = (dNdx * d).normalized();
@@ -326,8 +325,6 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                               rho_fr * fixed_strs2) *
                 pf_scaling * N * w;
         }
-
-
     }
     local_Jac.noalias() = laplace + mass / dt;
 
@@ -394,7 +391,8 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& dNdx = _ip_data[ip].dNdx;
 
         double const p_ip = N.dot(p);
-        double const delta_p = p_ip - p_geo;
+
+        double const delta_p = (p_ip - p_geo);
 
         double const degradation = ele_d * ele_d * (1 - k) + k;
         auto const x_coord =
@@ -410,7 +408,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(
             t, x_position, dt, u, degradation, _process_data.split_method,
-            reg_param);
+            reg_param, alpha, delta_p);
 
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 
@@ -441,8 +439,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                  gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
                            d -
                        N.transpose() / ls) -
-                 delta_p * dNdx.transpose() * N_u * u -
-                 N.transpose() * alpha * delta_p) *
+                 delta_p * dNdx.transpose() * N_u * u) *
                 w;
         }
         // For AT1
@@ -457,11 +454,68 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                 (N.transpose() * N * d * 2 * strain_energy_tensile +
                  gc * (-0.375 * N.transpose() / ls +
                        0.75 * dNdx.transpose() * dNdx * ls * d) -
-                 delta_p * dNdx.transpose() * N_u * u -
-                 N.transpose() * alpha * delta_p) *
+                 delta_p * dNdx.transpose() * N_u * u) *
                 w;
         }
     }
+}
+
+template <typename ShapeFunction, typename IntegrationMethod,
+          int DisplacementDim>
+void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
+                                             DisplacementDim>::
+    computeFractureVelocity(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        CoupledSolutionsForStaggeredScheme const* const cpl_xs)
+{
+    assert(cpl_xs != nullptr);
+
+    std::vector<std::vector<GlobalIndexType>> indices_of_processes;
+    indices_of_processes.reserve(dof_tables.size());
+    std::transform(dof_tables.begin(), dof_tables.end(),
+                   std::back_inserter(indices_of_processes),
+                   [&](NumLib::LocalToGlobalIndexMap const& dof_table) {
+                       return NumLib::getIndices(mesh_item_id, dof_table);
+                   });
+
+    auto local_coupled_xs =
+        getCoupledLocalSolutions(cpl_xs->coupled_xs, indices_of_processes);
+    assert(local_coupled_xs.size() ==
+           _phasefield_size + _displacement_size + _pressure_size);
+
+    auto const p = Eigen::Map<PressureVector const>(
+        &local_coupled_xs[_pressure_index], _pressure_size);
+
+    int const n_integration_points = _integration_method.getNumberOfPoints();
+
+    GlobalDimVectorType frac_velocity =
+        GlobalDimVectorType::Zero(DisplacementDim);
+    ParameterLib::SpatialPosition x_position;
+    x_position.setElementID(_element.getID());
+    double damage = (*_process_data.ele_d)[_element.getID()];
+    double width = (*_process_data.width)[_element.getID()];
+    double const mu =
+        _process_data.fluid_viscosity(_process_data.t, x_position)[0];
+    double const perm =
+        _process_data.intrinsic_permeability(_process_data.t, x_position)[0];
+
+    if (damage < 0.05)
+    {
+        for (int ip = 0; ip < n_integration_points; ip++)
+        {
+            auto const& dNdx = _ip_data[ip].dNdx;
+            double trans = (perm + pow(width, 3) / 3) / mu;
+            frac_velocity += -trans * dNdx * p;
+        }
+        frac_velocity = frac_velocity / n_integration_points;
+    }
+
+    for (int i = 0; i < DisplacementDim; ++i)
+        _process_data.frac_velocity->getComponent(_element.getID(), i) =
+            frac_velocity[i];
 }
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -693,7 +747,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     std::vector<int> elem_list;
     double temporal = -1.0;
 
-    if (0.0 < elem_d && elem_d < 0.99 &&
+    if (0.0 < elem_d && elem_d < 1.0 &&
         _process_data.width_comp_visited[_element.getID()] == false)
     {
         std::vector<std::vector<GlobalIndexType>> indices_of_processes;
@@ -746,7 +800,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         int count_frac_elem = 0;
         elem_list.push_back(current_ele->getID());
 
-        while (elem_d < 0.99 && deviation >= 0.0)
+        while (elem_d < 1.0 && deviation >= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
@@ -774,7 +828,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
             if (std::find(elem_list.begin(), elem_list.end(),
                           neighbor_ele->getID()) == elem_list.end() &&
-                elem_d < 0.99)
+                elem_d < 1.0)
                 elem_list.push_back(neighbor_ele->getID());
 
             // check the normal vector
@@ -788,7 +842,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                     DisplacementDim);
             current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
             current_norm = current_ele_grad_d.normalized();
-            if (current_ele_grad_d.norm() == 0.0)
+            if (current_ele_grad_d.norm() == 0.0 /*|| elem_d < 0.05*/)
             {
                 current_norm = old_norm;
                 count_frac_elem++;
@@ -838,7 +892,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
 
         count_i = 0;
         count_frac_elem = 0;
-        while (elem_d < 0.99 && deviation <= 0.0)
+        while (elem_d < 1.0 && deviation <= 0.0)
         {
             // find the host element at the end of integral
             pnt_end = pnt_start + delta_l;
@@ -864,7 +918,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             elem_d = (*_process_data.ele_d)[neighbor_ele->getID()];
             if (std::find(elem_list.begin(), elem_list.end(),
                           neighbor_ele->getID()) == elem_list.end() &&
-                elem_d < 0.99)
+                elem_d < 1.0)
                 elem_list.push_back(neighbor_ele->getID());
 
             // check the normal vector
@@ -878,7 +932,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
                     DisplacementDim);
             current_ele_grad_d.head(DisplacementDim) = current_ele_grad_d_head;
             current_norm = current_ele_grad_d.normalized();
-            if (current_ele_grad_d.norm() == 0.0)
+            if (current_ele_grad_d.norm() == 0.0 /*|| elem_d < 0.05*/)
             {
                 current_norm = old_norm;
                 if (count_i == 1)
@@ -918,7 +972,7 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         {
             for (std::size_t i = 0; i < elem_list.size(); i++)
             {
-                if ((*_process_data.ele_d)[elem_list[i]] < 1.e-16)
+                if ((*_process_data.ele_d)[elem_list[i]] < 0.05)
                 {
                     (*_process_data.width)[elem_list[i]] = width;
                     (*_process_data.cum_grad_d)[elem_list[i]] = temporal;

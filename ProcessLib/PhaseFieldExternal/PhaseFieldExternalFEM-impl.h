@@ -54,7 +54,6 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         std::vector<double>& local_b_data, std::vector<double>& local_Jac_data,
         LocalCoupledSolutions const& local_coupled_solutions)
 {
-
     assert(local_coupled_solutions.local_coupled_xs.size() ==
            _phasefield_size + _displacement_size);
 
@@ -80,9 +79,9 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     x_position.setElementID(_element.getID());
     double const k = _process_data.residual_stiffness(t, x_position)[0];
     double rho_sr = _process_data.solid_density(t, x_position)[0];
-    double const alpha = _process_data.linear_thermal_expansion_coefficient(
-        t, x_position)[0];
-    double const beta = _process_data.biot_coefficient(t, x_position)[0];
+    double const alpha_T =
+        _process_data.linear_thermal_expansion_coefficient(t, x_position)[0];
+    double const alpha_p = _process_data.biot_coefficient(t, x_position)[0];
     auto const& b = _process_data.specific_body_force;
     double const T_ext = _process_data.temperature_ext(t, x_position)[0];
     double const T0 = _process_data.reference_temperature;
@@ -92,7 +91,6 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
 
     for (int ip = 0; ip < n_integration_points; ip++)
     {
-
         auto const& w = _ip_data[ip].integration_weight;
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
@@ -115,15 +113,15 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                 DisplacementDim>::value>::identity2;
 
         double const delta_T = T_ext - T0;
-        double const delta_P = P_ext - P0;
+        double const delta_p = P_ext - P0;
         // calculate real density
-        double const rho_s = rho_sr / (1 + 3 * alpha * delta_T);
+        double const rho_s = rho_sr / (1 + 3 * alpha_T * delta_T);
 
         double const degradation = d_ip * d_ip * (1 - k) + k;
 
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, alpha, delta_T, degradation,
-            _process_data.split_method, reg_param);
+            t, x_position, dt, u, alpha_T, delta_T, alpha_p, delta_p,
+            degradation, _process_data.split_method, reg_param);
 
         auto const& C_tensile = _ip_data[ip].C_tensile;
         auto const& C_compressive = _ip_data[ip].C_compressive;
@@ -146,9 +144,8 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         local_Jac.noalias() += B.transpose() * C_eff * B * w;
 
         local_rhs.noalias() -=
-            (B.transpose() * (sigma - d_ip * beta * delta_P * identity2) -
-             N_u.transpose() * rho_s * b -
-             delta_P * N_u.transpose() * dNdx * d) *
+            (B.transpose() * sigma - N_u.transpose() * rho_s * b -
+             delta_p * N_u.transpose() * dNdx * d) *
             w;
     }
 }
@@ -182,16 +179,16 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
     double const gc = _process_data.crack_resistance(t, x_position)[0];
     double const ls = _process_data.crack_length_scale(t, x_position)[0];
     double const k = _process_data.residual_stiffness(t, x_position)[0];
-    double const alpha = _process_data.linear_thermal_expansion_coefficient(
-        t, x_position)[0];
-    double const beta = _process_data.biot_coefficient(t, x_position)[0];
+    double const alpha_T =
+        _process_data.linear_thermal_expansion_coefficient(t, x_position)[0];
+    double const alpha_p = _process_data.biot_coefficient(t, x_position)[0];
     double const T_ext = _process_data.temperature_ext(t, x_position)[0];
     double const T0 = _process_data.reference_temperature;
     double const P_ext = _process_data.pressure_ext(t, x_position)[0];
     double const P0 = _process_data.reference_pressure;
 
     double const delta_T = T_ext - T0;
-    double const delta_P = P_ext - P0;
+    double const delta_p = P_ext - P0;
     double const& reg_param = _process_data.reg_param;
 
     int const n_integration_points = _integration_method.getNumberOfPoints();
@@ -201,7 +198,6 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
         auto const& N = _ip_data[ip].N;
         auto const& dNdx = _ip_data[ip].dNdx;
         double const d_ip = N.dot(d);
-
 
         double degradation;
 
@@ -225,7 +221,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
 
         eps.noalias() = B * u;
         _ip_data[ip].updateConstitutiveRelation(
-            t, x_position, dt, u, alpha, delta_T, degradation,
+            t, x_position, dt, u, alpha_T, delta_T,alpha_p, delta_p, degradation,
             _process_data.split_method, reg_param);
         auto const& strain_energy_tensile = _ip_data[ip].strain_energy_tensile;
 
@@ -253,8 +249,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                  gc * ((N.transpose() * N / ls + dNdx.transpose() * dNdx * ls) *
                            d -
                        N.transpose() / ls) -
-                 delta_P * dNdx.transpose() * N_u * u -
-                 N.transpose() * beta * delta_P) *
+                 delta_p * dNdx.transpose() * N_u * u ) *
                 w;
         }
         // For AT1
@@ -269,8 +264,7 @@ void PhaseFieldExternalLocalAssembler<ShapeFunction, IntegrationMethod,
                 (N.transpose() * N * d * 2 * strain_energy_tensile +
                  gc * (-0.375 * N.transpose() / ls +
                        0.75 * dNdx.transpose() * dNdx * ls * d) -
-                 delta_P * dNdx.transpose() * N_u * u -
-                 N.transpose() * beta * delta_P) *
+                 delta_p * dNdx.transpose() * N_u * u ) *
                 w;
         }
     }
