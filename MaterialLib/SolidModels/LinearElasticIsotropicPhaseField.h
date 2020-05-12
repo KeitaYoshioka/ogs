@@ -319,10 +319,10 @@ calculateDegradedStressMasonry(
 
     for (int i = 0; i < 3; i++)
     {
-        M_kelvin[permutation[i]] = MathLib::KelvinVector::tensorToKelvin<
+        M_kelvin[i] = MathLib::KelvinVector::tensorToKelvin<
             DisplacementDim>(
-            eigen_solver.eigenvectors().real().col(i).normalized() *
-            eigen_solver.eigenvectors().real().col(i).normalized().transpose());
+            eigen_solver.eigenvectors().real().col(permutation[i]).normalized() *
+            eigen_solver.eigenvectors().real().col(permutation[i]).normalized().transpose());
     }
 
     double const strain_energy_tensile =
