@@ -225,9 +225,14 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     DBUG("Use '%s' as width_init parameter.", width_init.name.c_str());
 
     // Geostatic pressure
-    const double geostatic_pressure =
+    auto gp_read =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__geostatic_pressure}
-        config.getConfigParameter<double>("geostatic_pressure");
+        config.getConfigParameterOptional<double>("geostatic_pressure");
+    double geostatic_pressure;
+    if (gp_read)
+        geostatic_pressure = *gp_read;
+    else
+        geostatic_pressure = 0.05;
 
     auto const fluid_type = FluidType::strToFluidType(
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_type}
