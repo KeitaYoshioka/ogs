@@ -230,6 +230,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
     using Invariants = MathLib::KelvinVector::Invariants<KelvinVectorSize>;
     int const n_integration_points = _integration_method.getNumberOfPoints();
 
+    MaterialLib::Solids::MechanicsBase<DisplacementDim> const& solid_material =
+        *_process_data.solid_materials[0];
+
+    auto const bulk_modulus = solid_material.getBulkModulus(t, x_position);
     double const Kd = _process_data.drained_modulus(t, x_position)[0];
     double const Ks = _process_data.grain_modulus(t, x_position)[0];
     double const perm = _process_data.intrinsic_permeability(t, x_position)[0];
@@ -280,11 +284,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
         double const grad_d_norm = (dNdx * d).norm();
 
         double const modulus_rm = (1 - d_ip * d_ip) * fixed_strs1 * m_inv +
-                                  d_ip * d_ip * alpha * alpha / Kd;
+                                  d_ip * d_ip * alpha * alpha / bulk_modulus;
 
         mass.noalias() +=
             ((fixed_strs1 + (1 - fixed_strs1) * d_ip * d_ip) * m_inv +
-             d_ip * d_ip * alpha * alpha / Kd) *
+             d_ip * d_ip * alpha * alpha / bulk_modulus) *
             N.transpose() * N * w;
 
         laplace.noalias() += (perm / mu * dNdx.transpose() * dNdx) * w;
@@ -300,11 +304,11 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             pf_scaling = (1 - d_ip) * (1 - d_ip) / ls;
 
         // For debugging purpose
-        if (_element.getID() == 973 && ip == 0)
+        if (_element.getID() == 4901 && ip == 0)
             DBUG("dbg in hydro");
 
         //        pf_scaling = 0.0;
-        if (d_ip > 0.0 && d_ip < 0.99)
+        if (d_ip < 1.0)
         {
             //            pf_scaling = grad_d_norm;
             double const dw_dt = (width - width_prev) / dt;
@@ -314,14 +318,14 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             double const frac_trans = 4 * pow(width, 3) / (12 * mu);
 
             mass.noalias() += width * beta_p / rho_fr *
-                              (1 + d_ip * d_ip / m_inv / Kd * fixed_strs2) *
+                              (1 + d_ip * d_ip / m_inv / bulk_modulus * fixed_strs2) *
                               pf_scaling * N.transpose() * N * w;
 
             laplace.noalias() += (frac_trans * dNdx_gamma.transpose() *
                                   dNdx_gamma * pf_scaling) *
                                  w;
             local_rhs.noalias() +=
-                -(dw_dt + dp_dt * d_ip * d_ip / m_inv / Kd * width * beta_p /
+                -(dw_dt + dp_dt * d_ip * d_ip / m_inv / bulk_modulus * width * beta_p /
                               rho_fr * fixed_strs2) *
                 pf_scaling * N * w;
         }
@@ -425,6 +429,10 @@ void HydroMechanicalPhaseFieldLocalAssembler<ShapeFunction, IntegrationMethod,
             N_u.template block<1, _displacement_size / DisplacementDim>(
                    i, i * _displacement_size / DisplacementDim)
                 .noalias() = N;
+
+        // For debugging purpose
+        if (_element.getID() == 973 && ip == 0)
+            DBUG("dbg in pf");
 
         // For AT2
         if (_process_data.at_param == 2)
