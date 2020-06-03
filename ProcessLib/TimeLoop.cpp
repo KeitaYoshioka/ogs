@@ -13,21 +13,20 @@
 #include "BaseLib/Error.h"
 #include "BaseLib/RunTime.h"
 #include "ChemistryLib/ChemicalSolverInterface.h"
+#include "CoupledSolutionsForStaggeredScheme.h"
 #include "MathLib/LinAlg/LinAlg.h"
 #include "NumLib/ODESolver/ConvergenceCriterionPerComponent.h"
 #include "NumLib/ODESolver/PETScNonlinearSolver.h"
 #include "NumLib/ODESolver/TimeDiscretizedODESystem.h"
+#include "ProcessData.h"
 #include "ProcessLib/CreateProcessData.h"
 #include "ProcessLib/Output/CreateOutput.h"
-
-#include "CoupledSolutionsForStaggeredScheme.h"
-#include "ProcessData.h"
 namespace
 {
 void setEquationSystem(NumLib::NonlinearSolverBase& nonlinear_solver,
-                              NumLib::EquationSystem& eq_sys,
-                              NumLib::ConvergenceCriterion& conv_crit,
-                              NumLib::NonlinearSolverTag nl_tag)
+                       NumLib::EquationSystem& eq_sys,
+                       NumLib::ConvergenceCriterion& conv_crit,
+                       NumLib::NonlinearSolverTag nl_tag)
 {
     using Tag = NumLib::NonlinearSolverTag;
     switch (nl_tag)
@@ -437,7 +436,6 @@ void TimeLoop::initialize()
         outputSolutions(output_initial_condition, 0, _start_time, *_output,
                         &Output::doOutput);
     }
-
 }
 
 /*
@@ -714,7 +712,11 @@ TimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
             if (global_coupling_iteration > 0)
             {
                 MathLib::LinAlg::axpy(x_old, -1.0, x);  // save dx to x_old
-                if (process_id == last_process_id)
+
+                int check_id = last_process_id;
+                if (process_data->process.name == "HydroMechanicalPhaseField")
+                    check_id = last_process_id;
+                if (process_id == check_id /*last_process_id*/)
                 {
                     INFO(
                         "------- Checking convergence criterion for coupled "
