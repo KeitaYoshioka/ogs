@@ -389,6 +389,14 @@ public:
             dof_tables,
         CoupledSolutionsForStaggeredScheme const* const cpl_xs) override;
 
+    void approximateFractureWidth(
+        std::size_t mesh_item_id,
+        std::vector<
+            std::reference_wrapper<NumLib::LocalToGlobalIndexMap>> const&
+            dof_tables,
+        double const t, CoupledSolutionsForStaggeredScheme const* const cpl_xs,
+        MeshLib::Mesh const& mesh) override;
+
     /*    void computeEnergy(
             std::size_t mesh_item_id,
             std::vector<

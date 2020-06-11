@@ -232,7 +232,17 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     if (gp_read)
         geostatic_pressure = *gp_read;
     else
-        geostatic_pressure = 0.05;
+        geostatic_pressure = 0.0;
+
+    // Fracture perm parameter
+    auto fp1_read =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fperm_parameter1}
+        config.getConfigParameterOptional<double>("fperm_param1");
+    double fperm_param1;
+    if (fp1_read)
+        fperm_param1 = *fp1_read;
+    else
+        fperm_param1 = 1.0;
 
     auto const fluid_type = FluidType::strToFluidType(
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fluid_type}
@@ -377,6 +387,16 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         split_method = 0;
 
+    auto fperm =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__fperm_method}
+        config.getConfigParameterOptional<int>("fperm_method");
+
+    int fperm_method;
+    if (fperm && (*fperm == 1))
+        fperm_method = 1;
+    else
+        fperm_method = 0;
+
     auto poroelastic_coupling =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__poroelastic_coupling}
         config.getConfigParameter<bool>("poroelastic_coupling", true);
@@ -390,6 +410,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         solid_density,
         specific_body_force,
         split_method,
+        fperm_method,
         reg_param,
         pf_irrv,
         li_disc,
@@ -406,6 +427,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         porosity,
         width_init,
         geostatic_pressure,
+        fperm_param1,
         fluid_type,
         fluid_compressibility,
         reference_temperature,

@@ -398,15 +398,27 @@ void HydroMechanicalPhaseFieldProcess<
     {
         _process_data.width_comp_visited =
             std::vector(_mesh.getNumberOfElements(), false);
-        INFO("Fracture width computation");
+
         GlobalExecutor::executeMemberOnDereferenced(
             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                 computeFractureNormal,
             _local_assemblers, dof_tables, _coupled_solutions);
-        GlobalExecutor::executeMemberOnDereferenced(
-            &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-                computeFractureWidth,
-            _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
+        if (_process_data.fperm_method == 0)
+        {
+            INFO("Fracture width computation");
+            GlobalExecutor::executeMemberOnDereferenced(
+                &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                    computeFractureWidth,
+                _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
+        }
+        else
+        {
+            INFO("Fracture width approximation");
+            GlobalExecutor::executeMemberOnDereferenced(
+                &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+                    approximateFractureWidth,
+                _local_assemblers, dof_tables, t, _coupled_solutions, _mesh);
+        }
     }
 
     const bool use_monolithic_scheme = false;
