@@ -663,44 +663,133 @@ TimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
         // TODO(wenqing): use process name
         coupling_iteration_converged = true;
         int const last_process_id = _per_process_data.size() - 1;
-        for (auto& process_data : _per_process_data)
+        if (_per_process_data[0]->process.name == "HydroMechanicalPhaseField")
         {
-            if (process_data->skip_process_computation)
+            bool local_coupling_iteration_converged = false;
+            for (int local_coupling_iteration = 0;
+                 local_coupling_iteration < _global_coupling_max_iterations;
+                 local_coupling_iteration++, resetCouplingConvergenceCriteria())
+            {
+                for (int process_id = 0; process_id < 2; process_id++)
+                {
+                    if (_per_process_data[process_id]->skip_process_computation)
+                        continue;
+
+                    BaseLib::RunTime time_timestep_process;
+                    time_timestep_process.start();
+
+                    auto& x = *_process_solutions[process_id];
+
+                    CoupledSolutionsForStaggeredScheme coupled_solutions(
+                        _process_solutions);
+
+                    _per_process_data[process_id]
+                        ->process.setCoupledSolutionsForStaggeredScheme(
+                            &coupled_solutions);
+
+                    nonlinear_solver_status = solveOneTimeStepOneProcess(
+                        x, timestep_id, t, dt, *_per_process_data[process_id],
+                        *_output);
+                    _per_process_data[process_id]->nonlinear_solver_status =
+                        nonlinear_solver_status;
+
+                    INFO(
+                        "[time] Solving process #%u took %g s in time step "
+                        "#%u ",
+                        process_id, time_timestep_process.elapsed(),
+                        timestep_id);
+
+                    if (!nonlinear_solver_status.error_norms_met)
+                    {
+                        ERR("The nonlinear solver failed in time step #%u "
+                            "at t "
+                            "= "
+                            "%g s "
+                            "for process #%u.",
+                            timestep_id, t, process_id);
+
+                        if (!_per_process_data[process_id]
+                                 ->timestepper
+                                 ->isSolutionErrorComputationNeeded())
+                        {
+                            // save unsuccessful solution
+                            _output->doOutputAlways(
+                                _per_process_data[process_id]->process,
+                                process_id, timestep_id, t, x);
+                            OGS_FATAL(nonlinear_fixed_dt_fails_info.data());
+                        }
+                        break;
+                    }
+
+                    // Check the convergence of the coupling iteration
+                    auto& x_old = *_solutions_of_last_cpl_iteration[process_id];
+                    if (local_coupling_iteration > 0)
+                    {
+                        MathLib::LinAlg::axpy(x_old, -1.0,
+                                              x);  // save dx to x_old
+
+                        if (process_id == 1)
+                        {
+                            INFO(
+                                "Checking convergence criterion "
+                                "for "
+                                "local coupled "
+                                "solution #%u, global coupling iteration #%u",
+                                local_coupling_iteration,
+                                global_coupling_iteration);
+                            _global_coupling_conv_crit[process_id]->checkDeltaX(
+                                x_old, x);
+                            local_coupling_iteration_converged =
+                                _global_coupling_conv_crit[process_id]
+                                    ->isSatisfied();
+                        }
+                    }
+                    MathLib::LinAlg::copy(x, x_old);
+                }  // end of for (auto& process_data : _per_process_data)
+                if (local_coupling_iteration_converged &&
+                    local_coupling_iteration > 0)
+                {
+                    break;
+                }
+            }
+
+            if (_per_process_data[2]->skip_process_computation)
                 continue;
 
-            auto const process_id = process_data->process_id;
             BaseLib::RunTime time_timestep_process;
             time_timestep_process.start();
 
-            auto& x = *_process_solutions[process_id];
+            auto& x = *_process_solutions[2];
 
             CoupledSolutionsForStaggeredScheme coupled_solutions(
                 _process_solutions);
 
-            process_data->process.setCoupledSolutionsForStaggeredScheme(
+            _per_process_data[2]->process.setCoupledSolutionsForStaggeredScheme(
                 &coupled_solutions);
 
             nonlinear_solver_status = solveOneTimeStepOneProcess(
-                x, timestep_id, t, dt, *process_data, *_output);
-            process_data->nonlinear_solver_status = nonlinear_solver_status;
+                x, timestep_id, t, dt, *_per_process_data[2], *_output);
+            _per_process_data[2]->nonlinear_solver_status =
+                nonlinear_solver_status;
 
             INFO(
                 "[time] Solving process #%u took %g s in time step #%u "
-                " coupling iteration #%u",
-                process_id, time_timestep_process.elapsed(), timestep_id,
+                " global coupling iteration #%u",
+                2, time_timestep_process.elapsed(), timestep_id,
                 global_coupling_iteration);
 
             if (!nonlinear_solver_status.error_norms_met)
             {
-                ERR("The nonlinear solver failed in time step #%u at t = %g s "
+                ERR("The nonlinear solver failed in time step #%u at t = "
+                    "%g s "
                     "for process #%u.",
-                    timestep_id, t, process_id);
+                    timestep_id, t, 2);
 
-                if (!process_data->timestepper
-                         ->isSolutionErrorComputationNeeded())
+                if (!_per_process_data[2]
+                         ->timestepper->isSolutionErrorComputationNeeded())
                 {
                     // save unsuccessful solution
-                    _output->doOutputAlways(process_data->process, process_id,
+                    _output->doOutputAlways(_per_process_data[2]->process, 2,
                                             timestep_id, t, x);
                     OGS_FATAL(nonlinear_fixed_dt_fails_info.data());
                 }
@@ -708,28 +797,92 @@ TimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
             }
 
             // Check the convergence of the coupling iteration
-            auto& x_old = *_solutions_of_last_cpl_iteration[process_id];
+            auto& x_old = *_solutions_of_last_cpl_iteration[2];
             if (global_coupling_iteration > 0)
             {
                 MathLib::LinAlg::axpy(x_old, -1.0, x);  // save dx to x_old
 
-                int check_id = last_process_id;
-                if (process_data->process.name == "HydroMechanicalPhaseField")
-                    check_id = last_process_id;
-                if (process_id == check_id /*last_process_id*/)
-                {
-                    INFO(
-                        "------- Checking convergence criterion for coupled "
-                        "solution  -------");
-                    _global_coupling_conv_crit[process_id]->checkDeltaX(x_old,
-                                                                        x);
-                    coupling_iteration_converged =
-                        coupling_iteration_converged &&
-                        _global_coupling_conv_crit[process_id]->isSatisfied();
-                }
+                INFO(
+                    "------- Checking convergence criterion for "
+                    "global coupled "
+                    "solution  -------");
+                _global_coupling_conv_crit[2]->checkDeltaX(x_old, x);
+                coupling_iteration_converged =
+                    coupling_iteration_converged &&
+                    _global_coupling_conv_crit[2]->isSatisfied();
             }
             MathLib::LinAlg::copy(x, x_old);
-        }  // end of for (auto& process_data : _per_process_data)
+        }
+        else
+        {
+            for (auto& process_data : _per_process_data)
+            {
+                if (process_data->skip_process_computation)
+                    continue;
+
+                auto const process_id = process_data->process_id;
+                BaseLib::RunTime time_timestep_process;
+                time_timestep_process.start();
+
+                auto& x = *_process_solutions[process_id];
+
+                CoupledSolutionsForStaggeredScheme coupled_solutions(
+                    _process_solutions);
+
+                process_data->process.setCoupledSolutionsForStaggeredScheme(
+                    &coupled_solutions);
+
+                nonlinear_solver_status = solveOneTimeStepOneProcess(
+                    x, timestep_id, t, dt, *process_data, *_output);
+                process_data->nonlinear_solver_status = nonlinear_solver_status;
+
+                INFO(
+                    "[time] Solving process #%u took %g s in time step #%u "
+                    " coupling iteration #%u",
+                    process_id, time_timestep_process.elapsed(), timestep_id,
+                    global_coupling_iteration);
+
+                if (!nonlinear_solver_status.error_norms_met)
+                {
+                    ERR("The nonlinear solver failed in time step #%u at t = "
+                        "%g s "
+                        "for process #%u.",
+                        timestep_id, t, process_id);
+
+                    if (!process_data->timestepper
+                             ->isSolutionErrorComputationNeeded())
+                    {
+                        // save unsuccessful solution
+                        _output->doOutputAlways(process_data->process,
+                                                process_id, timestep_id, t, x);
+                        OGS_FATAL(nonlinear_fixed_dt_fails_info.data());
+                    }
+                    break;
+                }
+
+                // Check the convergence of the coupling iteration
+                auto& x_old = *_solutions_of_last_cpl_iteration[process_id];
+                if (global_coupling_iteration > 0)
+                {
+                    MathLib::LinAlg::axpy(x_old, -1.0, x);  // save dx to x_old
+
+                    if (process_id == last_process_id)
+                    {
+                        INFO(
+                            "------- Checking convergence criterion for "
+                            "coupled "
+                            "solution  -------");
+                        _global_coupling_conv_crit[process_id]->checkDeltaX(
+                            x_old, x);
+                        coupling_iteration_converged =
+                            coupling_iteration_converged &&
+                            _global_coupling_conv_crit[process_id]
+                                ->isSatisfied();
+                    }
+                }
+                MathLib::LinAlg::copy(x, x_old);
+            }  // end of for (auto& process_data : _per_process_data)
+        }
 
         if (coupling_iteration_converged && global_coupling_iteration > 0)
         {
