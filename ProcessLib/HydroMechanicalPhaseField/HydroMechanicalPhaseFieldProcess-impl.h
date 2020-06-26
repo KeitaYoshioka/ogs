@@ -170,12 +170,12 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
                          &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                              getIntPtEpsilon));
 
-//    _secondary_variables.addSecondaryVariable(
-//        "velocity",
-//        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
-//                         _local_assemblers,
-//                         &HydroMechanicalPhaseFieldLocalAssemblerInterface::
-//                             getIntPtFracVelocity));
+    //    _secondary_variables.addSecondaryVariable(
+    //        "velocity",
+    //        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
+    //                         _local_assemblers,
+    //                         &HydroMechanicalPhaseFieldLocalAssemblerInterface::
+    //                             getIntPtFracVelocity));
 
     _process_data.ele_d = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "damage", MeshLib::MeshItemType::Cell,
@@ -188,6 +188,9 @@ void HydroMechanicalPhaseFieldProcess<DisplacementDim>::
     _process_data.width = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "width", MeshLib::MeshItemType::Cell,
         1);
+    _process_data.width_nl_prev = MeshLib::getOrCreateMeshProperty<double>(
+        const_cast<MeshLib::Mesh&>(mesh), "width_nl_prev",
+        MeshLib::MeshItemType::Cell, 1);
 
     _process_data.width_prev = MeshLib::getOrCreateMeshProperty<double>(
         const_cast<MeshLib::Mesh&>(mesh), "width_prev",
@@ -394,7 +397,8 @@ void HydroMechanicalPhaseFieldProcess<
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    if (process_id == _phase_field_process_id)
+    if (process_id == _mechanics_related_process_id /*||
+        process_id == _phase_field_process_id*/)  //
     {
         _process_data.width_comp_visited =
             std::vector(_mesh.getNumberOfElements(), false);
@@ -403,6 +407,7 @@ void HydroMechanicalPhaseFieldProcess<
             &HydroMechanicalPhaseFieldLocalAssemblerInterface::
                 computeFractureNormal,
             _local_assemblers, dof_tables, _coupled_solutions);
+
         if (_process_data.fperm_method == 0)
         {
             INFO("Fracture width computation");
@@ -422,7 +427,7 @@ void HydroMechanicalPhaseFieldProcess<
     }
 
     const bool use_monolithic_scheme = false;
-    if (process_id == _phase_field_process_id)
+    if (process_id == _hydro_process_id)
     {
         INFO("After pressure solution, pressure is copied for fixed stress");
         GlobalExecutor::executeMemberOnDereferenced(

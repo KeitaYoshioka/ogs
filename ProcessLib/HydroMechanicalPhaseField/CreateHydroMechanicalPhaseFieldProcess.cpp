@@ -397,6 +397,20 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
     else
         fperm_method = 0;
 
+    auto pf_scaling =
+        //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__pf_scaling_method}
+        config.getConfigParameterOptional<int>("pf_scaling_method");
+
+    int pf_scaling_method;
+    if (pf_scaling && (*pf_scaling == 1))
+        pf_scaling_method = 1;
+    else if (pf_scaling && (*pf_scaling == 2))
+        pf_scaling_method = 2;
+    else if (pf_scaling && (*pf_scaling == 3))
+        pf_scaling_method = 3;
+    else
+        pf_scaling_method = 0;
+
     auto poroelastic_coupling =
         //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICAL_PHASE_FIELD__poroelastic_coupling}
         config.getConfigParameter<bool>("poroelastic_coupling", true);
@@ -411,6 +425,7 @@ std::unique_ptr<Process> createHydroMechanicalPhaseFieldProcess(
         specific_body_force,
         split_method,
         fperm_method,
+        pf_scaling_method,
         reg_param,
         pf_irrv,
         li_disc,

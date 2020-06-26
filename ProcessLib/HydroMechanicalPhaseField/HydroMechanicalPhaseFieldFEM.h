@@ -283,6 +283,8 @@ public:
                 ip_data.reg_source = _process_data.source *
                                      std::exp(-distance_from_source / ls) /
                                      (4 * pi * std::pow(ls, 3));
+
+            ip_data.reg_source = ip_data.reg_source / n_integration_points;
         }
     }
 
@@ -342,7 +344,8 @@ public:
         if (t == dt && t > 0 && (*_process_data.ele_d)[_element.getID()] < 1.0)
             (*_process_data.width)[_element.getID()] = width_init;
 
-        _process_data.width_prev = _process_data.width;
+        (*_process_data.width_prev)[_element.getID()] =
+            (*_process_data.width)[_element.getID()];
     }
 
     void postNonLinearSolverConcrete(
