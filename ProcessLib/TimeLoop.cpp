@@ -666,7 +666,7 @@ TimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
         if (_per_process_data[0]->process.name == "HydroMechanicalPhaseField")
         {
             bool local_coupling_iteration_converged = false;
-            std::array<std::size_t, 3> process_id = {1, 0, 2};
+            std::array<std::size_t, 3> process_id = {0, 1, 2};
 
             for (int local_coupling_iteration = 0;
                  local_coupling_iteration < 200;
@@ -727,27 +727,27 @@ TimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
                     // Check the convergence of the coupling iteration
                     auto& x_old =
                         *_solutions_of_last_cpl_iteration[process_id[i]];
-//                    if (local_coupling_iteration > 0)
-//                    {
-                        MathLib::LinAlg::axpy(x_old, -1.0,
-                                              x);  // save dx to x_old
+                    //                    if (local_coupling_iteration > 0)
+                    //                    {
+                    MathLib::LinAlg::axpy(x_old, -1.0,
+                                          x);  // save dx to x_old
 
-                        if (process_id[i] == process_id[1])
-                        {
-                            INFO(
-                                "Checking convergence criterion "
-                                "for "
-                                "local coupled "
-                                "solution #%u, global coupling iteration #%u",
-                                local_coupling_iteration,
-                                global_coupling_iteration);
+                    if (process_id[i] == process_id[1])
+                    {
+                        INFO(
+                            "Checking convergence criterion "
+                            "for "
+                            "local coupled "
+                            "solution #%u, global coupling iteration #%u",
+                            local_coupling_iteration,
+                            global_coupling_iteration);
+                        _global_coupling_conv_crit[process_id[i]]->checkDeltaX(
+                            x_old, x);
+                        local_coupling_iteration_converged =
                             _global_coupling_conv_crit[process_id[i]]
-                                ->checkDeltaX(x_old, x);
-                            local_coupling_iteration_converged =
-                                _global_coupling_conv_crit[process_id[i]]
-                                    ->isSatisfied();
-                        }
-//                    }
+                                ->isSatisfied();
+                    }
+                    //                    }
                     MathLib::LinAlg::copy(x, x_old);
                 }  // end of for (auto& process_data : _per_process_data)
                 if (local_coupling_iteration_converged &&

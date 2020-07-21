@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <OpenGeoSysProject>
-    <mesh>quad_0deg_h0p01_single_at1.vtu</mesh>
-    <geometry>bar.gml</geometry>
+    <meshes>
+        <mesh>bar.vtu</mesh>
+        <mesh>bar_top.vtu</mesh>
+        <mesh>bar_bottom.vtu</mesh>
+        <mesh>bar_left.vtu</mesh>
+        <mesh>bar_right.vtu</mesh>
+        <mesh>bar_p_0.vtu</mesh>
+        <mesh>bar_p_1.vtu</mesh>
+        <mesh>bar_p_2.vtu</mesh>
+        <mesh>bar_p_3.vtu</mesh>
+    </meshes>
     <processes>
         <process>
             <name>HydroMechanicalPhaseField</name>
             <type>HYDRO_MECHANICAL_PHASE_FIELD</type>
             <integration_order>2</integration_order>
             <at_num>1</at_num>
+            <fixed_strs_method>1</fixed_strs_method>
+            <pf_scaling_method>0</pf_scaling_method>
             <li_disc>60</li_disc>
             <cut_off>0.8</cut_off>
-            <fperm_method>1</fperm_method>
-            <fperm_param1>3.0</fperm_param1>
+            <pf_irrv>0.05</pf_irrv>
             <constitutive_relation>
                 <type>LinearElasticIsotropic</type>
                 <youngs_modulus>E</youngs_modulus>
@@ -47,7 +57,7 @@
             <reference_temperature>293.15</reference_temperature>
             <specific_gas_constant>287.058</specific_gas_constant>
             <source_location> 1.0 0.995</source_location>
-            <source> 8.0 </source>
+            <source> 0.5 </source>
         </process>
     </processes>
     <time_loop>
@@ -58,15 +68,15 @@
                 <convergence_criterion>
                     <type>DeltaX</type>
                     <norm_type>INFINITY_N</norm_type>
-                    <abstol>1.e-6</abstol>
-                    <reltol>1.e-6</reltol>
+                    <abstol>1.e1</abstol>
+                    <reltol>1.e1</reltol>
                 </convergence_criterion>
                 <!-- convergence criterion for the second process -->
                 <convergence_criterion>
                     <type>DeltaX</type>
                     <norm_type>NORM2</norm_type>
                     <!-- <abstol>1.e-1</abstol> -->
-                    <reltol>1.e-6</reltol>
+                    <reltol>1.e1</reltol>
                 </convergence_criterion>
                 <!-- convergence criterion for the third process -->
                 <convergence_criterion>
@@ -83,7 +93,7 @@
                 <convergence_criterion>
                     <type>DeltaX</type>
                     <norm_type>NORM2</norm_type>
-                    <reltol>1.e-14</reltol>
+                    <reltol>1.e-8</reltol>
                 </convergence_criterion>
                 <time_discretization>
                     <type>BackwardEuler</type>
@@ -91,7 +101,7 @@
                 <time_stepping>
                     <type>FixedTimeStepping</type>
                     <t_initial>0</t_initial>
-                    <t_end>1e4</t_end>
+                    <t_end>86.4000e3</t_end>
                     <timesteps>
                         <pair>
                             <repeat>2</repeat>
@@ -113,7 +123,7 @@
                 <time_stepping>
                     <type>FixedTimeStepping</type>
                     <t_initial>0</t_initial>
-                    <t_end>1e4</t_end>
+                    <t_end>86.4000e3</t_end>
                     <timesteps>
                         <pair>
                             <repeat>2</repeat>
@@ -135,7 +145,7 @@
                 <time_stepping>
                     <type>FixedTimeStepping</type>
                     <t_initial>0</t_initial>
-                    <t_end>1e4</t_end>
+                    <t_end>86.4000e3</t_end>
                     <timesteps>
                         <pair>
                             <repeat>2</repeat>
@@ -147,13 +157,11 @@
         </processes>
         <output>
             <type>VTK</type>
-            <prefix>quad_0deg_scaled</prefix>
+            <prefix>HM_scaled</prefix>
             <variables>
                 <variable>displacement</variable>
                 <variable>phasefield</variable>
                 <variable>pressure</variable>
-                <variable>sigma</variable>
-                <variable>epsilon</variable>
             </variables>
             <timesteps>
                 <pair>
@@ -216,7 +224,7 @@
         <parameter>
             <name>visc</name>
             <type>Constant</type>
-            <value>0.001</value>
+            <value>0.005</value>
         </parameter>
         <parameter>
             <name>rho_f</name>
@@ -226,7 +234,7 @@
         <parameter>
             <name>Ks</name>
             <type>Constant</type>
-            <value>1.0</value>
+            <value>0.2</value>
         </parameter>
         <parameter>
             <name>Kd</name>
@@ -237,6 +245,12 @@
             <name>phi</name>
             <type>Constant</type>
             <value>0.1</value>
+        </parameter>
+        <parameter>
+            <name>w_ini</name>
+            <type>Constant</type>
+            <value>0.0</value>
+            <!-- <value>1.e-5</value> -->
         </parameter>
         <parameter>
             <name>displacement0</name>
@@ -284,12 +298,6 @@
             <value>2e-1</value>
         </parameter>
         <parameter>
-            <name>w_ini</name>
-            <type>Constant</type>
-            <value>0.0</value>
-            <!-- <value>1.e-5</value> -->
-        </parameter>
-        <parameter>
             <name>Dirichlet_load</name>
             <type>Constant</type>
             <value>1</value>
@@ -318,15 +326,13 @@
             <initial_condition>pressure_ic</initial_condition>
             <boundary_conditions>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>left</geometry>
+                    <mesh>bar_left</mesh>
                     <type>Dirichlet</type>
                     <component>0</component>
                     <parameter>pressure_bc0</parameter>
                 </boundary_condition>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>right</geometry>
+                    <mesh>bar_right</mesh>
                     <type>Dirichlet</type>
                     <component>0</component>
                     <parameter>pressure_bc0</parameter>
@@ -355,29 +361,25 @@
             <initial_condition>displacement0</initial_condition>
             <boundary_conditions>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>bottom</geometry>
+                    <mesh>bar_bottom</mesh>
                     <type>Dirichlet</type>
                     <component>1</component>
                     <parameter>dirichlet0</parameter>
                 </boundary_condition>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>top</geometry>
+                    <mesh>bar_top</mesh>
                     <type>Dirichlet</type>
                     <component>1</component>
                     <parameter>dirichlet0</parameter>
                 </boundary_condition>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>left</geometry>
+                    <mesh>bar_left</mesh>
                     <type>Dirichlet</type>
                     <component>0</component>
                     <parameter>dirichlet0</parameter>
                 </boundary_condition>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>right</geometry>
+                    <mesh>bar_right</mesh>
                     <type>Dirichlet</type>
                     <component>0</component>
                     <parameter>dirichlet0</parameter>
@@ -392,15 +394,13 @@
             <initial_condition>phasefield_ic</initial_condition>
             <boundary_conditions>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>left</geometry>
+                    <mesh>bar_left</mesh>
                     <type>Dirichlet</type>
                     <component>0</component>
                     <parameter>phasefield_bc</parameter>
                 </boundary_condition>
                 <boundary_condition>
-                    <geometrical_set>bar</geometrical_set>
-                    <geometry>right</geometry>
+                    <mesh>bar_right</mesh>
                     <type>Dirichlet</type>
                     <component>0</component>
                     <parameter>phasefield_bc</parameter>
@@ -452,7 +452,7 @@
                 <error_tolerance>1e-16</error_tolerance>
             </eigen>
             <petsc>
-                <parameters>-ksp_type cg -pc_type bjacobi -ksp_atol 1e-14 -ksp_rtol 1e-14 -snes_type vinewtonrsls -snes_linesearch_type l2 -snes_atol 1.e-6 -snes_rtol 1.e-6 -snes_max_it 1000 -snes_monitor </parameters>
+                <parameters>-ksp_type cg -pc_type bjacobi -ksp_atol 1e-6 -ksp_rtol 1e-8 -snes_type vinewtonssls -snes_linesearch_type l2 -snes_atol 1.e-6 -snes_rtol 1.e-6 -snes_max_it 1000 -snes_monitor </parameters>
             </petsc>
         </linear_solver>
         <linear_solver>
@@ -464,8 +464,7 @@
                 <error_tolerance>1e-16</error_tolerance>
             </eigen>
             <petsc>
-                <prefix>u</prefix>
-                <parameters>-u_ksp_type cg -u_pc_type bjacobi -u_ksp_atol 1e-16 -u_ksp_rtol 1e-16</parameters>
+                <parameters>-ksp_type cg -pc_type jacobi </parameters>
             </petsc>
         </linear_solver>
         <linear_solver>
@@ -477,8 +476,7 @@
                 <error_tolerance>1e-16</error_tolerance>
             </eigen>
             <petsc>
-                <prefix>p</prefix>
-                <parameters>-p_ksp_type cg -p_pc_type jacobi -p_ksp_atol 1e-12 -p_ksp_rtol 1e-12  </parameters>
+                <parameters>-ksp_type cg -pc_type jacobi </parameters>
             </petsc>
         </linear_solver>
     </linear_solvers>

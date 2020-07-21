@@ -397,8 +397,8 @@ void HydroMechanicalPhaseFieldProcess<
         getDOFTableByProcessID(_mechanics_related_process_id));
     dof_tables.emplace_back(getDOFTableByProcessID(_phase_field_process_id));
 
-    if (process_id == _mechanics_related_process_id /*||
-        process_id == _phase_field_process_id*/)  //
+    if (process_id == _mechanics_related_process_id ||
+        process_id == _phase_field_process_id)  //
     {
         _process_data.width_comp_visited =
             std::vector(_mesh.getNumberOfElements(), false);

@@ -93,7 +93,7 @@ struct IntegrationPointData final
         auto const lambda = linear_elastic_mp.lambda(t, x);
         double const coef = alpha / DisplacementDim / bulk_modulus;
 
-        eps_m.noalias() = eps - coef * delta_p * Invariants::identity2;
+        eps_m.noalias() = eps /*- coef * delta_p * Invariants::identity2*/;
 
         if (split == 0)
         {
@@ -284,7 +284,7 @@ public:
                                      std::exp(-distance_from_source / ls) /
                                      (4 * pi * std::pow(ls, 3));
 
-            ip_data.reg_source = ip_data.reg_source / n_integration_points;
+//            ip_data.reg_source = ip_data.reg_source / n_integration_points;
         }
     }
 
